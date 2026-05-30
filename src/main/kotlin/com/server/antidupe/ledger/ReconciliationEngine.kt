@@ -73,8 +73,10 @@ class ReconciliationEngine(
             // Get ledger balance (expected)
             val ledgerBalance = ledgerStorage.getBalance(playerId, material)
 
-            // Get actual inventory count
-            val actualCount = ownershipManager.countOwnedInInventory(player, material)
+            // Actual count includes items hidden inside held shulkers / bundles / chests-as-items.
+            // The shallow count missed those, which let a duped shulker hide behind a "balance
+            // matches at zero" report.
+            val actualCount = ownershipManager.countOwnedInInventoryDeep(player, material)
 
             // Compare
             if (actualCount > ledgerBalance) {
@@ -126,7 +128,7 @@ class ReconciliationEngine(
         }
 
         // Check for foreign items (items with different owner)
-        val foreignItems = ownershipManager.findForeignItems(player)
+        val foreignItems = ownershipManager.findForeignItemsDeep(player)
         val foreignAlerts = foreignItems.map { foreign ->
             ForeignItemAlert(
                 material = foreign.item.type,

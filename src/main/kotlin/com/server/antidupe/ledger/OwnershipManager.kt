@@ -2,8 +2,11 @@ package com.server.antidupe.ledger
 
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
+import org.bukkit.block.Container
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.meta.BlockStateMeta
+import org.bukkit.inventory.meta.BundleMeta
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.Plugin
 import java.util.UUID
@@ -18,6 +21,11 @@ import java.util.UUID
  * Ownership changes are tracked in the Ledger, not in item NBT history.
  */
 class OwnershipManager(private val plugin: Plugin) {
+
+    private companion object {
+        // Bounded recursion for nested-container scans. Matches the v1 isotope scanner depth.
+        private const val MAX_RECURSION_DEPTH = 10
+    }
 
     private val ownerKey = NamespacedKey(plugin, "adp_owner")
 
@@ -179,6 +187,139 @@ class OwnershipManager(private val plugin: Plugin) {
         }
 
         return tracked
+    }
+
+    /**
+     * Deep version of [countOwnedInInventory] that descends into containers (shulkers,
+     * barrels, chests stored as items) and bundles at every nesting level.
+     *
+     * Closes the "items hidden in a held shulker" blind spot: a player can have an empty
+     * main inventory but 64 diamonds inside a shulker they're carrying, and the shallow
+     * count would report 0 while reconciliation would say "balance matches at 0." The
+     * deep count includes those items so the dupe surfaces.
+     */
+    fun countOwnedInInventoryDeep(player: Player, material: Material): Int {
+        var count = countOwnedInInventory(player, material)
+        for (item in allHeldItems(player)) {
+            count += countOwnedInContainer(item, player.uniqueId, material, depth = 0)
+        }
+        return count
+    }
+
+    /**
+     * Deep version of [countAllInInventory]. Counts every item of the given material at
+     * every nesting level regardless of ownership. Useful when the caller wants the
+     * physical total ("how much of this is actually in the player's possession").
+     */
+    fun countAllInInventoryDeep(player: Player, material: Material): Int {
+        var count = countAllInInventory(player, material)
+        for (item in allHeldItems(player)) {
+            count += countAllInContainer(item, material, depth = 0)
+        }
+        return count
+    }
+
+    private fun countOwnedInContainer(stack: ItemStack, ownerUuid: UUID, material: Material, depth: Int): Int {
+        if (depth >= MAX_RECURSION_DEPTH) return 0
+        val meta = stack.itemMeta ?: return 0
+        var count = 0
+
+        if (meta is BlockStateMeta && meta.hasBlockState()) {
+            val state = meta.blockState
+            if (state is Container) {
+                for (inner in state.inventory.contents) {
+                    if (inner == null) continue
+                    if (inner.type == material && getOwner(inner) == ownerUuid) count += inner.amount
+                    count += countOwnedInContainer(inner, ownerUuid, material, depth + 1)
+                }
+            }
+        }
+        if (meta is BundleMeta) {
+            for (inner in meta.items) {
+                if (inner.type == material && getOwner(inner) == ownerUuid) count += inner.amount
+                count += countOwnedInContainer(inner, ownerUuid, material, depth + 1)
+            }
+        }
+        return count
+    }
+
+    private fun countAllInContainer(stack: ItemStack, material: Material, depth: Int): Int {
+        if (depth >= MAX_RECURSION_DEPTH) return 0
+        val meta = stack.itemMeta ?: return 0
+        var count = 0
+
+        if (meta is BlockStateMeta && meta.hasBlockState()) {
+            val state = meta.blockState
+            if (state is Container) {
+                for (inner in state.inventory.contents) {
+                    if (inner == null) continue
+                    if (inner.type == material) count += inner.amount
+                    count += countAllInContainer(inner, material, depth + 1)
+                }
+            }
+        }
+        if (meta is BundleMeta) {
+            for (inner in meta.items) {
+                if (inner.type == material) count += inner.amount
+                count += countAllInContainer(inner, material, depth + 1)
+            }
+        }
+        return count
+    }
+
+    private fun allHeldItems(player: Player): Sequence<ItemStack> = sequence {
+        for (item in player.inventory.contents.filterNotNull()) yield(item)
+        for (item in player.inventory.armorContents.filterNotNull()) yield(item)
+        yield(player.inventory.itemInOffHand)
+    }
+
+    /**
+     * Recursively walk every container in a player's inventory and report tracked items
+     * whose owner UUID doesn't match the bearer. Captures the foreign item, the slot path
+     * leading to it (for admin investigation), and the original owner.
+     */
+    fun findForeignItemsDeep(player: Player): List<ForeignItem> {
+        val foreign = mutableListOf<ForeignItem>()
+        for ((slot, item) in player.inventory.contents.withIndex()) {
+            if (item == null) continue
+            val owner = getOwner(item)
+            if (owner != null && owner != player.uniqueId) {
+                foreign.add(ForeignItem(slot = slot, item = item, originalOwner = owner))
+            }
+            collectForeignInContainer(item, player.uniqueId, slot, foreign, depth = 0)
+        }
+        return foreign
+    }
+
+    private fun collectForeignInContainer(
+        stack: ItemStack, ownerUuid: UUID, outerSlot: Int,
+        sink: MutableList<ForeignItem>, depth: Int
+    ) {
+        if (depth >= MAX_RECURSION_DEPTH) return
+        val meta = stack.itemMeta ?: return
+
+        if (meta is BlockStateMeta && meta.hasBlockState()) {
+            val state = meta.blockState
+            if (state is Container) {
+                for (inner in state.inventory.contents) {
+                    if (inner == null) continue
+                    val innerOwner = getOwner(inner)
+                    if (innerOwner != null && innerOwner != ownerUuid) {
+                        sink.add(ForeignItem(slot = outerSlot, item = inner, originalOwner = innerOwner))
+                    }
+                    collectForeignInContainer(inner, ownerUuid, outerSlot, sink, depth + 1)
+                }
+            }
+        }
+        if (meta is BundleMeta) {
+            for (inner in meta.items) {
+                val innerOwner = getOwner(inner)
+                if (innerOwner != null && innerOwner != ownerUuid) {
+                    sink.add(ForeignItem(slot = outerSlot, item = inner, originalOwner = innerOwner))
+                }
+                collectForeignInContainer(inner, ownerUuid, outerSlot, sink, depth + 1)
+            }
+        }
     }
 
     /**
