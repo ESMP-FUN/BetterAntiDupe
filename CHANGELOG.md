@@ -2,6 +2,18 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [3.0.1] - 2026-05-31
+
+### Fixed
+- Decorated pot inventory access now uses the documented no-argument `getItem()` /
+  `setItem()` accessors on `DecoratedPotInventory` rather than the slot-indexed
+  form inherited from `Inventory`. Functionally equivalent today but no longer
+  depends on slot 0 being a stable internal detail.
+- Entity-inventory classification narrowed: `is Minecart` was too broad
+  (`Minecart` doesn't implement `InventoryHolder`). Now checks `StorageMinecart`
+  and `HopperMinecart` specifically. `ChestBoat` continues to be caught via
+  `is Boat` because it extends the Boat interface.
+
 ## [3.0.0] - 2026-05-31
 
 ### Removed
