@@ -51,36 +51,22 @@
 </p>
 
 <p>
-  Two detection systems run inside the plugin. You can use either or both:
+  Detection runs through the <strong>Chain of Custody</strong> ledger. Items
+  are tagged with their owner's UUID; every acquisition (mine, craft,
+  pickup, container take, …) and every loss (place, drop, container put,
+  …) is written to an append-only ledger with cryptographic hash links.
+  When a player's actual inventory diverges from their ledger total, the
+  plugin alerts. Nearby players are recorded as witnesses, so dupe
+  exploits that bypass normal events leave behind a telltale
+  "no witnesses ever saw this item appear" pattern.
 </p>
 
-<ul>
-  <li>
-    <strong>System v1 — Digital Isotope.</strong> Every individual item gets
-    a unique ID stored in its NBT data. When a stack is split or merged,
-    the old IDs are <em>burned</em> and new ones minted. A duplicate keeps
-    a burned ID, which is immediately recognised as a dupe. This is the
-    classic, always-on system.
-  </li>
-  <li>
-    <strong>System v2 — Chain of Custody.</strong> Instead of tagging each
-    item, items are tagged with their owner and every gain/loss event is
-    written to an append-only ledger with cryptographic hash links. The
-    plugin can reconcile a player's actual inventory against their ledger
-    history and detect mismatches. It also records nearby players as
-    witnesses (<em>Proof of Witness</em>), so dupe exploits that bypass
-    normal events leave behind a telltale "no witnesses ever saw this
-    item come into existence" pattern.
-  </li>
-</ul>
-
 <p>
-  v1 is enabled by default and gives you immediate protection against the
-  most common stack-clone family. v2 is opt-in (set
-  <code>ledger.enabled: true</code> in <code>config.yml</code>) and is
-  where the comprehensive coverage lives — item frames, entity
-  inventories, workstations, chunk-load entity dupes, and more. On any
-  production server we recommend turning both on.
+  As of 3.0.0 this is the only detection system. The previous per-item
+  NBT tagging (the v1 "Digital Isotope" system) was removed because it
+  broke vanilla item stacking — every diamond having a unique ID meant
+  no two diamonds ever combined into the same slot. The current system
+  preserves vanilla stacking entirely.
 </p>
 
 <hr/>
@@ -720,4 +706,4 @@ alert_thresholds:
 
 <hr/>
 
-<p><em>Last updated for AntiDupePro 2.7.0 — Minecraft 1.21.x.</em></p>
+<p><em>Last updated for AntiDupePro 3.0.0 — Minecraft 1.21.x (Paper, Folia, Spigot).</em></p>

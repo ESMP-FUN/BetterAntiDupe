@@ -5,6 +5,8 @@ import kotlinx.coroutines.sync.withLock
 import org.bukkit.Material
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.logging.Logger
 
 /**
@@ -16,6 +18,13 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
 
     private val appendMutex = Mutex()
 
+    /**
+     * Read-through balance cache. Lookups consult the cache first; misses load from storage and
+     * populate. Appends bump the cached entry atomically, so reconciliation passes — which
+     * query getBalance once per material per player — avoid round-trips to the backend.
+     */
+    private val balanceCache = ConcurrentHashMap<Pair<UUID, Material>, AtomicInteger>()
+
     suspend fun appendBuilt(
         player: UUID,
         action: LedgerAction,
@@ -26,21 +35,36 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
         val tip = readTipInternal()
         val entry = LedgerEntry.create(player, action, material, quantity, metadata, tip?.lastHash)
         writeEntry(entry)
+        balanceCache[player to material]?.addAndGet(quantity)
         entry
     }
 
     suspend fun append(entry: LedgerEntry): LedgerEntry = appendMutex.withLock {
         writeEntry(entry)
+        balanceCache[entry.player to entry.material]?.addAndGet(entry.quantity)
         entry
     }
 
     suspend fun getTip(): ChainTip? = appendMutex.withLock { readTipInternal() }
 
+    suspend fun getBalance(player: UUID, material: Material): Int {
+        val key = player to material
+        balanceCache[key]?.let { return it.get() }
+        val fromStorage = readBalanceFromStorage(player, material)
+        balanceCache.putIfAbsent(key, AtomicInteger(fromStorage))
+        return balanceCache[key]?.get() ?: fromStorage
+    }
+
+    /** Drop the cached balance for one (player, material) — used after manual repairs. */
+    fun invalidateBalance(player: UUID, material: Material) {
+        balanceCache.remove(player to material)
+    }
+
     protected abstract suspend fun readTipInternal(): ChainTip?
     protected abstract suspend fun writeEntry(entry: LedgerEntry)
+    protected abstract suspend fun readBalanceFromStorage(player: UUID, material: Material): Int
 
     abstract suspend fun getEntry(id: UUID): LedgerEntry?
-    abstract suspend fun getBalance(player: UUID, material: Material): Int
     abstract suspend fun getAllBalances(player: UUID): Map<Material, Int>
     abstract suspend fun getRecentAcquisitions(player: UUID, material: Material, windowMs: Long = 5 * 60 * 1000L): Int
     abstract suspend fun getPlayerEntries(player: UUID, limit: Long = 100, offset: Long = 0): List<LedgerEntry>

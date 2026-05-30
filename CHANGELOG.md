@@ -2,6 +2,40 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [3.0.0] - 2026-05-31
+
+### Removed
+- **Breaking**: the legacy per-item-NBT isotope tracking system (v1) has been
+  removed entirely. The Chain of Custody ledger (formerly v2) is now the sole
+  detection layer. The visible benefit: vanilla item stacking works correctly
+  again — diamonds, netherite ingots and all other tracked items merge into
+  single stacks as they should.
+- `/adp inspect`, `/adp dupetest` and `/adp cleanse` commands removed (they
+  were specific to the isotope system).
+- `ledger.enabled` config option removed (the ledger is always on).
+
+### Added
+- **Folia compatibility.** Detects Folia at runtime and dispatches scheduler
+  calls to the regional schedulers; falls back to `BukkitScheduler` on Paper
+  non-Folia and Spigot. `plugin.yml` declares `folia-supported: true`.
+- **Spigot compatibility.** All scheduler access goes through the reflection-
+  based abstraction, so the same jar loads on Paper, Folia and Spigot. No NMS
+  references anywhere.
+- **Balance read-through cache.** Hot reconciliation queries no longer round-
+  trip to the storage backend on every call — appends bump the cached entry
+  atomically inside the chain-tip mutex.
+
+### Changed
+- Audit-trail vocabulary unchanged; existing ledger entries remain readable.
+- Storage backends still pluggable (SQLite default, Redis, Memory).
+
+### Migration
+Existing 2.x installs running v1 isotope data (the `isotopes` table in
+`storage.db` or `iso:*` keys in Redis) can safely keep that data — the plugin
+no longer reads it. To reclaim disk space you can drop the `isotopes` table
+or `FLUSHDB` the relevant Redis database; nothing in 3.0.0 references those
+keys.
+
 ## [2.7.0] - 2026-05-30
 
 ### Added

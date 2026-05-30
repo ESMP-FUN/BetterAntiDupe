@@ -89,7 +89,7 @@ class RedisLedgerStorage internal constructor(
         return LedgerEntry.fromJson(json)
     }
 
-    override suspend fun getBalance(player: UUID, material: Material): Int {
+    override suspend fun readBalanceFromStorage(player: UUID, material: Material): Int {
         return redis.get("$KEY_BALANCE$player:${material.name}")?.toIntOrNull() ?: 0
     }
 
