@@ -12,7 +12,8 @@ import org.bukkit.entity.AbstractHorse
 import org.bukkit.entity.Boat
 import org.bukkit.entity.Entity
 import org.bukkit.entity.ItemFrame
-import org.bukkit.entity.Minecart
+import org.bukkit.entity.minecart.HopperMinecart
+import org.bukkit.entity.minecart.StorageMinecart
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -98,7 +99,7 @@ class LedgerEventHandler(
         // subsequent pickup) and skip the MINE crediting entirely for this block.
         if (block.type == Material.DECORATED_POT) {
             val state = block.state as? DecoratedPot
-            val content = state?.inventory?.getItem(0)
+            val content = state?.inventory?.item
             if (content != null && content.type != Material.AIR && isTracked(content.type)) {
                 expectFrameDrop(
                     material = content.type, amount = content.amount,
@@ -358,7 +359,11 @@ class LedgerEventHandler(
         // Entity-backed inventories: horses, donkeys, llamas, mules, chest boats, storage minecarts.
         val asEntity = holder as? Entity ?: return null
         if (asEntity is Player) return null
-        val isStorage = asEntity is AbstractHorse || asEntity is Boat || asEntity is Minecart
+        // Entity-backed inventories. Note: not every Minecart has storage — only the storage and
+        // hopper subtypes implement InventoryHolder, so we narrow to those instead of the broad
+        // Minecart interface. ChestBoat extends Boat, so `is Boat` already covers chest boats.
+        val isStorage = asEntity is AbstractHorse || asEntity is Boat ||
+            asEntity is StorageMinecart || asEntity is HopperMinecart
         if (!isStorage) return null
         return EntityContainerTarget(asEntity)
     }
@@ -443,7 +448,7 @@ class LedgerEventHandler(
         if (held.type == Material.AIR || !isTracked(held.type)) return
 
         val state = block.state as? DecoratedPot ?: return
-        val current = state.inventory.getItem(0)
+        val current = state.inventory.item
         // Pot is single-slot; only inserts succeed when empty or holding same item with room.
         if (current != null && current.type != Material.AIR && !current.isSimilar(held)) return
 
