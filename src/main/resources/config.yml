@@ -1,0 +1,114 @@
+# AntiDupePro Configuration
+
+# =============================================================================
+# STORAGE BACKEND
+# =============================================================================
+# SQLITE (default) — file-based, persistent, zero ops. Recommended.
+# REDIS          — fast, shareable across multiple servers, requires a running Redis.
+# MEMORY         — in-process only; data lost on restart. Dev/testing only.
+storage:
+  backend: SQLITE
+  # SQLite file path, relative to the plugin data folder.
+  sqlite_file: "storage.db"
+  # SQLite file for the v2 ledger (separate file so you can wipe one without the other).
+  sqlite_ledger_file: "ledger.db"
+
+# =============================================================================
+# REDIS CONFIGURATION (used only when storage.backend: REDIS)
+# =============================================================================
+redis:
+  # Redis server host
+  host: "localhost"
+
+  # Redis server port
+  port: 6379
+
+  # Redis database number (0-15)
+  database: 0
+
+  # Redis password (leave empty if no password)
+  password: ""
+
+  # Connection timeout in seconds
+  timeout: 10
+
+# Theoretical Max Acquisition Rate (TMAR) Limits
+# These define the maximum number of items a player can acquire per minute
+tmar_limits:
+  ANCIENT_DEBRIS: 20
+  DIAMOND_BLOCK: 10
+  ENCHANTED_GOLDEN_APPLE: 2
+  NETHERITE_INGOT: 15
+  BEACON: 5
+
+# Tracked Materials - Items that will be protected
+tracked_materials:
+  - DIAMOND_BLOCK
+  - NETHERITE_INGOT
+  - BEACON
+  - ENCHANTED_GOLDEN_APPLE
+  - SHULKER_BOX
+  - ELYTRA
+  - NETHER_STAR
+
+# Auto-delete detected dupes
+# If true, automatically removes duped items from the game
+# If false, only logs and alerts admins
+auto_delete_dupes: false
+
+# Shadow mode
+# Track suspects and log their stash locations before taking action
+shadow_mode: true
+
+# If true, cancel double-click "collect to cursor" on tracked materials.
+# Off by default; only useful for the strictest paranoia mode.
+block_collect_to_cursor: false
+
+# =============================================================================
+# CHAIN OF CUSTODY v2 (Ledger + Proof of Witness)
+# =============================================================================
+# Next-generation tracking system with blockchain-like ledger and mesh witness network.
+# This system preserves vanilla item stacking while providing superior dupe detection.
+
+ledger:
+  # Enable Chain of Custody v2 (runs alongside v1 isotope system for migration)
+  enabled: false
+
+  # Redis database for ledger (separate from v1 isotope data)
+  redis_database: 1
+
+  # Proof of Witness settings
+  witness:
+    # Radius in blocks for witness detection (default: 48 = ~3 chunks)
+    radius: 48
+
+    # Minimum witnesses for VERIFIED trust level
+    verified_threshold: 3
+
+    # Flag suspicious patterns (high solo-action ratio)
+    flag_suspicious_patterns: true
+
+    # Solo ratio threshold for suspicion (0.0-1.0)
+    # If >80% of a player's actions are unwitnessed on a populated server, flag them
+    suspicious_solo_ratio: 0.8
+
+  # Reconciliation settings
+  reconciliation:
+    # Cooldown between reconciliations per player (milliseconds)
+    cooldown_ms: 5000
+
+    # Run reconciliation on item pickup
+    on_pickup: true
+
+    # Run reconciliation on inventory close
+    on_inventory_close: false
+
+  # Alert thresholds (excess items to trigger alert)
+  alert_thresholds:
+    ENCHANTED_GOLDEN_APPLE: 1
+    BEACON: 1
+    NETHER_STAR: 1
+    ELYTRA: 1
+    NETHERITE_INGOT: 2
+    DIAMOND_BLOCK: 3
+    default: 5

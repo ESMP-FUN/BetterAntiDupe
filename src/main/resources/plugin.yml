@@ -1,0 +1,37 @@
+name: AntiDupePro
+version: '${version}'
+main: io.github.darkstarworks.AntiDupePro
+api-version: '1.21.8'
+prefix: DUPE »
+load: STARTUP
+authors: [ darkstarworks ]
+description: Anti-Dupe Pro
+website: https://github.com/darkstarworks
+
+commands:
+  adp:
+    description: AntiDupePro base command
+    usage: /<command> <inspect|dupetest|ledger|help>
+    aliases: [antidupe, antidupepro]
+
+permissions:
+  antidupe.inspect:
+    description: Allows inspecting item security IDs
+    default: op
+  antidupe.dupetest:
+    description: Allows creating test duplicates for showcasing detection
+    default: op
+  antidupe.cleanse:
+    description: Allows giving items a fresh security ID
+    default: op
+  antidupe.admin:
+    description: Full admin access to AntiDupePro
+    default: op
+    children:
+      antidupe.inspect: true
+      antidupe.dupetest: true
+      antidupe.cleanse: true
+      antidupe.ledger: true
+  antidupe.ledger:
+    description: Allows using Chain of Custody v2 commands
+    default: op

@@ -1,0 +1,635 @@
+<!--
+  AntiDupePro — User Guide
+  Plain HTML, GitBook-friendly. No external assets, no scripts.
+-->
+
+<h1>AntiDupePro — User Guide</h1>
+
+<p>
+  AntiDupePro is a Paper / Spigot plugin that stops item duplication on
+  Minecraft servers running <strong>1.21.x</strong> (tested through 1.21.11).
+  It works by giving valuable items a hidden security signature and tracking
+  every movement through a tamper-evident ledger, so when a dupe exploit
+  produces a copy, the plugin can tell which item is the original and which
+  is the forgery.
+</p>
+
+<p>
+  This guide is written for server owners and admins. You do not need to
+  understand how the detection works to use the plugin — just install it,
+  pick a storage backend, and the defaults will do the right thing.
+</p>
+
+<hr/>
+
+<h2>Table of Contents</h2>
+
+<ol>
+  <li><a href="#what-it-does">What it does</a></li>
+  <li><a href="#quick-start">Quick start (5 minutes)</a></li>
+  <li><a href="#installation">Installation</a></li>
+  <li><a href="#storage">Choosing a storage backend</a></li>
+  <li><a href="#config">Configuration reference</a></li>
+  <li><a href="#features">Features</a></li>
+  <li><a href="#commands">Commands</a></li>
+  <li><a href="#permissions">Permissions</a></li>
+  <li><a href="#scenarios">Common scenarios</a></li>
+  <li><a href="#troubleshooting">Troubleshooting</a></li>
+  <li><a href="#faq">FAQ</a></li>
+</ol>
+
+<hr/>
+
+<h2 id="what-it-does">1. What it does</h2>
+
+<p>
+  Whenever a player mines, crafts, picks up, or otherwise obtains a tracked
+  item (diamonds, netherite, shulkers, elytras, etc.), AntiDupePro tags
+  that item with a unique signature and records the event. If the item
+  later appears somewhere it shouldn't — say, the player has two of it but
+  the ledger only shows one — the plugin flags the suspicious copy.
+</p>
+
+<p>
+  Two detection systems run inside the plugin. You can use either or both:
+</p>
+
+<ul>
+  <li>
+    <strong>System v1 — Digital Isotope.</strong> Every individual item gets
+    a unique ID stored in its NBT data. When a stack is split or merged,
+    the old IDs are <em>burned</em> and new ones minted. A duplicate keeps
+    a burned ID, which is immediately recognised as a dupe. This is the
+    classic, always-on system.
+  </li>
+  <li>
+    <strong>System v2 — Chain of Custody.</strong> Instead of tagging each
+    item, items are tagged with their owner and every gain/loss event is
+    written to an append-only ledger with cryptographic hash links. The
+    plugin can reconcile a player's actual inventory against their ledger
+    history and detect mismatches. It also records nearby players as
+    witnesses (<em>Proof of Witness</em>), so dupe exploits that bypass
+    normal events leave behind a telltale "no witnesses ever saw this
+    item come into existence" pattern.
+  </li>
+</ul>
+
+<p>
+  v1 is enabled by default. v2 is opt-in (set <code>ledger.enabled: true</code>).
+</p>
+
+<hr/>
+
+<h2 id="quick-start">2. Quick start (5 minutes)</h2>
+
+<ol>
+  <li>Download the latest <code>AntiDupePro-X.Y.Z-all.jar</code>.</li>
+  <li>Drop it into your server's <code>plugins/</code> folder.</li>
+  <li>Start the server once. The plugin generates <code>plugins/AntiDupePro/config.yml</code> and a SQLite database file, then loads itself.</li>
+  <li>That's it. Your server now tracks the default set of valuable items.</li>
+</ol>
+
+<p>
+  To confirm it's working, hand yourself a diamond block, then run
+  <code>/adp inspect</code> while holding it. You should see a security
+  report with a UUID and status <strong>ACTIVE</strong>.
+</p>
+
+<hr/>
+
+<h2 id="installation">3. Installation</h2>
+
+<h3>Requirements</h3>
+
+<table>
+  <tr><th>Item</th><th>Requirement</th></tr>
+  <tr><td>Server software</td><td>Paper or Paper-compatible fork (Purpur, Pufferfish, etc.)</td></tr>
+  <tr><td>Minecraft version</td><td>1.21.0 – 1.21.11</td></tr>
+  <tr><td>Java</td><td>21 or newer</td></tr>
+  <tr><td>External services</td><td>None required (SQLite is built in). Redis is optional.</td></tr>
+</table>
+
+<h3>Steps</h3>
+
+<ol>
+  <li>Stop your server.</li>
+  <li>Place <code>AntiDupePro-X.Y.Z-all.jar</code> in <code>plugins/</code>.</li>
+  <li>Start the server. On first boot you will see something like this in the console:
+    <pre><code>[AntiDupePro] === AntiDupePro v2.0.0 ===
+[AntiDupePro] Initializing Protection Engine...
+[AntiDupePro] Configuration loaded and validated
+[AntiDupePro] Connected to SQLite Security Backend at storage.db
+[AntiDupePro] Core initialized
+[AntiDupePro] Event listeners registered
+[AntiDupePro] === AntiDupePro enabled successfully ===</code></pre>
+  </li>
+  <li>Open <code>plugins/AntiDupePro/config.yml</code> and adjust anything you want (see the <a href="#config">configuration reference</a>).</li>
+  <li>Reload the plugin with <code>/reload confirm</code> or restart the server.</li>
+</ol>
+
+<h3>Upgrading from an older version</h3>
+
+<p>
+  Stop the server, replace the jar, start the server. Your existing
+  <code>config.yml</code> is preserved. If new config keys are introduced
+  in a release, the plugin uses sensible defaults for them — check the
+  changelog to see if you want to add the new keys explicitly.
+</p>
+
+<hr/>
+
+<h2 id="storage">4. Choosing a storage backend</h2>
+
+<p>
+  AntiDupePro can store its tracking data in one of three places. Choose
+  the one that fits your setup:
+</p>
+
+<table>
+  <tr><th>Backend</th><th>When to use</th><th>Pros</th><th>Cons</th></tr>
+  <tr>
+    <td><strong>SQLite</strong> <em>(default)</em></td>
+    <td>Single-server setups, almost everyone.</td>
+    <td>No external service. Data survives restarts. Zero configuration.</td>
+    <td>Not shared between servers in a network.</td>
+  </tr>
+  <tr>
+    <td><strong>Redis</strong></td>
+    <td>Multi-server networks where item tracking must span servers.</td>
+    <td>Fast. Shared state across a network. Battle-tested.</td>
+    <td>You have to run and maintain a Redis instance.</td>
+  </tr>
+  <tr>
+    <td><strong>Memory</strong></td>
+    <td>Testing and development only.</td>
+    <td>Instant, zero setup.</td>
+    <td><strong>Data is lost on restart.</strong> Do not use in production.</td>
+  </tr>
+</table>
+
+<p>
+  Set your choice in <code>config.yml</code>:
+</p>
+
+<pre><code>storage:
+  backend: SQLITE    # or REDIS, or MEMORY
+  sqlite_file: "storage.db"
+  sqlite_ledger_file: "ledger.db"</code></pre>
+
+<p>
+  If you pick <code>REDIS</code>, fill in the <code>redis:</code> section
+  further down in the config (host, port, password, database).
+</p>
+
+<hr/>
+
+<h2 id="config">5. Configuration reference</h2>
+
+<p>
+  The full <code>config.yml</code> with every option explained:
+</p>
+
+<pre><code>storage:
+  # Where to keep tracking data. SQLITE, REDIS, or MEMORY.
+  backend: SQLITE
+  # SQLite filename for the v1 system, inside plugins/AntiDupePro/.
+  sqlite_file: "storage.db"
+  # SQLite filename for the v2 ledger (kept separate so you can wipe
+  # one without touching the other).
+  sqlite_ledger_file: "ledger.db"
+
+redis:
+  # Used only when storage.backend: REDIS.
+  host: "localhost"
+  port: 6379
+  database: 0
+  password: ""
+  timeout: 10        # seconds
+
+# Maximum tracked items per minute. Players who exceed these limits are
+# flagged as suspicious (Theoretical Max Acquisition Rate).
+tmar_limits:
+  ANCIENT_DEBRIS: 20
+  DIAMOND_BLOCK: 10
+  ENCHANTED_GOLDEN_APPLE: 2
+  NETHERITE_INGOT: 15
+  BEACON: 5
+
+# Items that get tracked. Add or remove freely; use vanilla Material names.
+# Shulker boxes of every color are always tracked, regardless of this list.
+tracked_materials:
+  - DIAMOND_BLOCK
+  - NETHERITE_INGOT
+  - BEACON
+  - ENCHANTED_GOLDEN_APPLE
+  - SHULKER_BOX
+  - ELYTRA
+  - NETHER_STAR
+
+# If true, the plugin silently removes detected duplicates from inventories.
+# If false (default), it only alerts admins and logs the event.
+auto_delete_dupes: false
+
+# In shadow mode, suspected dupers are watched and their stash locations
+# are logged, but they aren't punished automatically.
+shadow_mode: true
+
+# Cancel "double-click to gather all" on tracked items. Off by default
+# because it interferes with normal play; only useful in strict paranoia
+# setups.
+block_collect_to_cursor: false
+
+# ---------- v2 Chain of Custody ----------
+ledger:
+  # Turn the v2 system on. Off by default while it matures.
+  enabled: false
+
+  # Redis database number for the ledger (used only with REDIS backend).
+  redis_database: 1
+
+  witness:
+    # How many blocks away a player has to be to "witness" an action.
+    radius: 48
+    # How many witnesses an action needs to count as VERIFIED.
+    verified_threshold: 3
+    # Players whose actions are over this fraction unwitnessed get flagged.
+    suspicious_solo_ratio: 0.8
+
+  reconciliation:
+    # How long to wait between balance checks per player, in milliseconds.
+    cooldown_ms: 5000
+
+  # How many extra items a player can hold above their ledger balance
+  # before an alert fires. Higher-value items have stricter thresholds.
+  alert_thresholds:
+    ENCHANTED_GOLDEN_APPLE: 1
+    BEACON: 1
+    NETHER_STAR: 1
+    ELYTRA: 1
+    NETHERITE_INGOT: 2
+    DIAMOND_BLOCK: 3
+    default: 5</code></pre>
+
+<hr/>
+
+<h2 id="features">6. Features</h2>
+
+<h3>6.1 Digital Isotope (v1)</h3>
+
+<p>
+  This is the system that runs by default. Every tracked item entering
+  the world is given a unique signature stored in its NBT. The signature
+  lives on the item, not in a player's inventory — so it travels with the
+  item if it's dropped, given away, or stored in a shulker.
+</p>
+
+<p>What it catches:</p>
+
+<ul>
+  <li>
+    <strong>Stack-clone exploits.</strong> If two items end up with the
+    same signature, the first transaction "burns" it and the second
+    transaction will see a burned signature and flag the item.
+  </li>
+  <li>
+    <strong>Shulker-box dupes.</strong> When a player picks up a shulker,
+    the plugin scans every item inside it (recursively, up to 10 levels
+    deep) for burned signatures. A shulker full of duped diamonds gets
+    caught the moment someone picks it up.
+  </li>
+  <li>
+    <strong>Hopper laundering.</strong> Items moving through hoppers are
+    checked too, so you can't wash dupes by feeding them into automation.
+  </li>
+  <li>
+    <strong>Acquisition rate abuse (TMAR).</strong> If a player suddenly
+    starts gaining far more diamonds-per-minute than is physically
+    possible, the plugin flags it.
+  </li>
+</ul>
+
+<h3>6.2 Chain of Custody (v2, opt-in)</h3>
+
+<p>
+  v2 is the newer system. It treats item tracking like a blockchain
+  ledger: every gain and loss event is written as a hash-linked entry, so
+  the chain itself is tamper-evident. Items only carry their owner's UUID
+  in NBT (not a per-item ID), which means vanilla item stacking still
+  works normally.
+</p>
+
+<p>What it adds on top of v1:</p>
+
+<ul>
+  <li>
+    <strong>Balance reconciliation.</strong> The plugin periodically
+    counts how many of each tracked material the player has in their
+    inventory and compares it to the ledger total. If a player has 20
+    diamond blocks but the ledger only shows them ever gaining 12, that's
+    a dupe.
+  </li>
+  <li>
+    <strong>Proof of Witness.</strong> When a player mines, crafts, or
+    picks up something, the plugin records nearby players as witnesses.
+    Players whose actions are <em>never</em> witnessed on a populated
+    server are statistically suspicious — that's exactly the pattern a
+    dupe exploit produces.
+  </li>
+  <li>
+    <strong>Tamper detection.</strong> Each ledger entry contains a
+    SHA-256 hash linking it to the previous entry. Anyone editing the
+    ledger directly (e.g. by SQL) breaks the chain, and
+    <code>/adp ledger verify</code> reports exactly where.
+  </li>
+  <li>
+    <strong>Trust scores.</strong> Players build a long-term trust score
+    based on how often their actions are independently corroborated by
+    witnesses.
+  </li>
+</ul>
+
+<p>
+  To turn it on, set <code>ledger.enabled: true</code> in
+  <code>config.yml</code> and restart the server.
+</p>
+
+<h3>6.3 Shadow mode and alerts</h3>
+
+<p>
+  By default, the plugin runs in <em>shadow mode</em>: it watches and
+  records, but doesn't immediately delete items or punish players. When
+  something suspicious happens:
+</p>
+
+<ul>
+  <li>Admins online get an in-game alert in chat.</li>
+  <li>The event is logged to the server console.</li>
+  <li>If the player is flagged, the next chest they open is logged too — letting you find their stash for manual review.</li>
+</ul>
+
+<p>
+  If you'd rather take action automatically, set
+  <code>auto_delete_dupes: true</code>. The plugin will silently remove
+  detected duplicates from inventories.
+</p>
+
+<hr/>
+
+<h2 id="commands">7. Commands</h2>
+
+<p>
+  All commands live under <code>/adp</code> (aliases: <code>/antidupe</code>, <code>/antidupepro</code>).
+</p>
+
+<h3>Core commands</h3>
+
+<table>
+  <tr><th>Command</th><th>What it does</th><th>Permission</th></tr>
+  <tr>
+    <td><code>/adp inspect</code></td>
+    <td>Show the security report for the item in your main hand: its signature, status, mint time, and original owner.</td>
+    <td><code>antidupe.inspect</code></td>
+  </tr>
+  <tr>
+    <td><code>/adp dupetest</code></td>
+    <td>Create a copy of the item in your hand with the same signature, for demo or testing. The first transaction will burn the signature and the second copy will be detected as a dupe.</td>
+    <td><code>antidupe.dupetest</code></td>
+  </tr>
+  <tr>
+    <td><code>/adp cleanse</code></td>
+    <td>Give the item in your hand a brand-new security signature. Useful if you need to mint a freshly created item.</td>
+    <td><code>antidupe.cleanse</code></td>
+  </tr>
+  <tr>
+    <td><code>/adp help</code></td>
+    <td>Print available commands.</td>
+    <td>none</td>
+  </tr>
+</table>
+
+<h3>Ledger (v2) commands</h3>
+
+<p>
+  These only work when <code>ledger.enabled: true</code> in config.
+  They all require <code>antidupe.admin</code>.
+</p>
+
+<table>
+  <tr><th>Command</th><th>What it does</th></tr>
+  <tr><td><code>/adp ledger status</code></td><td>Show overall ledger state: chain tip, recent hash, current suspect count.</td></tr>
+  <tr><td><code>/adp ledger balance &lt;player&gt;</code></td><td>Show the player's expected balances for each tracked material.</td></tr>
+  <tr><td><code>/adp ledger history &lt;player&gt;</code></td><td>Show the player's most recent 15 ledger entries.</td></tr>
+  <tr><td><code>/adp ledger witness &lt;player&gt;</code></td><td>Show the player's witness statistics and any suspicious patterns.</td></tr>
+  <tr><td><code>/adp ledger suspects</code></td><td>List all currently flagged players, ranked by violation count.</td></tr>
+  <tr><td><code>/adp ledger reconcile &lt;player&gt;</code></td><td>Force a balance check for an online player right now.</td></tr>
+  <tr><td><code>/adp ledger trust &lt;player&gt;</code></td><td>Show the player's accumulated trust score.</td></tr>
+  <tr><td><code>/adp ledger verify</code></td><td>Verify the entire hash chain. Tells you if anything has been tampered with.</td></tr>
+</table>
+
+<hr/>
+
+<h2 id="permissions">8. Permissions</h2>
+
+<table>
+  <tr><th>Permission</th><th>Grants</th><th>Default</th></tr>
+  <tr><td><code>antidupe.inspect</code></td><td><code>/adp inspect</code></td><td>op</td></tr>
+  <tr><td><code>antidupe.dupetest</code></td><td><code>/adp dupetest</code></td><td>op</td></tr>
+  <tr><td><code>antidupe.cleanse</code></td><td><code>/adp cleanse</code></td><td>op</td></tr>
+  <tr><td><code>antidupe.ledger</code></td><td>All <code>/adp ledger ...</code> commands</td><td>op</td></tr>
+  <tr><td><code>antidupe.admin</code></td><td>All of the above, plus receiving in-game dupe alerts</td><td>op</td></tr>
+</table>
+
+<p>
+  If you're using a permissions plugin (LuckPerms, etc.), give your
+  moderators <code>antidupe.admin</code> so they see alerts.
+</p>
+
+<hr/>
+
+<h2 id="scenarios">9. Common scenarios</h2>
+
+<h3>"I want to test that it works."</h3>
+
+<ol>
+  <li>Hand yourself a diamond block.</li>
+  <li>Hold it and run <code>/adp inspect</code>. You should see status <strong>ACTIVE</strong>.</li>
+  <li>Run <code>/adp dupetest</code>. You now have two identical-looking diamond blocks with the same signature.</li>
+  <li>Split or merge one of them. Then run <code>/adp inspect</code> on the other.</li>
+  <li>It should now show status <strong>SPENT (DUPLICATE)</strong>.</li>
+</ol>
+
+<h3>"A player thinks I unfairly took their item."</h3>
+
+<ol>
+  <li>Ask them to hold the item and run <code>/adp inspect</code> together.</li>
+  <li>If it shows ACTIVE, the item is fine.</li>
+  <li>If it shows SPENT, the item is a verified duplicate. Show them the signature and the original-owner field as evidence.</li>
+</ol>
+
+<h3>"I want to track a new item."</h3>
+
+<ol>
+  <li>Open <code>config.yml</code>.</li>
+  <li>Add the item's Material name to the <code>tracked_materials</code> list (e.g. <code>- TOTEM_OF_UNDYING</code>).</li>
+  <li>Optionally add it under <code>tmar_limits</code> with a per-minute cap.</li>
+  <li>Restart or reload the server.</li>
+</ol>
+
+<h3>"I want to stop tracking shulkers." </h3>
+
+<p>
+  You can't fully — shulker scanning is hardcoded because they're the
+  primary tool for shipping duped goods. You can remove
+  <code>SHULKER_BOX</code> from <code>tracked_materials</code> (which stops
+  minting them as items), but their contents will still be scanned on
+  pickup.
+</p>
+
+<h3>"My network has multiple servers. How do I share tracking?"</h3>
+
+<p>
+  Set <code>storage.backend: REDIS</code> on every server and point them
+  at the same Redis instance. Items keep their signatures via NBT as they
+  travel through proxies (BungeeCord / Velocity), so a dupe minted on one
+  server will be caught when it's used on another.
+</p>
+
+<hr/>
+
+<h2 id="troubleshooting">10. Troubleshooting</h2>
+
+<h3>"The plugin failed to start."</h3>
+
+<p>
+  Check the console for the line beginning with
+  <code>Failed to initialize AntiDupePro:</code>. Common causes:
+</p>
+
+<ul>
+  <li>
+    <strong>Redis is selected but the server can't reach it.</strong>
+    Either start your Redis server or switch <code>storage.backend</code> to
+    <code>SQLITE</code>.
+  </li>
+  <li>
+    <strong>Wrong Java version.</strong> The plugin requires Java 21+.
+  </li>
+  <li>
+    <strong>Old Minecraft version.</strong> The plugin requires Paper API 1.21+.
+  </li>
+</ul>
+
+<h3>"Players say tracked items behave weirdly."</h3>
+
+<p>
+  The Digital Isotope system stores a per-item ID, which breaks vanilla
+  stacking — two diamond blocks with different IDs will not stack into
+  one slot. This is normal v1 behaviour. If your players find this
+  intrusive, enable v2 instead (<code>ledger.enabled: true</code>); v2
+  preserves vanilla stacking.
+</p>
+
+<h3>"I'm getting false-positive dupe alerts."</h3>
+
+<p>
+  A few common sources:
+</p>
+
+<ul>
+  <li>
+    <strong>Custom plugins giving items.</strong> If another plugin grants
+    items via <code>player.getInventory().addItem(...)</code> without
+    firing a Bukkit event, AntiDupePro can't see the legitimate source
+    and may flag the resulting balance. Either fire a proper event from
+    the other plugin, or whitelist the material.
+  </li>
+  <li>
+    <strong>World-edit / instant-mining tools.</strong> Mining 200
+    diamond blocks in one second will trip TMAR. Raise the limit for
+    that material or give the user a permission to bypass (a future
+    feature — for now, raise the limit).
+  </li>
+  <li>
+    <strong>Old items from before the plugin was installed.</strong>
+    These have no signature and show as UNKNOWN on inspect. Use
+    <code>/adp cleanse</code> to give them a fresh signature.
+  </li>
+</ul>
+
+<h3>"The chain integrity check failed."</h3>
+
+<p>
+  If <code>/adp ledger verify</code> reports a broken chain, that means
+  someone (or something) modified the ledger database directly. Stop the
+  server, back up the database file, and investigate. The plugin won't
+  refuse to run, but reconciliation results from after the break point
+  can't be trusted until you decide what to do.
+</p>
+
+<hr/>
+
+<h2 id="faq">11. FAQ</h2>
+
+<h3>Does this affect server performance?</h3>
+
+<p>
+  Tracking work happens off the main thread. The only main-thread work
+  is reading and writing item NBT, which is very cheap. On a busy server
+  with hundreds of tracked transactions per second, the plugin uses well
+  under 1% of CPU.
+</p>
+
+<h3>Does it work with mods like Geyser / ViaVersion?</h3>
+
+<p>
+  Yes. The plugin operates entirely at the Paper API level, so any item
+  that's a real ItemStack in Paper is trackable.
+</p>
+
+<h3>What happens to items that already existed before I installed it?</h3>
+
+<p>
+  They show up as <strong>UNKNOWN</strong> when inspected. The plugin
+  treats them as legitimate (it fails open). You can run
+  <code>/adp cleanse</code> on individual items to give them a fresh
+  signature, or just let them be tracked from their next transaction
+  onwards.
+</p>
+
+<h3>Can a sneaky admin tamper with the ledger?</h3>
+
+<p>
+  Editing entries in the SQLite or Redis database directly will break
+  the hash chain, and <code>/adp ledger verify</code> will report exactly
+  where the tampering started and which entry was the last valid one.
+</p>
+
+<h3>What's the difference between v1 and v2? Which should I use?</h3>
+
+<table>
+  <tr><th></th><th>v1 (Isotope)</th><th>v2 (Ledger)</th></tr>
+  <tr><td>Status</td><td>Stable, default-on</td><td>Opt-in</td></tr>
+  <tr><td>Vanilla stacking</td><td>Broken (per-item IDs)</td><td>Preserved</td></tr>
+  <tr><td>Catches stack-clone exploits</td><td>Yes</td><td>Yes (via balance check)</td></tr>
+  <tr><td>Catches shulker dupes</td><td>Yes</td><td>Yes</td></tr>
+  <tr><td>Catches event-bypass exploits</td><td>No</td><td>Yes (Proof of Witness)</td></tr>
+  <tr><td>Tamper-evident audit trail</td><td>No</td><td>Yes (hash chain)</td></tr>
+</table>
+
+<p>
+  For most servers, v1 alone is enough. Turn on v2 if you have a network
+  with sophisticated players or if you want a forensic audit trail.
+</p>
+
+<h3>Where do I report bugs?</h3>
+
+<p>
+  Open an issue on the project's GitHub repository. Include your server
+  version, plugin version, the <code>storage.backend</code> you're using,
+  and the relevant console log lines (search for <code>AntiDupePro</code>
+  or <code>[DUPE]</code>).
+</p>
+
+<hr/>
+
+<p><em>Last updated for AntiDupePro 2.0.0 — Minecraft 1.21.x.</em></p>
