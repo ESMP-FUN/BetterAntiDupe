@@ -53,16 +53,14 @@ shadow_mode: true
 block_collect_to_cursor: false
 
 # =============================================================================
-# CHAIN OF CUSTODY v2 (Ledger + Proof of Witness)
+# CHAIN OF CUSTODY (Ledger + Proof of Witness)
 # =============================================================================
-# Next-generation tracking system with blockchain-like ledger and mesh witness network.
-# This system preserves vanilla item stacking while providing superior dupe detection.
+# As of 3.0.0 the ledger is the sole detection system. The legacy per-item
+# isotope tags have been removed (they broke vanilla stacking). All settings
+# below tune the ledger; it is always on.
 
 ledger:
-  # Enable Chain of Custody v2 (runs alongside v1 isotope system for migration)
-  enabled: false
-
-  # Redis database for ledger (separate from v1 isotope data)
+  # Redis database number for ledger data (used only with storage.backend: REDIS).
   redis_database: 1
 
   # Proof of Witness settings

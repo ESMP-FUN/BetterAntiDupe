@@ -1,13 +1,9 @@
 package io.github.darkstarworks
 
 import com.server.antidupe.commands.AdpCommand
-import com.server.antidupe.core.DupeAlertManager
-import com.server.antidupe.core.IsotopeManager
-import com.server.antidupe.core.IsotopeScanner
-import com.server.antidupe.data.IsotopeStorage
 import com.server.antidupe.ledger.ChainOfCustody
 import com.server.antidupe.ledger.LedgerStorage
-import com.server.antidupe.listeners.IsotopeListener
+import com.server.antidupe.platform.PlatformScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -19,98 +15,64 @@ import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
+import java.util.logging.Level
 
 class AntiDupePro : JavaPlugin() {
 
     lateinit var pluginScope: CoroutineScope
         private set
 
-    /** Material-keyed configuration (tracked_materials, tmar_limits, alert_thresholds). */
     lateinit var materialsConfig: FileConfiguration
         private set
 
-    private lateinit var isotopeStorage: IsotopeStorage
-    private lateinit var isotopeManager: IsotopeManager
-    private lateinit var isotopeScanner: IsotopeScanner
-    private lateinit var dupeAlertManager: DupeAlertManager
-    private lateinit var isotopeListener: IsotopeListener
-    private lateinit var adpCommand: AdpCommand
+    lateinit var scheduler: PlatformScheduler
+        private set
 
     private var chainOfCustody: ChainOfCustody? = null
+    private lateinit var adpCommand: AdpCommand
 
     override fun onEnable() {
         @Suppress("DEPRECATION")
         logger.info("=== AntiDupePro v${description.version} ===")
-        logger.info("Initializing Protection Engine...")
+        logger.info("Initializing Chain of Custody...")
 
         try {
             pluginScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-            logger.info("✓ Coroutine scope initialized")
+            scheduler = PlatformScheduler(this)
+            logger.info("✓ Scheduler initialized (${if (scheduler.isFolia) "Folia" else "Bukkit"} mode)")
 
             saveDefaultConfig()
             materialsConfig = loadMaterialsConfig()
             validateConfiguration()
-            logger.info("✓ Configuration loaded and validated")
+            logger.info("✓ Configuration loaded")
 
-            isotopeStorage = IsotopeStorage.create(this)
-            isotopeStorage.connect()
-
-            isotopeManager = IsotopeManager(this, isotopeStorage, pluginScope)
-            logger.info("✓ Core initialized")
-
-            isotopeScanner = IsotopeScanner(this, isotopeStorage)
-            logger.info("✓ Scanner initialized")
-
-            dupeAlertManager = DupeAlertManager(this)
-            logger.info("✓ Dupe Alert Manager initialized")
-
-            isotopeListener = IsotopeListener(this, isotopeManager, dupeAlertManager, isotopeScanner, pluginScope)
-            server.pluginManager.registerEvents(isotopeListener, this)
-            logger.info("✓ Event listeners registered")
-
-            adpCommand = AdpCommand(this, isotopeStorage, pluginScope)
+            adpCommand = AdpCommand(this, pluginScope, scheduler)
             getCommand("adp")?.let { cmd ->
                 cmd.setExecutor(adpCommand)
                 cmd.tabCompleter = adpCommand
             }
-            logger.info("✓ Commands registered")
 
             initializeChainOfCustody()
 
             logger.info("=== AntiDupePro enabled successfully ===")
         } catch (e: Exception) {
-            logger.severe("Failed to initialize AntiDupePro: ${e.message}")
-            logger.log(java.util.logging.Level.SEVERE, "Stack trace:", e)
+            logger.log(Level.SEVERE, "Failed to initialize AntiDupePro", e)
             server.pluginManager.disablePlugin(this)
         }
     }
 
     override fun onDisable() {
         logger.info("=== AntiDupePro shutting down ===")
-
         try {
             chainOfCustody?.shutdown()
             chainOfCustody = null
-
-            if (::pluginScope.isInitialized) {
-                pluginScope.cancel()
-            }
-
-            if (::isotopeStorage.isInitialized) {
-                isotopeStorage.disconnect()
-            }
+            if (::pluginScope.isInitialized) pluginScope.cancel()
         } catch (e: Exception) {
             logger.warning("Error during shutdown: ${e.message}")
         }
-
         logger.info("=== AntiDupePro disabled ===")
     }
 
-    /**
-     * Load materials.yml. If absent and config.yml still holds legacy keys
-     * (tracked_materials, tmar_limits, ledger.alert_thresholds), migrate them
-     * into the new file and strip them from config.yml on disk.
-     */
     private fun loadMaterialsConfig(): FileConfiguration {
         val file = File(dataFolder, "materials.yml")
         if (!file.exists()) {
@@ -136,7 +98,7 @@ class AntiDupePro : JavaPlugin() {
                 config.set("ledger.alert_thresholds", null)
                 saveConfig()
 
-                logger.info("Migrated tracked_materials / tmar_limits / alert_thresholds to materials.yml")
+                logger.info("Migrated material lists to materials.yml")
             } else {
                 saveResource("materials.yml", false)
             }
@@ -145,73 +107,38 @@ class AntiDupePro : JavaPlugin() {
     }
 
     private fun validateConfiguration() {
-        val cfg = config
         val mats = materialsConfig
 
-        val redisPort = cfg.getInt("redis.port", 6379)
-        val redisTimeout = cfg.getInt("redis.timeout", 10)
-
+        val redisPort = config.getInt("redis.port", 6379)
         if (redisPort < 1 || redisPort > 65535) {
             logger.warning("Invalid redis.port ($redisPort), using default 6379")
-            cfg.set("redis.port", 6379)
-        }
-
-        if (redisTimeout < 1 || redisTimeout > 60) {
-            logger.warning("Invalid redis.timeout ($redisTimeout), using default 10 seconds")
-            cfg.set("redis.timeout", 10)
+            config.set("redis.port", 6379)
         }
 
         val trackedMaterials = mats.getStringList("tracked_materials")
         if (trackedMaterials.isEmpty()) {
-            logger.warning("No tracked_materials configured in materials.yml! Using defaults.")
+            logger.warning("No tracked_materials configured! Using defaults.")
             mats.set("tracked_materials", listOf(
                 "DIAMOND_BLOCK", "NETHERITE_INGOT", "BEACON",
                 "ENCHANTED_GOLDEN_APPLE", "SHULKER_BOX", "ELYTRA", "NETHER_STAR"
             ))
         }
 
-        val tmarSection = mats.getConfigurationSection("tmar_limits")
-        if (tmarSection == null) {
-            logger.warning("No tmar_limits configured in materials.yml! Rate limiting disabled.")
-        } else {
-            tmarSection.getKeys(false).forEach { material ->
-                val limit = tmarSection.getInt(material)
-                if (limit < 1) {
-                    logger.warning("Invalid TMAR limit for $material ($limit), disabling limit for this material")
-                }
-            }
-        }
-
-        val shadowMode = cfg.getBoolean("shadow_mode", true)
-        val autoDelete = cfg.getBoolean("auto_delete_dupes", false)
-
-        if (shadowMode) {
+        if (config.getBoolean("shadow_mode", true)) {
             logger.info("Running in SHADOW MODE - suspects will be tracked, not banned")
         }
-        if (autoDelete) {
+        if (config.getBoolean("auto_delete_dupes", false)) {
             logger.info("AUTO-DELETE enabled - detected dupes will be removed automatically")
-        } else {
-            logger.info("AUTO-DELETE disabled - dupes will only be logged")
         }
     }
 
     private fun initializeChainOfCustody() {
-        val enableLedger = config.getBoolean("ledger.enabled", false)
-        if (!enableLedger) {
-            logger.info("Chain of Custody v2 is disabled (set ledger.enabled: true to enable)")
-            return
-        }
-
-        logger.info("Initializing Chain of Custody v2 (Ledger + Proof of Witness)...")
-
         try {
             val trackedMaterials = materialsConfig.getStringList("tracked_materials")
                 .mapNotNull { name ->
-                    try {
-                        Material.valueOf(name.uppercase())
-                    } catch (e: IllegalArgumentException) {
-                        logger.warning("Invalid material in tracked_materials: $name")
-                        null
+                    try { Material.valueOf(name.uppercase()) }
+                    catch (e: IllegalArgumentException) {
+                        logger.warning("Invalid material in tracked_materials: $name"); null
                     }
                 }.toSet()
 
@@ -221,9 +148,7 @@ class AntiDupePro : JavaPlugin() {
                     try {
                         val material = Material.valueOf(key.uppercase())
                         val limit = section.getInt(key)
-                        if (limit > 0) {
-                            tmarLimits[material] = limit
-                        }
+                        if (limit > 0) tmarLimits[material] = limit
                     } catch (e: IllegalArgumentException) {
                         logger.warning("Invalid material in tmar_limits: $key")
                     }
@@ -253,6 +178,7 @@ class AntiDupePro : JavaPlugin() {
                 chainOfCustody = ChainOfCustody.initialize(
                     plugin = this@AntiDupePro,
                     scope = pluginScope,
+                    scheduler = scheduler,
                     ledgerStorage = ledgerStorage,
                     trackedMaterials = trackedMaterials,
                     tmarLimits = tmarLimits,
@@ -268,7 +194,7 @@ class AntiDupePro : JavaPlugin() {
 
             chainOfCustody?.onDupeAlert { alert ->
                 val message = buildString {
-                    append("§c§l[DUPE ALERT] ")
+                    append("§c§l[DUPE] ")
                     append("§e${alert.playerName} ")
                     append("§7(${alert.type.name}) ")
                     append("§f${alert.material.name}: ")
@@ -285,15 +211,12 @@ class AntiDupePro : JavaPlugin() {
                 logger.warning("[DUPE] ${alert.playerName}: ${alert.details}")
             }
 
-            chainOfCustody?.let { coc ->
-                adpCommand.setChainOfCustody(coc)
-            }
+            chainOfCustody?.let { adpCommand.setChainOfCustody(it) }
 
-            logger.info("✓ Chain of Custody v2 initialized with Proof of Witness")
+            logger.info("✓ Chain of Custody initialized")
             logger.info("  Tracking ${trackedMaterials.size} materials, ${tmarLimits.size} TMAR limits")
         } catch (e: Exception) {
-            logger.severe("Failed to initialize Chain of Custody: ${e.message}")
-            logger.log(java.util.logging.Level.SEVERE, "Stack trace:", e)
+            logger.log(Level.SEVERE, "Failed to initialize Chain of Custody", e)
         }
     }
 

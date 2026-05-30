@@ -1,5 +1,6 @@
 package com.server.antidupe.ledger
 
+import com.server.antidupe.platform.PlatformScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.bukkit.GameMode
@@ -48,7 +49,8 @@ class LedgerEventHandler(
     private val witnessManager: WitnessManager,
     private val trackedMaterials: Set<Material>,
     private val logger: Logger,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val scheduler: PlatformScheduler
 ) : Listener {
 
     private fun isTracked(material: Material): Boolean = material in trackedMaterials
@@ -215,7 +217,7 @@ class LedgerEventHandler(
                 // Chunk-load / drop-race dupe: this exact entity UUID was already consumed.
                 // Skip the PICKUP credit entirely — the resulting inventory-vs-ledger gap will
                 // also surface in reconciliation, providing a double-check.
-                plugin.server.scheduler.runTask(plugin, Runnable {
+                scheduler.runMain(Runnable {
                     val online = plugin.server.getPlayer(capturedPlayerId) ?: return@Runnable
                     logger.severe("[DUPE] ${online.name} picked up entity $entityUuid which was previously consumed by ${prev.playerUuid} ${(System.currentTimeMillis() - prev.pickedUpAt) / 1000}s ago")
                     reconciliationEngine.flagEntityDupe(online, capturedMaterial, capturedAmount, prev)
