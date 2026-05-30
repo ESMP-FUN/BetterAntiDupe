@@ -1,7 +1,7 @@
 name: AntiDupePro
 version: '${version}'
 main: io.github.darkstarworks.AntiDupePro
-api-version: '1.21'
+api-version: '26'
 prefix: DUPE »
 load: STARTUP
 authors: [ darkstarworks ]
