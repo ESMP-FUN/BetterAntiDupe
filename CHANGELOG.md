@@ -2,6 +2,18 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [2.5.0] - 2026-05-30
+
+### Added
+- Decorated pot deposits are now recorded as container puts; the matching break
+  registers the deposited stack as an expected drop, so deposit-then-break cycles
+  net to zero in the ledger and any extra copies are flagged as dupes
+
+### Changed
+- The block-break handler now special-cases decorated pots — their contents are
+  treated as previously-deposited items rather than fresh "mined" drops, which
+  removes a double-counting source for legitimate pot use
+
 ## [2.4.0] - 2026-05-30
 
 ### Added

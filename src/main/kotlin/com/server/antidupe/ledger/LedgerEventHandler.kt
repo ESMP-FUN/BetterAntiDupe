@@ -6,6 +6,7 @@ import org.bukkit.GameMode
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.block.Container
+import org.bukkit.block.DecoratedPot
 import org.bukkit.entity.AbstractHorse
 import org.bukkit.entity.Boat
 import org.bukkit.entity.Entity
@@ -89,6 +90,19 @@ class LedgerEventHandler(
         if (shouldSkip(player)) return
 
         val block = event.block
+
+        // Decorated pots store player-deposited items as block-state inventory. Those drops
+        // were *deposited*, not *mined*, so we register them as expected drops (matched on the
+        // subsequent pickup) and skip the MINE crediting entirely for this block.
+        if (block.type == Material.DECORATED_POT) {
+            val state = block.state as? DecoratedPot
+            val content = state?.inventory?.getItem(0)
+            if (content != null && content.type != Material.AIR && isTracked(content.type)) {
+                expectFrameDrop(content.type, content.amount, block.location, player.uniqueId)
+            }
+            return
+        }
+
         val drops = block.getDrops(player.inventory.itemInMainHand)
         for (drop in drops) {
             if (!isTracked(drop.type)) continue
@@ -347,6 +361,45 @@ class LedgerEventHandler(
             .copy(containerType = event.block.type.name, notes = "FURNACE:${event.block.type.name}")
         appendAsync(player.uniqueId, LedgerAction.STATION_OUTPUT, event.itemType, event.itemAmount, meta)
     }
+
+    /**
+     * Decorated pot deposit. Recorded as CONTAINER_PUT against the pot's location so a
+     * deposit-then-break cycle nets to zero in the ledger. The break itself is handled in
+     * onBlockBreak and registers the deposited stack as an expected drop, which suppresses
+     * double-counting at pickup time.
+     *
+     * Uses PlayerInteractEvent rather than the version-specific DecoratedPotInsertEvent so
+     * we work across the entire Paper 1.21.x line without recompiling.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onPotRightClick(event: org.bukkit.event.player.PlayerInteractEvent) {
+        if (event.action != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) return
+        val block = event.clickedBlock ?: return
+        if (block.type != Material.DECORATED_POT) return
+
+        val player = event.player
+        if (shouldSkip(player)) return
+
+        val held = when (event.hand) {
+            org.bukkit.inventory.EquipmentSlot.HAND -> player.inventory.itemInMainHand
+            org.bukkit.inventory.EquipmentSlot.OFF_HAND -> player.inventory.itemInOffHand
+            else -> return
+        }
+        if (held.type == Material.AIR || !isTracked(held.type)) return
+
+        val state = block.state as? DecoratedPot ?: return
+        val current = state.inventory.getItem(0)
+        // Pot is single-slot; only inserts succeed when empty or holding same item with room.
+        if (current != null && current.type != Material.AIR && !current.isSimilar(held)) return
+
+        val meta = LedgerMetadata.fromLocation(block.location).copy(containerType = "DECORATED_POT")
+        appendAsync(player.uniqueId, LedgerAction.CONTAINER_PUT, held.type, -1, meta)
+    }
+
+    // Crafter block automation (1.21+) is intentionally not handled here — CrafterCraftEvent
+    // is exposed only on Paper API builds newer than what we currently target, and items
+    // flowing out of a crafter into a hopper are already captured downstream via
+    // InventoryMoveItemEvent (v1) and the consumer's CONTAINER_TAKE when they retrieve them.
 
     /**
      * Lectern: book taken out by player (or via redstone interaction). Credit the book to the
