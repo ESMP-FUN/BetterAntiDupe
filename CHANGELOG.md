@@ -2,6 +2,24 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [2.7.0] - 2026-05-30
+
+### Added
+- Per-entity pickup history: every item-entity UUID is recorded the first time
+  it's picked up. If the same UUID is ever picked up again — which only happens
+  for chunk-load dupes, drop-pickup race dupes, and cross-server-race dupes —
+  the second pickup is flagged as a CRITICAL dupe alert and is not credited to
+  the player's ledger balance.
+- Pickup history is persisted across server restarts and prunes automatically
+  after 30 days. Implemented across all three storage backends (SQLite uses a
+  new pickup_history table; Redis uses SET NX with a 30-day TTL; in-memory
+  uses ConcurrentHashMap).
+
+### Changed
+- Closes the last remaining family on the original dupe taxonomy: chunk-save
+  entity respawn dupes are now detected with the same per-entity ledger that
+  catches drop-pickup races.
+
 ## [2.6.0] - 2026-05-30
 
 ### Fixed

@@ -193,8 +193,43 @@ class LedgerEventHandler(
         }
 
         ownershipManager.setOwner(item, player.uniqueId)
-        if (creditAmount > 0) {
-            appendAsync(player.uniqueId, LedgerAction.PICKUP, item.type, creditAmount, meta)
+
+        // Hand off the credit + entity-uuid dupe check to a coroutine. Both checks need the
+        // persistent store, so the actual append decision is async — but that's fine because
+        // the item is already in the player's inventory; we just need the ledger to reflect it.
+        val finalMeta = meta
+        val capturedPlayerId = player.uniqueId
+        val capturedMaterial = item.type
+        val capturedAmount = item.amount
+        val entityUuid = event.item.uniqueId
+
+        scope.launch {
+            val prev = try {
+                ledgerStorage.markEntityPickup(entityUuid, capturedPlayerId, capturedMaterial, capturedAmount)
+            } catch (e: Exception) {
+                logger.warning("[Ledger] markEntityPickup failed: ${e.message}")
+                null
+            }
+
+            if (prev != null) {
+                // Chunk-load / drop-race dupe: this exact entity UUID was already consumed.
+                // Skip the PICKUP credit entirely — the resulting inventory-vs-ledger gap will
+                // also surface in reconciliation, providing a double-check.
+                plugin.server.scheduler.runTask(plugin, Runnable {
+                    val online = plugin.server.getPlayer(capturedPlayerId) ?: return@Runnable
+                    logger.severe("[DUPE] ${online.name} picked up entity $entityUuid which was previously consumed by ${prev.playerUuid} ${(System.currentTimeMillis() - prev.pickedUpAt) / 1000}s ago")
+                    reconciliationEngine.flagEntityDupe(online, capturedMaterial, capturedAmount, prev)
+                })
+                return@launch
+            }
+
+            if (creditAmount > 0) {
+                try {
+                    ledgerStorage.appendBuilt(capturedPlayerId, LedgerAction.PICKUP, capturedMaterial, creditAmount, finalMeta)
+                } catch (e: Exception) {
+                    logger.warning("[Ledger] PICKUP append failed: ${e.message}")
+                }
+            }
         }
 
         val suspicion = witnessManager.hasSuspiciousPattern(player.uniqueId)

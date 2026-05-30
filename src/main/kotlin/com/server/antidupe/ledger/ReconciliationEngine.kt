@@ -228,6 +228,29 @@ class ReconciliationEngine(
     }
 
     /**
+     * Called when an item-entity UUID is picked up after having been previously consumed —
+     * the signature of a chunk-load / drop-race / cross-server dupe. This is the highest-
+     * confidence signal we produce, so it always fires CRITICAL.
+     */
+    fun flagEntityDupe(player: Player, material: Material, amount: Int, previous: PreviousPickup) {
+        val now = System.currentTimeMillis()
+        val profile = suspects.getOrPut(player.uniqueId) { SuspectProfile(player.uniqueId, player.name) }
+        profile.recordViolation(
+            discrepancies = listOf(Discrepancy(material = material, expected = 0, actual = amount, excess = amount)),
+            tmarViolations = emptyList()
+        )
+        emitAlert(DupeAlert(
+            type = AlertType.BALANCE_DISCREPANCY,
+            player = player.uniqueId,
+            playerName = player.name,
+            material = material,
+            details = "Chunk-load / drop-race dupe: entity-UUID picked up ${(now - previous.pickedUpAt) / 1000}s after original consumption",
+            severity = Severity.CRITICAL,
+            timestamp = now
+        ))
+    }
+
+    /**
      * Called by the event handler when an item-frame drop spawns more pickups than expected.
      * Records a suspect profile entry and emits a HIGH-severity alert so admins get notified
      * even if balance reconciliation would later mask the event.

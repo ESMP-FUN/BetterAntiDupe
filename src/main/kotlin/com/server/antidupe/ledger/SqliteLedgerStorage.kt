@@ -67,6 +67,16 @@ class SqliteLedgerStorage private constructor(
                     )
                 """.trimIndent())
                 st.execute("CREATE INDEX IF NOT EXISTS idx_recent_ts ON ledger_recent(player, material, ts)")
+                st.execute("""
+                    CREATE TABLE IF NOT EXISTS pickup_history (
+                        entity_uuid TEXT PRIMARY KEY,
+                        player_uuid TEXT NOT NULL,
+                        material TEXT NOT NULL,
+                        amount INTEGER NOT NULL,
+                        picked_up_at INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                st.execute("CREATE INDEX IF NOT EXISTS idx_pickup_ts ON pickup_history(picked_up_at)")
             }
             logger.info("[Ledger] Connected to SQLite at ${path.name}")
             SqliteLedgerStorage(c, logger)
@@ -215,6 +225,46 @@ class SqliteLedgerStorage private constructor(
             st.executeQuery().use { rs -> while (rs.next()) out.add(rowToEntry(rs)) }
         }
         out
+    }
+
+    override suspend fun markEntityPickup(
+        entityUuid: UUID, playerUuid: UUID, material: Material, amount: Int
+    ): PreviousPickup? = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        val inserted = conn.prepareStatement(
+            "INSERT OR IGNORE INTO pickup_history(entity_uuid, player_uuid, material, amount, picked_up_at) VALUES (?, ?, ?, ?, ?)"
+        ).use { st ->
+            st.setString(1, entityUuid.toString())
+            st.setString(2, playerUuid.toString())
+            st.setString(3, material.name)
+            st.setInt(4, amount)
+            st.setLong(5, now)
+            st.executeUpdate() > 0
+        }
+        if (inserted) return@withContext null
+
+        conn.prepareStatement(
+            "SELECT player_uuid, material, amount, picked_up_at FROM pickup_history WHERE entity_uuid=?"
+        ).use { st ->
+            st.setString(1, entityUuid.toString())
+            st.executeQuery().use { rs ->
+                if (rs.next()) PreviousPickup(
+                    playerUuid = UUID.fromString(rs.getString(1)),
+                    material = try { Material.valueOf(rs.getString(2)) } catch (e: Exception) { Material.AIR },
+                    amount = rs.getInt(3),
+                    pickedUpAt = rs.getLong(4)
+                ) else null
+            }
+        }
+    }
+
+    override suspend fun prunePickupHistory(olderThanMs: Long) = withContext(Dispatchers.IO) {
+        val cutoff = System.currentTimeMillis() - olderThanMs
+        conn.prepareStatement("DELETE FROM pickup_history WHERE picked_up_at < ?").use { st ->
+            st.setLong(1, cutoff)
+            st.executeUpdate()
+        }
+        Unit
     }
 
     private fun rowToEntry(rs: java.sql.ResultSet): LedgerEntry {

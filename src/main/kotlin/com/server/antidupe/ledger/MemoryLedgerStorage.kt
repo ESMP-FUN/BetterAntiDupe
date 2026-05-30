@@ -16,6 +16,7 @@ class MemoryLedgerStorage(logger: Logger) : LedgerStorage(logger) {
     private val byPlayer = ConcurrentHashMap<UUID, MutableList<LedgerEntry>>()
     private val balances = ConcurrentHashMap<Pair<UUID, Material>, Int>()
     private val recent = ConcurrentHashMap<Pair<UUID, Material>, MutableList<LedgerEntry>>()
+    private val pickupHistory = ConcurrentHashMap<UUID, PreviousPickup>()
     private val tip = AtomicReference<ChainTip?>(null)
 
     init { logger.info("[Ledger] Using MEMORY backend (non-persistent)") }
@@ -61,6 +62,18 @@ class MemoryLedgerStorage(logger: Logger) : LedgerStorage(logger) {
     override suspend fun pruneRecentWindows() {
         val cutoff = System.currentTimeMillis() - 5 * 60 * 1000L
         recent.values.forEach { list -> synchronized(list) { list.removeIf { it.timestamp < cutoff } } }
+    }
+
+    override suspend fun markEntityPickup(
+        entityUuid: UUID, playerUuid: UUID, material: Material, amount: Int
+    ): PreviousPickup? {
+        val newEntry = PreviousPickup(playerUuid, material, amount, System.currentTimeMillis())
+        return pickupHistory.putIfAbsent(entityUuid, newEntry)
+    }
+
+    override suspend fun prunePickupHistory(olderThanMs: Long) {
+        val cutoff = System.currentTimeMillis() - olderThanMs
+        pickupHistory.entries.removeIf { it.value.pickedUpAt < cutoff }
     }
 
     override suspend fun getAllEntriesChronological(): List<LedgerEntry> =

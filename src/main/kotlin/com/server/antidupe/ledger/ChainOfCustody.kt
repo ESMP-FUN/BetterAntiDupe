@@ -152,6 +152,9 @@ class ChainOfCustody private constructor(
                 try {
                     witnessManager.pruneHistory()
                     ledgerStorage.pruneRecentWindows()
+                    // Pickup-history retention: 30 days. Entries older than this are evicted
+                    // — long enough to catch latent chunk-load dupes, short enough to bound disk.
+                    ledgerStorage.prunePickupHistory(30L * 86_400_000L)
                     logger.fine("[CoC] Maintenance completed")
                 } catch (e: Exception) {
                     logger.warning("[CoC] Maintenance error: ${e.message}")

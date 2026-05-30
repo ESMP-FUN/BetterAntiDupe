@@ -45,6 +45,22 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
     abstract suspend fun getRecentAcquisitions(player: UUID, material: Material, windowMs: Long = 5 * 60 * 1000L): Int
     abstract suspend fun getPlayerEntries(player: UUID, limit: Long = 100, offset: Long = 0): List<LedgerEntry>
     abstract suspend fun pruneRecentWindows()
+
+    /**
+     * Atomically record that an item-entity UUID was picked up by a player.
+     * @return null if this is the first time the UUID has been seen (legitimate pickup),
+     *         or the previous pickup record if the UUID has already been consumed (dupe).
+     */
+    abstract suspend fun markEntityPickup(
+        entityUuid: UUID,
+        playerUuid: UUID,
+        material: Material,
+        amount: Int
+    ): PreviousPickup?
+
+    /** Prune entity-pickup records older than [olderThanMs]. */
+    open suspend fun prunePickupHistory(olderThanMs: Long) { /* default: backend handles TTL */ }
+
     abstract fun close()
 
     open suspend fun getPlayerMaterialEntries(player: UUID, material: Material, limit: Int = 50): List<LedgerEntry> =
@@ -104,6 +120,18 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
 }
 
 data class ChainTip(val lastEntryId: UUID, val lastHash: String, val timestamp: Long)
+
+/**
+ * Record of a previously-processed item-entity pickup. Returned by
+ * [LedgerStorage.markEntityPickup] when a UUID has been picked up before — which is
+ * almost always a chunk-load / drop-race / cross-server-race dupe.
+ */
+data class PreviousPickup(
+    val playerUuid: UUID,
+    val material: Material,
+    val amount: Int,
+    val pickedUpAt: Long
+)
 
 data class IntegrityResult(
     val valid: Boolean,

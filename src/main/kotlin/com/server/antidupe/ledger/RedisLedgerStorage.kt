@@ -5,6 +5,7 @@ import io.lettuce.core.Range
 import io.lettuce.core.RedisClient
 import io.lettuce.core.ScanArgs
 import io.lettuce.core.ScanCursor
+import io.lettuce.core.SetArgs
 import io.lettuce.core.api.StatefulRedisConnection
 import io.lettuce.core.api.coroutines
 import io.lettuce.core.api.coroutines.RedisCoroutinesCommands
@@ -131,6 +132,31 @@ class RedisLedgerStorage internal constructor(
             .mapNotNull { redis.get(it)?.let { json -> LedgerEntry.fromJson(json) } }
             .sortedBy { it.timestamp }
     }
+
+    override suspend fun markEntityPickup(
+        entityUuid: UUID, playerUuid: UUID, material: Material, amount: Int
+    ): PreviousPickup? {
+        val key = "pickup:$entityUuid"
+        val now = System.currentTimeMillis()
+        val value = "$playerUuid|${material.name}|$amount|$now"
+        val ttlSeconds = 30L * 86_400L
+        val setResult = redis.set(key, value, SetArgs.Builder.nx().ex(ttlSeconds))
+        if (setResult == "OK") return null
+
+        val existing = redis.get(key) ?: return null
+        val parts = existing.split("|")
+        if (parts.size != 4) return null
+        return try {
+            PreviousPickup(
+                playerUuid = UUID.fromString(parts[0]),
+                material = Material.valueOf(parts[1]),
+                amount = parts[2].toInt(),
+                pickedUpAt = parts[3].toLong()
+            )
+        } catch (e: Exception) { null }
+    }
+
+    // pickup_history pruning: Redis TTL handles expiry automatically; no manual pass needed.
 
     private suspend fun scanKeys(pattern: String): List<String> {
         val out = mutableListOf<String>()
