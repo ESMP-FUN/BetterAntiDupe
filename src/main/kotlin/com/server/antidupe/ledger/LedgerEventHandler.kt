@@ -22,12 +22,16 @@ import org.bukkit.event.entity.EntityPickupItemEvent
 import org.bukkit.event.hanging.HangingBreakByEntityEvent
 import org.bukkit.event.hanging.HangingBreakEvent
 import org.bukkit.event.inventory.CraftItemEvent
+import org.bukkit.event.inventory.FurnaceExtractEvent
 import org.bukkit.event.inventory.InventoryAction
 import org.bukkit.event.inventory.InventoryClickEvent
+import org.bukkit.event.inventory.InventoryType
 import org.bukkit.event.player.PlayerDropItemEvent
 import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.event.player.PlayerItemConsumeEvent
+import org.bukkit.event.player.PlayerTakeLecternBookEvent
 import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryHolder
 import org.bukkit.plugin.Plugin
 import java.util.UUID
@@ -224,7 +228,15 @@ class LedgerEventHandler(
         if (shouldSkip(player)) return
 
         val topInv = event.view.topInventory
-        val target = classifyHolder(topInv.holder) ?: return
+
+        // Workstation result-slot dispatch (smithing/anvil/loom/stonecutter/cartography/grindstone).
+        val stationResult = STATION_RESULT_SLOTS[topInv.type]
+        if (stationResult != null) {
+            handleStationClick(player, event, topInv.type, stationResult)
+            return
+        }
+
+        val target = classifyTopInventory(topInv) ?: return
         val clickedTop = event.rawSlot < topInv.size
 
         val current = event.currentItem
@@ -268,9 +280,11 @@ class LedgerEventHandler(
     private class BlockContainerTarget(c: Container) : StorageTarget(c.type.name,
         try { c.location } catch (e: Exception) { null }, false)
     private class EntityContainerTarget(e: Entity) : StorageTarget(e.type.name, e.location, true)
+    private object EnderChestTarget : StorageTarget("ENDER_CHEST", null, false)
 
-    private fun classifyHolder(holder: InventoryHolder?): StorageTarget? {
-        if (holder == null) return null
+    private fun classifyTopInventory(topInv: Inventory): StorageTarget? {
+        if (topInv.type == InventoryType.ENDER_CHEST) return EnderChestTarget
+        val holder = topInv.holder ?: return null
         if (holder is Container) return BlockContainerTarget(holder)
         // Entity-backed inventories: horses, donkeys, llamas, mules, chest boats, storage minecarts.
         val asEntity = holder as? Entity ?: return null
@@ -278,6 +292,76 @@ class LedgerEventHandler(
         val isStorage = asEntity is AbstractHorse || asEntity is Boat || asEntity is Minecart
         if (!isStorage) return null
         return EntityContainerTarget(asEntity)
+    }
+
+    // ========== WORKSTATION OUTPUTS ==========
+
+    private companion object {
+        /**
+         * Vanilla result-slot indices for the stations whose outputs we credit. Inputs are
+         * intentionally not debited; consumed inputs become silent deficits in the player's
+         * ledger, and reconciliation only flags surpluses (so this is a safe asymmetry).
+         */
+        private val STATION_RESULT_SLOTS = mapOf(
+            InventoryType.ANVIL to 2,
+            InventoryType.SMITHING to 3,
+            InventoryType.LOOM to 3,
+            InventoryType.STONECUTTER to 1,
+            InventoryType.CARTOGRAPHY to 2,
+            InventoryType.GRINDSTONE to 2,
+        )
+    }
+
+    private fun handleStationClick(player: Player, event: InventoryClickEvent, type: InventoryType, resultSlot: Int) {
+        if (event.rawSlot != resultSlot) return       // input-slot clicks are not credited
+        val current = event.currentItem ?: return
+        if (current.type == Material.AIR || !isTracked(current.type)) return
+
+        val qty = when (event.action) {
+            InventoryAction.PICKUP_ALL,
+            InventoryAction.MOVE_TO_OTHER_INVENTORY,
+            InventoryAction.SWAP_WITH_CURSOR,
+            InventoryAction.DROP_ALL_SLOT,
+            InventoryAction.COLLECT_TO_CURSOR -> current.amount
+            InventoryAction.PICKUP_HALF -> (current.amount + 1) / 2
+            InventoryAction.PICKUP_ONE, InventoryAction.DROP_ONE_SLOT -> 1
+            else -> return
+        }
+        if (qty <= 0) return
+
+        val meta = LedgerMetadata.fromLocation(player.location)
+            .copy(containerType = type.name, notes = "STATION:${type.name}")
+        appendAsync(player.uniqueId, LedgerAction.STATION_OUTPUT, current.type, qty, meta)
+    }
+
+    /**
+     * Furnace / smoker / blast furnace output extracted by a player.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onFurnaceExtract(event: FurnaceExtractEvent) {
+        val player = event.player
+        if (shouldSkip(player)) return
+        if (!isTracked(event.itemType)) return
+
+        val meta = LedgerMetadata.fromLocation(event.block.location)
+            .copy(containerType = event.block.type.name, notes = "FURNACE:${event.block.type.name}")
+        appendAsync(player.uniqueId, LedgerAction.STATION_OUTPUT, event.itemType, event.itemAmount, meta)
+    }
+
+    /**
+     * Lectern: book taken out by player (or via redstone interaction). Credit the book to the
+     * player as a normal container take so storing-then-retrieving books from a lectern is a
+     * net-zero ledger operation.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onLecternTake(event: PlayerTakeLecternBookEvent) {
+        val player = event.player
+        if (shouldSkip(player)) return
+        val item = event.book ?: return
+        if (!isTracked(item.type)) return
+
+        val meta = LedgerMetadata.fromLocation(event.lectern.location).copy(containerType = "LECTERN")
+        appendAsync(player.uniqueId, LedgerAction.CONTAINER_TAKE, item.type, item.amount, meta)
     }
 
     private fun recordTake(player: Player, mat: Material, qty: Int, target: StorageTarget) {

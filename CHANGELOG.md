@@ -2,6 +2,21 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [2.3.0] - 2026-05-30
+
+### Added
+- Workstation output tracking for smithing tables, anvils, looms, stonecutters,
+  cartography tables and grindstones (closes the workstation-output blind spot for
+  these recipes)
+- Furnace, smoker and blast furnace output tracking on player extract
+- Lectern book-take tracking (closes lectern swap dupe family)
+- Ender chest transfers now recorded as container put/take
+- Bundle content scanning: items stored inside bundles are now inspected just like
+  shulker box contents, so duped items can no longer be laundered through bundles
+
+### Changed
+- Audit-trail vocabulary extended with STATION_OUTPUT action
+
 ## [2.2.0] - 2026-05-30
 
 ### Added

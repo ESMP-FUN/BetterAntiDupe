@@ -125,6 +125,7 @@ enum class LedgerAction {
     ENTITY_TAKE,        // Took from horse/donkey/llama/chest boat/chest minecart
     FRAME_TAKE,         // Removed an item from an item frame
     ADMIN_GIVE,         // /give command, creative spawn, or system grant
+    STATION_OUTPUT,     // Took the result of a workstation (anvil/smithing/loom/etc)
     SMELT,              // Output from furnace
     LOOT,               // Mob drop, chest loot, fishing
     VILLAGER_TRADE,     // Bought from villager

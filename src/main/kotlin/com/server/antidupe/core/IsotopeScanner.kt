@@ -5,6 +5,7 @@ import com.server.antidupe.core.IsotopeManager.Companion.isotopeId
 import org.bukkit.block.Container
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.BlockStateMeta
+import org.bukkit.inventory.meta.BundleMeta
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
 
@@ -163,6 +164,13 @@ class IsotopeScanner(
                         collectIsotopesRecursively(internalItem, collector, depth + 1)
                     }
                 }
+            }
+        }
+
+        // Bundles (1.21.x) carry items inside their NBT — recurse just like containers.
+        if (meta is BundleMeta) {
+            meta.items.forEach { internalItem ->
+                collectIsotopesRecursively(internalItem, collector, depth + 1)
             }
         }
     }
