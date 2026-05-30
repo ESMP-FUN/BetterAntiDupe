@@ -1,5 +1,6 @@
 package com.server.antidupe.ledger
 
+import com.server.antidupe.platform.PlatformScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -28,6 +29,7 @@ class ChainOfCustody private constructor(
         suspend fun initialize(
             plugin: Plugin,
             scope: CoroutineScope,
+            scheduler: PlatformScheduler,
             ledgerStorage: LedgerStorage,
             trackedMaterials: Set<Material>,
             tmarLimits: Map<Material, Int>,
@@ -63,7 +65,8 @@ class ChainOfCustody private constructor(
                 witnessManager = witnessManager,
                 trackedMaterials = trackedMaterials,
                 logger = logger,
-                scope = scope
+                scope = scope,
+                scheduler = scheduler
             )
 
             plugin.server.pluginManager.registerEvents(eventHandler, plugin)
