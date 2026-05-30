@@ -2,6 +2,26 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [3.1.0] - 2026-05-31
+
+### Added
+- **Deep container reconciliation.** The balance check now recursively descends
+  into shulker boxes, barrels, chests-stored-as-items and bundles at every
+  nesting level (up to 10 deep). Closes the "items hidden inside a held
+  shulker" blind spot — a player carrying a duped shulker full of diamonds
+  used to show a clean balance against an empty main inventory; the deep
+  scan counts the contents and surfaces the discrepancy.
+- **Deep foreign-item detection.** `findForeignItemsDeep` walks the same
+  nesting tree and reports any tracked items inside containers whose owner
+  UUID doesn't match the bearer, so admins can see exactly which slot path
+  leads to suspicious contents.
+
+### Notes
+- Recursion is bounded at depth 10 (matches the previous v1 isotope scanner
+  limit) to defend against pathological nested-container chains.
+- The shallow `countOwnedInInventory` / `findForeignItems` methods are kept
+  for callers that explicitly want a flat view.
+
 ## [3.0.1] - 2026-05-31
 
 ### Fixed
