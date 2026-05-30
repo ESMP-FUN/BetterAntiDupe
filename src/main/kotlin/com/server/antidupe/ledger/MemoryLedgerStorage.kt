@@ -38,7 +38,7 @@ class MemoryLedgerStorage(logger: Logger) : LedgerStorage(logger) {
 
     override suspend fun getEntry(id: UUID): LedgerEntry? = entries[id]
 
-    override suspend fun getBalance(player: UUID, material: Material): Int = balances[player to material] ?: 0
+    override suspend fun readBalanceFromStorage(player: UUID, material: Material): Int = balances[player to material] ?: 0
 
     override suspend fun getAllBalances(player: UUID): Map<Material, Int> =
         balances.entries.filter { it.key.first == player && it.value != 0 }
