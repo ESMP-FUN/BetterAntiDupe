@@ -140,8 +140,8 @@ class DupeAlertManager(private val plugin: JavaPlugin) : Listener {
     }
 
     private fun getLimitForMaterial(mat: Material): Int? {
-        val config = plugin.config
-        val configSection = config.getConfigurationSection("tmar_limits") ?: return null
+        val source = (plugin as? io.github.darkstarworks.AntiDupePro)?.materialsConfig ?: plugin.config
+        val configSection = source.getConfigurationSection("tmar_limits") ?: return null
         return configSection.getInt(mat.name, -1).takeIf { it > 0 }
     }
 

@@ -1,0 +1,52 @@
+# =============================================================================
+# AntiDupePro — Tracked Materials
+# =============================================================================
+# This file is intentionally separate from config.yml so it can grow long
+# without cluttering the main configuration. Edit freely; restart or reload
+# the plugin to apply changes.
+#
+# All keys here use vanilla Minecraft Material names. Anything unrecognised
+# is logged as a warning and skipped.
+
+# -----------------------------------------------------------------------------
+# tracked_materials
+# Items that the protection engine watches. Shulker boxes of every colour are
+# always tracked regardless of this list — they're the primary laundering
+# vector and stay hardcoded.
+# -----------------------------------------------------------------------------
+tracked_materials:
+  - DIAMOND_BLOCK
+  - NETHERITE_INGOT
+  - BEACON
+  - ENCHANTED_GOLDEN_APPLE
+  - SHULKER_BOX
+  - ELYTRA
+  - NETHER_STAR
+
+# -----------------------------------------------------------------------------
+# tmar_limits  (Theoretical Max Acquisition Rate)
+# Maximum number of items of a given material a player can legitimately
+# acquire per minute. Players exceeding this are flagged as suspicious.
+# Omit a material to disable rate limiting for it.
+# -----------------------------------------------------------------------------
+tmar_limits:
+  ANCIENT_DEBRIS: 20
+  DIAMOND_BLOCK: 10
+  ENCHANTED_GOLDEN_APPLE: 2
+  NETHERITE_INGOT: 15
+  BEACON: 5
+
+# -----------------------------------------------------------------------------
+# alert_thresholds   (v2 ledger only)
+# How many extra items above the ledger balance trigger an alert. Higher-value
+# materials get stricter thresholds. The 'default' key applies to any tracked
+# material not listed explicitly.
+# -----------------------------------------------------------------------------
+alert_thresholds:
+  ENCHANTED_GOLDEN_APPLE: 1
+  BEACON: 1
+  NETHER_STAR: 1
+  ELYTRA: 1
+  NETHERITE_INGOT: 2
+  DIAMOND_BLOCK: 3
+  default: 5

@@ -2,6 +2,19 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [2.4.0] - 2026-05-30
+
+### Added
+- Material lists now live in their own file, `materials.yml`, so `config.yml`
+  stays short even when many items are tracked. Holds `tracked_materials`,
+  `tmar_limits` and `alert_thresholds`.
+- Automatic one-time migration: existing installs that had these keys in
+  `config.yml` get them moved to `materials.yml` on first start of this
+  version, and the legacy keys are removed from `config.yml`.
+
+### Changed
+- User guide updated to document the new configuration file layout.
+
 ## [2.3.0] - 2026-05-30
 
 ### Added

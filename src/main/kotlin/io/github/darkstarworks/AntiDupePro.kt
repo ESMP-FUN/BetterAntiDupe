@@ -15,11 +15,18 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import org.bukkit.Bukkit
 import org.bukkit.Material
+import org.bukkit.configuration.file.FileConfiguration
+import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.plugin.java.JavaPlugin
+import java.io.File
 
 class AntiDupePro : JavaPlugin() {
 
     lateinit var pluginScope: CoroutineScope
+        private set
+
+    /** Material-keyed configuration (tracked_materials, tmar_limits, alert_thresholds). */
+    lateinit var materialsConfig: FileConfiguration
         private set
 
     private lateinit var isotopeStorage: IsotopeStorage
@@ -41,6 +48,7 @@ class AntiDupePro : JavaPlugin() {
             logger.info("✓ Coroutine scope initialized")
 
             saveDefaultConfig()
+            materialsConfig = loadMaterialsConfig()
             validateConfiguration()
             logger.info("✓ Configuration loaded and validated")
 
@@ -98,8 +106,47 @@ class AntiDupePro : JavaPlugin() {
         logger.info("=== AntiDupePro disabled ===")
     }
 
+    /**
+     * Load materials.yml. If absent and config.yml still holds legacy keys
+     * (tracked_materials, tmar_limits, ledger.alert_thresholds), migrate them
+     * into the new file and strip them from config.yml on disk.
+     */
+    private fun loadMaterialsConfig(): FileConfiguration {
+        val file = File(dataFolder, "materials.yml")
+        if (!file.exists()) {
+            val legacyHasAny = config.contains("tracked_materials") ||
+                config.contains("tmar_limits") ||
+                config.contains("ledger.alert_thresholds")
+
+            if (legacyHasAny) {
+                val migrated = YamlConfiguration()
+                config.getStringList("tracked_materials").takeIf { it.isNotEmpty() }?.let {
+                    migrated.set("tracked_materials", it)
+                }
+                config.getConfigurationSection("tmar_limits")?.getKeys(false)?.forEach { k ->
+                    migrated.set("tmar_limits.$k", config.getInt("tmar_limits.$k"))
+                }
+                config.getConfigurationSection("ledger.alert_thresholds")?.getKeys(false)?.forEach { k ->
+                    migrated.set("alert_thresholds.$k", config.getInt("ledger.alert_thresholds.$k"))
+                }
+                migrated.save(file)
+
+                config.set("tracked_materials", null)
+                config.set("tmar_limits", null)
+                config.set("ledger.alert_thresholds", null)
+                saveConfig()
+
+                logger.info("Migrated tracked_materials / tmar_limits / alert_thresholds to materials.yml")
+            } else {
+                saveResource("materials.yml", false)
+            }
+        }
+        return YamlConfiguration.loadConfiguration(file)
+    }
+
     private fun validateConfiguration() {
         val cfg = config
+        val mats = materialsConfig
 
         val redisPort = cfg.getInt("redis.port", 6379)
         val redisTimeout = cfg.getInt("redis.timeout", 10)
@@ -114,18 +161,18 @@ class AntiDupePro : JavaPlugin() {
             cfg.set("redis.timeout", 10)
         }
 
-        val trackedMaterials = cfg.getStringList("tracked_materials")
+        val trackedMaterials = mats.getStringList("tracked_materials")
         if (trackedMaterials.isEmpty()) {
-            logger.warning("No tracked_materials configured! Using defaults.")
-            cfg.set("tracked_materials", listOf(
+            logger.warning("No tracked_materials configured in materials.yml! Using defaults.")
+            mats.set("tracked_materials", listOf(
                 "DIAMOND_BLOCK", "NETHERITE_INGOT", "BEACON",
                 "ENCHANTED_GOLDEN_APPLE", "SHULKER_BOX", "ELYTRA", "NETHER_STAR"
             ))
         }
 
-        val tmarSection = cfg.getConfigurationSection("tmar_limits")
+        val tmarSection = mats.getConfigurationSection("tmar_limits")
         if (tmarSection == null) {
-            logger.warning("No tmar_limits configured! Rate limiting disabled.")
+            logger.warning("No tmar_limits configured in materials.yml! Rate limiting disabled.")
         } else {
             tmarSection.getKeys(false).forEach { material ->
                 val limit = tmarSection.getInt(material)
@@ -158,7 +205,7 @@ class AntiDupePro : JavaPlugin() {
         logger.info("Initializing Chain of Custody v2 (Ledger + Proof of Witness)...")
 
         try {
-            val trackedMaterials = config.getStringList("tracked_materials")
+            val trackedMaterials = materialsConfig.getStringList("tracked_materials")
                 .mapNotNull { name ->
                     try {
                         Material.valueOf(name.uppercase())
@@ -169,7 +216,7 @@ class AntiDupePro : JavaPlugin() {
                 }.toSet()
 
             val tmarLimits = mutableMapOf<Material, Int>()
-            config.getConfigurationSection("tmar_limits")?.let { section ->
+            materialsConfig.getConfigurationSection("tmar_limits")?.let { section ->
                 section.getKeys(false).forEach { key ->
                     try {
                         val material = Material.valueOf(key.uppercase())
@@ -190,7 +237,7 @@ class AntiDupePro : JavaPlugin() {
 
             val alertThresholds = mutableMapOf<Material, Int>()
             var defaultAlertThreshold = 5
-            config.getConfigurationSection("ledger.alert_thresholds")?.let { section ->
+            materialsConfig.getConfigurationSection("alert_thresholds")?.let { section ->
                 section.getKeys(false).forEach { key ->
                     if (key.equals("default", ignoreCase = true)) {
                         defaultAlertThreshold = section.getInt(key, 5)

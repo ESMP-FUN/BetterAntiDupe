@@ -37,10 +37,10 @@ class IsotopeListener(
     private val scope: CoroutineScope
 ) : Listener {
 
-    // List of items worth tracking - loaded from config.yml
+    // List of items worth tracking - loaded from materials.yml
     private val trackedMaterials: Set<Material> by lazy {
-        val config = plugin.config
-        val materialNames = config.getStringList("tracked_materials")
+        val source = (plugin as? io.github.darkstarworks.AntiDupePro)?.materialsConfig ?: plugin.config
+        val materialNames = source.getStringList("tracked_materials")
         materialNames.mapNotNull { name ->
             try {
                 Material.valueOf(name.uppercase())

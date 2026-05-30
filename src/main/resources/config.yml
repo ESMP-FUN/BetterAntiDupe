@@ -32,24 +32,12 @@ redis:
   # Connection timeout in seconds
   timeout: 10
 
-# Theoretical Max Acquisition Rate (TMAR) Limits
-# These define the maximum number of items a player can acquire per minute
-tmar_limits:
-  ANCIENT_DEBRIS: 20
-  DIAMOND_BLOCK: 10
-  ENCHANTED_GOLDEN_APPLE: 2
-  NETHERITE_INGOT: 15
-  BEACON: 5
-
-# Tracked Materials - Items that will be protected
-tracked_materials:
-  - DIAMOND_BLOCK
-  - NETHERITE_INGOT
-  - BEACON
-  - ENCHANTED_GOLDEN_APPLE
-  - SHULKER_BOX
-  - ELYTRA
-  - NETHER_STAR
+# =============================================================================
+# TRACKED MATERIALS, TMAR LIMITS, ALERT THRESHOLDS
+# =============================================================================
+# All material-keyed lists now live in materials.yml (next to this file).
+# That keeps config.yml short even when many items are tracked. Edit the
+# tracked items list, rate limits and alert thresholds there.
 
 # Auto-delete detected dupes
 # If true, automatically removes duped items from the game
@@ -103,12 +91,4 @@ ledger:
     # Run reconciliation on inventory close
     on_inventory_close: false
 
-  # Alert thresholds (excess items to trigger alert)
-  alert_thresholds:
-    ENCHANTED_GOLDEN_APPLE: 1
-    BEACON: 1
-    NETHER_STAR: 1
-    ELYTRA: 1
-    NETHERITE_INGOT: 2
-    DIAMOND_BLOCK: 3
-    default: 5
+  # Alert thresholds (excess items per material) are configured in materials.yml.

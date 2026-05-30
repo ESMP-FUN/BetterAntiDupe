@@ -186,8 +186,23 @@
 <h2 id="config">5. Configuration reference</h2>
 
 <p>
-  The full <code>config.yml</code> with every option explained:
+  Configuration is split across two files in <code>plugins/AntiDupePro/</code>:
 </p>
+
+<ul>
+  <li><code>config.yml</code> — plugin behaviour: storage backend, modes, ledger settings.</li>
+  <li><code>materials.yml</code> — the lists of tracked items, rate limits, and alert thresholds. Kept separate so this file can grow long without cluttering the main config.</li>
+</ul>
+
+<p>
+  Existing installs that already have <code>tracked_materials</code>, <code>tmar_limits</code>
+  or <code>ledger.alert_thresholds</code> defined in <code>config.yml</code> are
+  migrated automatically on first start of this version — the values move into
+  <code>materials.yml</code> and are removed from <code>config.yml</code>. You don't
+  need to do anything.
+</p>
+
+<h3>config.yml</h3>
 
 <pre><code>storage:
   # Where to keep tracking data. SQLITE, REDIS, or MEMORY.
@@ -206,25 +221,7 @@ redis:
   password: ""
   timeout: 10        # seconds
 
-# Maximum tracked items per minute. Players who exceed these limits are
-# flagged as suspicious (Theoretical Max Acquisition Rate).
-tmar_limits:
-  ANCIENT_DEBRIS: 20
-  DIAMOND_BLOCK: 10
-  ENCHANTED_GOLDEN_APPLE: 2
-  NETHERITE_INGOT: 15
-  BEACON: 5
-
-# Items that get tracked. Add or remove freely; use vanilla Material names.
-# Shulker boxes of every color are always tracked, regardless of this list.
-tracked_materials:
-  - DIAMOND_BLOCK
-  - NETHERITE_INGOT
-  - BEACON
-  - ENCHANTED_GOLDEN_APPLE
-  - SHULKER_BOX
-  - ELYTRA
-  - NETHER_STAR
+# Tracked items, rate limits and alert thresholds live in materials.yml.
 
 # If true, the plugin silently removes detected duplicates from inventories.
 # If false (default), it only alerts admins and logs the event.
@@ -259,16 +256,41 @@ ledger:
     # How long to wait between balance checks per player, in milliseconds.
     cooldown_ms: 5000
 
-  # How many extra items a player can hold above their ledger balance
-  # before an alert fires. Higher-value items have stricter thresholds.
-  alert_thresholds:
-    ENCHANTED_GOLDEN_APPLE: 1
-    BEACON: 1
-    NETHER_STAR: 1
-    ELYTRA: 1
-    NETHERITE_INGOT: 2
-    DIAMOND_BLOCK: 3
-    default: 5</code></pre>
+  # Alert thresholds are configured in materials.yml.</code></pre>
+
+<h3>materials.yml</h3>
+
+<pre><code># Items that get tracked. Add or remove freely; use vanilla Material names.
+# Shulker boxes of every color are always tracked regardless of this list.
+tracked_materials:
+  - DIAMOND_BLOCK
+  - NETHERITE_INGOT
+  - BEACON
+  - ENCHANTED_GOLDEN_APPLE
+  - SHULKER_BOX
+  - ELYTRA
+  - NETHER_STAR
+
+# Maximum tracked items per minute. Players exceeding these are flagged
+# as suspicious (Theoretical Max Acquisition Rate).
+tmar_limits:
+  ANCIENT_DEBRIS: 20
+  DIAMOND_BLOCK: 10
+  ENCHANTED_GOLDEN_APPLE: 2
+  NETHERITE_INGOT: 15
+  BEACON: 5
+
+# How many extra items a player can hold above their ledger balance
+# before an alert fires (v2 ledger only). Higher-value items have
+# stricter thresholds. 'default' applies to materials not listed here.
+alert_thresholds:
+  ENCHANTED_GOLDEN_APPLE: 1
+  BEACON: 1
+  NETHER_STAR: 1
+  ELYTRA: 1
+  NETHERITE_INGOT: 2
+  DIAMOND_BLOCK: 3
+  default: 5</code></pre>
 
 <hr/>
 
