@@ -162,7 +162,7 @@ class SqliteLedgerStorage private constructor(
         }
     }
 
-    override suspend fun getBalance(player: UUID, material: Material): Int = withContext(Dispatchers.IO) {
+    override suspend fun readBalanceFromStorage(player: UUID, material: Material): Int = withContext(Dispatchers.IO) {
         conn.prepareStatement("SELECT balance FROM ledger_balance WHERE player=? AND material=?").use { st ->
             st.setString(1, player.toString())
             st.setString(2, material.name)
