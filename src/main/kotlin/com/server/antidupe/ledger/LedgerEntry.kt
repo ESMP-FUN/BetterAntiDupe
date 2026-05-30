@@ -122,7 +122,9 @@ enum class LedgerAction {
     PICKUP,             // Picked up item entity from ground
     RECEIVE,            // Received from another player (trade/give)
     CONTAINER_TAKE,     // Took from chest/shulker/barrel
-    ADMIN_GIVE,         // /give command or creative spawn
+    ENTITY_TAKE,        // Took from horse/donkey/llama/chest boat/chest minecart
+    FRAME_TAKE,         // Removed an item from an item frame
+    ADMIN_GIVE,         // /give command, creative spawn, or system grant
     SMELT,              // Output from furnace
     LOOT,               // Mob drop, chest loot, fishing
     VILLAGER_TRADE,     // Bought from villager
@@ -132,6 +134,8 @@ enum class LedgerAction {
     DROP,               // Dropped on ground intentionally
     GIVE,               // Gave to another player
     CONTAINER_PUT,      // Put in chest/shulker/barrel
+    ENTITY_PUT,         // Put in horse/donkey/llama/chest boat/chest minecart
+    FRAME_PUT,          // Placed an item into an item frame
     CONSUME,            // Ate food, used tool durability
     DESTROY,            // Burned in lava, fell in void
     DESPAWN,            // Item entity despawned (5 min timer)

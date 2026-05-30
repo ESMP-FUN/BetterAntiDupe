@@ -120,6 +120,26 @@ class ChainOfCustody private constructor(
     fun hasSuspiciousPattern(player: UUID): SuspicionAnalysis = witnessManager.hasSuspiciousPattern(player)
     fun getTrustScore(player: UUID): TrustScore = witnessManager.getTrustScore(player)
 
+    /**
+     * Public API for other plugins to declare a legitimate grant of items to a player.
+     * Use this whenever your plugin uses `player.getInventory().addItem(...)` or similar
+     * outside of normal Bukkit events — otherwise AntiDupePro's reconciliation will see
+     * the extra inventory and may flag the player as a duper.
+     *
+     * Example:
+     *     anti.recordSystemGrant(player.uniqueId, Material.DIAMOND_BLOCK, 5, "DailyReward")
+     */
+    suspend fun recordSystemGrant(player: UUID, material: Material, amount: Int, source: String) {
+        if (amount <= 0) return
+        ledgerStorage.appendBuilt(
+            player = player,
+            action = LedgerAction.ADMIN_GIVE,
+            material = material,
+            quantity = amount,
+            metadata = LedgerMetadata(notes = "SYSTEM_GRANT:$source")
+        )
+    }
+
     fun onDupeAlert(listener: (DupeAlert) -> Unit) = reconciliationEngine.addAlertListener(listener)
     fun getSuspects(): List<SuspectProfile> = reconciliationEngine.getAllSuspects()
     fun getSuspect(player: UUID): SuspectProfile? = reconciliationEngine.getSuspect(player)

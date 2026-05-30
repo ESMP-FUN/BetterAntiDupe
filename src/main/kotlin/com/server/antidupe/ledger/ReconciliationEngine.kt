@@ -227,6 +227,29 @@ class ReconciliationEngine(
         }
     }
 
+    /**
+     * Called by the event handler when an item-frame drop spawns more pickups than expected.
+     * Records a suspect profile entry and emits a HIGH-severity alert so admins get notified
+     * even if balance reconciliation would later mask the event.
+     */
+    fun flagFrameDupe(player: Player, material: Material, excess: Int) {
+        val now = System.currentTimeMillis()
+        val profile = suspects.getOrPut(player.uniqueId) { SuspectProfile(player.uniqueId, player.name) }
+        profile.recordViolation(
+            discrepancies = listOf(Discrepancy(material = material, expected = 0, actual = excess, excess = excess)),
+            tmarViolations = emptyList()
+        )
+        emitAlert(DupeAlert(
+            type = AlertType.BALANCE_DISCREPANCY,
+            player = player.uniqueId,
+            playerName = player.name,
+            material = material,
+            details = "Item-frame drop produced $excess extra ${material.name}",
+            severity = if (excess >= 4) Severity.CRITICAL else Severity.HIGH,
+            timestamp = now
+        ))
+    }
+
     private fun getAlertThreshold(material: Material): Int =
         alertThresholds[material] ?: defaultAlertThreshold
 

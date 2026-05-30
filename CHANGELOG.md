@@ -2,6 +2,20 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [2.2.0] - 2026-05-30
+
+### Added
+- Item-frame transaction tracking: placing into and removing from frames is now ledgered
+- Item-frame drop accounting: frames register exactly one expected drop on break, and any
+  surplus pickups in that area trigger a high-severity alert (closes the piston / chunk-race
+  item-frame dupe family)
+- Entity-inventory tracking for horses, donkeys, llamas, mules, chest boats and chest minecarts
+- Public API `ChainOfCustody.recordSystemGrant(...)` for other plugins to declare legitimate
+  item grants and avoid false-positive reconciliation hits
+
+### Changed
+- Audit-trail vocabulary extended with FRAME_PUT, FRAME_TAKE, ENTITY_PUT, ENTITY_TAKE actions
+
 ## [2.1.0] - 2026-05-30
 
 ### Added
