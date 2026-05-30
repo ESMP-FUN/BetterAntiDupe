@@ -75,7 +75,12 @@
 </ul>
 
 <p>
-  v1 is enabled by default. v2 is opt-in (set <code>ledger.enabled: true</code>).
+  v1 is enabled by default and gives you immediate protection against the
+  most common stack-clone family. v2 is opt-in (set
+  <code>ledger.enabled: true</code> in <code>config.yml</code>) and is
+  where the comprehensive coverage lives — item frames, entity
+  inventories, workstations, chunk-load entity dupes, and more. On any
+  production server we recommend turning both on.
 </p>
 
 <hr/>
@@ -333,14 +338,14 @@ alert_thresholds:
 <h3>6.2 Chain of Custody (v2, opt-in)</h3>
 
 <p>
-  v2 is the newer system. It treats item tracking like a blockchain
-  ledger: every gain and loss event is written as a hash-linked entry, so
-  the chain itself is tamper-evident. Items only carry their owner's UUID
-  in NBT (not a per-item ID), which means vanilla item stacking still
-  works normally.
+  v2 is the newer, more comprehensive system. It treats item tracking
+  like a blockchain ledger: every gain and loss event is written as a
+  hash-linked entry, so the chain itself is tamper-evident. Items only
+  carry their owner's UUID in NBT (not a per-item ID), which means
+  vanilla item stacking still works normally.
 </p>
 
-<p>What it adds on top of v1:</p>
+<p>Capabilities on top of v1:</p>
 
 <ul>
   <li>
@@ -367,6 +372,33 @@ alert_thresholds:
     <strong>Trust scores.</strong> Players build a long-term trust score
     based on how often their actions are independently corroborated by
     witnesses.
+  </li>
+  <li>
+    <strong>Item-frame dupe detection.</strong> Every frame break
+    registers exactly one expected drop. Any surplus pickup in the same
+    area within 60 seconds fires a high-severity alert — closes the
+    piston-into-frame and chunk-race frame dupe families.
+  </li>
+  <li>
+    <strong>Per-entity pickup history.</strong> Every dropped item
+    entity is recorded the first time it's picked up. If the same
+    physical entity ever gets picked up again — which has no innocent
+    explanation outside of a server crash recovery — the second pickup
+    is flagged CRITICAL and not credited. Closes chunk-load entity
+    dupes, drop-pickup race dupes, and proxy-network race dupes.
+  </li>
+  <li>
+    <strong>Workstation and storage coverage.</strong> Smithing tables,
+    anvils, looms, stonecutters, cartography tables, grindstones,
+    furnaces, smokers, blast furnaces, lecterns, ender chests, decorated
+    pots, horse/donkey/llama chests, chest boats and chest minecarts all
+    track item movement correctly. Inputs and outputs reconcile.
+  </li>
+  <li>
+    <strong>Bundle content scanning.</strong> Items stored inside
+    bundles are inspected just like shulker contents, so duped items
+    can't be laundered through bundles or the shulker-dye crafting
+    recipe vector.
   </li>
 </ul>
 
@@ -578,6 +610,27 @@ alert_thresholds:
   </li>
 </ul>
 
+<h3>"I got a CRITICAL chunk-load dupe alert but the player swears they didn't cheat."</h3>
+
+<p>
+  This alert fires when the same item entity is picked up twice. The
+  usual cause is a real dupe exploit, but there's one rare innocent
+  case: if your server crashed between the player picking the item up
+  and the next chunk save, the chunk reverts on restart and the player
+  legitimately picks up the same entity again. This produces a
+  false-positive CRITICAL alert.
+</p>
+
+<p>
+  How to tell them apart:
+</p>
+
+<ul>
+  <li>Check the console for a recent crash or abnormal shutdown around the alert timestamp. If yes, it's almost certainly the false positive.</li>
+  <li>Use <code>/adp ledger reconcile &lt;player&gt;</code> to compare their actual inventory against ledger. A false positive will reconcile cleanly within a few minutes. A real dupe will keep showing excess.</li>
+  <li>Clear the player's suspect status with <code>/adp ledger</code> once you're satisfied.</li>
+</ul>
+
 <h3>"The chain integrity check failed."</h3>
 
 <p>
@@ -632,15 +685,28 @@ alert_thresholds:
   <tr><th></th><th>v1 (Isotope)</th><th>v2 (Ledger)</th></tr>
   <tr><td>Status</td><td>Stable, default-on</td><td>Opt-in</td></tr>
   <tr><td>Vanilla stacking</td><td>Broken (per-item IDs)</td><td>Preserved</td></tr>
-  <tr><td>Catches stack-clone exploits</td><td>Yes</td><td>Yes (via balance check)</td></tr>
-  <tr><td>Catches shulker dupes</td><td>Yes</td><td>Yes</td></tr>
+  <tr><td>Catches stack-clone exploits</td><td>Yes</td><td>Yes</td></tr>
+  <tr><td>Catches shulker / bundle dupes</td><td>Yes</td><td>Yes</td></tr>
+  <tr><td>Catches item-frame dupes</td><td>No</td><td>Yes</td></tr>
+  <tr><td>Catches entity-inventory dupes (horse, boat)</td><td>No</td><td>Yes</td></tr>
+  <tr><td>Catches workstation / pot / lectern / ender chest dupes</td><td>No</td><td>Yes</td></tr>
+  <tr><td>Catches chunk-load / drop-race entity dupes</td><td>No</td><td>Yes</td></tr>
   <tr><td>Catches event-bypass exploits</td><td>No</td><td>Yes (Proof of Witness)</td></tr>
   <tr><td>Tamper-evident audit trail</td><td>No</td><td>Yes (hash chain)</td></tr>
 </table>
 
 <p>
-  For most servers, v1 alone is enough. Turn on v2 if you have a network
-  with sophisticated players or if you want a forensic audit trail.
+  As of 2.7.0, <strong>turn on v2</strong> for any server that takes
+  dupe protection seriously. v1 still runs alongside and adds an
+  independent layer of defence for the families it specialises in
+  (stack clones and shulker content laundering), but v2 is now the
+  primary line and closes families v1 can't see at all.
+</p>
+
+<p>
+  The only reason to run v1 alone is if the per-item NBT IDs aren't
+  causing visible UX issues on your server and you prefer the simpler
+  setup. v2's overhead is similarly small in practice.
 </p>
 
 <h3>Where do I report bugs?</h3>
@@ -654,4 +720,4 @@ alert_thresholds:
 
 <hr/>
 
-<p><em>Last updated for AntiDupePro 2.0.0 — Minecraft 1.21.x.</em></p>
+<p><em>Last updated for AntiDupePro 2.7.0 — Minecraft 1.21.x.</em></p>
