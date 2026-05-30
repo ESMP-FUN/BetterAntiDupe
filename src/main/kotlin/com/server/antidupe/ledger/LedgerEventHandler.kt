@@ -98,23 +98,31 @@ class LedgerEventHandler(
             val state = block.state as? DecoratedPot
             val content = state?.inventory?.getItem(0)
             if (content != null && content.type != Material.AIR && isTracked(content.type)) {
-                expectFrameDrop(content.type, content.amount, block.location, player.uniqueId)
+                expectFrameDrop(
+                    material = content.type, amount = content.amount,
+                    loc = block.location, sourcePlayer = player.uniqueId,
+                    sourceAction = LedgerAction.CONTAINER_TAKE,
+                    sourceContext = "POT_BREAK:${block.type.name}"
+                )
             }
             return
         }
 
-        val drops = block.getDrops(player.inventory.itemInMainHand)
+        val tool = player.inventory.itemInMainHand
+        val drops = block.getDrops(tool)
         for (drop in drops) {
             if (!isTracked(drop.type)) continue
-
             ownershipManager.setOwner(drop, player.uniqueId)
 
-            val base = LedgerMetadata.fromLocation(block.location).copy(
-                blockType = block.type,
-                toolUsed = player.inventory.itemInMainHand.type
+            // No MINE ledger entry — the credit happens at pickup time. The PICKUP entry
+            // inherits the source context (block type + tool) via the expected drop so the
+            // history view still shows "this came from mining DIAMOND_ORE with NETHERITE_PICKAXE".
+            expectFrameDrop(
+                material = drop.type, amount = drop.amount,
+                loc = block.location, sourcePlayer = player.uniqueId,
+                sourceAction = LedgerAction.MINE,
+                sourceContext = "MINE:${block.type.name}|TOOL:${tool.type.name}"
             )
-            val meta = witnessedMetadata(player, LedgerAction.MINE, base, "${drop.amount}x${drop.type.name}")
-            appendAsync(player.uniqueId, LedgerAction.MINE, drop.type, drop.amount, meta)
         }
     }
 
@@ -166,18 +174,28 @@ class LedgerEventHandler(
             logger.warning("[PoW] ${player.name} picked up untracked ${item.type} with no witnesses")
         }
 
-        // Item-frame dupe detection: if a frame recently broke and dropped one item, the
-        // expected drop is matched. If pickups in that area exceed the expected amount, the
-        // surplus is unaccounted-for inventory — almost certainly a piston/chunk-race dupe.
-        val excess = matchPickupToFrameDrop(item.type, item.amount, event.item.location)
-        if (excess != null && excess > 0) {
-            meta = meta.copy(notes = "FRAME_DROP_EXCESS:$excess")
-            logger.warning("[DUPE] ${player.name} picked up $excess extra ${item.type} from a frame drop area")
+        // Match this pickup against any expected drop (mine, frame, pot break, etc.). The
+        // matched portion is credited; the excess (if any) is the dupe — we leave it OFF the
+        // ledger so the upcoming reconciliation pass also catches it, AND fire an immediate
+        // alert for visibility.
+        val match = matchPickupToFrameDrop(item.type, item.amount, event.item.location)
+        val excess = match?.excess ?: 0
+        val creditAmount = (item.amount - excess).coerceAtLeast(0)
+
+        if (excess > 0) {
+            logger.warning("[DUPE] ${player.name} picked up $excess extra ${item.type} from an expected drop area")
             reconciliationEngine.flagFrameDupe(player, item.type, excess)
+            meta = meta.copy(notes = listOfNotNull(meta.notes, "DROP_EXCESS:$excess", match?.sourceContext)
+                .joinToString("|"))
+        } else if (match != null) {
+            // Successful attribution — attach the source context to the audit entry.
+            meta = meta.copy(notes = listOfNotNull(meta.notes, match.sourceContext).joinToString("|").ifBlank { null })
         }
 
         ownershipManager.setOwner(item, player.uniqueId)
-        appendAsync(player.uniqueId, LedgerAction.PICKUP, item.type, item.amount, meta)
+        if (creditAmount > 0) {
+            appendAsync(player.uniqueId, LedgerAction.PICKUP, item.type, creditAmount, meta)
+        }
 
         val suspicion = witnessManager.hasSuspiciousPattern(player.uniqueId)
         if (suspicion.suspicious) {
@@ -432,9 +450,11 @@ class LedgerEventHandler(
     // ========== ITEM FRAMES ==========
 
     /**
-     * Tracks expected drops from item frames so we can detect frame-piston / chunk-race
-     * dupes: each frame break registers exactly one expected drop, and any pickup beyond
-     * the expected amount within a short radius and time window is an unaccounted-for copy.
+     * Tracks expected drops in the world so [onPickup] can attribute pickups to the event that
+     * spawned them. Three roles:
+     *   1. Prevents double-counting (MINE + PICKUP previously credited the same item twice).
+     *   2. Surfaces excess pickups (frame-piston dupes, pot-break dupes) as alerts.
+     *   3. Carries source context (action + tool/block) into the PICKUP audit entry.
      */
     private data class ExpectedDrop(
         val material: Material,
@@ -443,8 +463,12 @@ class LedgerEventHandler(
         val worldName: String,
         val x: Double, val y: Double, val z: Double,
         val sourcePlayer: UUID?,
+        val sourceAction: LedgerAction?,
+        val sourceContext: String?,
         val expiresAt: Long
     )
+
+    private data class DropMatch(val excess: Int, val sourceAction: LedgerAction?, val sourceContext: String?)
 
     private data class FrameContent(val material: Material, val amount: Int, val placedBy: UUID)
 
@@ -464,7 +488,7 @@ class LedgerEventHandler(
      * @return excess amount picked up over the expected amount (>0 = dupe candidate),
      *         or null if no expected drop matched.
      */
-    private fun matchPickupToFrameDrop(material: Material, amount: Int, loc: Location): Int? {
+    private fun matchPickupToFrameDrop(material: Material, amount: Int, loc: Location): DropMatch? {
         pruneExpiredDrops()
         val worldName = loc.world?.name ?: return null
         for (drop in expectedDrops) {
@@ -473,17 +497,28 @@ class LedgerEventHandler(
             val dx = drop.x - loc.x; val dy = drop.y - loc.y; val dz = drop.z - loc.z
             if (dx * dx + dy * dy + dz * dz > frameDropMatchRadiusSq) continue
             drop.matchedAmount += amount
-            return (drop.matchedAmount - drop.expectedAmount).coerceAtLeast(0)
+            val excess = (drop.matchedAmount - drop.expectedAmount).coerceAtLeast(0)
+            return DropMatch(excess, drop.sourceAction, drop.sourceContext)
         }
         return null
     }
 
-    private fun expectFrameDrop(material: Material, amount: Int, loc: Location, sourcePlayer: UUID?) {
+    private fun expectFrameDrop(
+        material: Material,
+        amount: Int,
+        loc: Location,
+        sourcePlayer: UUID?,
+        sourceAction: LedgerAction? = null,
+        sourceContext: String? = null
+    ) {
         val world = loc.world ?: return
         expectedDrops.add(ExpectedDrop(
             material = material, expectedAmount = amount, matchedAmount = 0,
             worldName = world.name, x = loc.x, y = loc.y, z = loc.z,
-            sourcePlayer = sourcePlayer, expiresAt = System.currentTimeMillis() + frameDropExpiryMs
+            sourcePlayer = sourcePlayer,
+            sourceAction = sourceAction,
+            sourceContext = sourceContext,
+            expiresAt = System.currentTimeMillis() + frameDropExpiryMs
         ))
     }
 
@@ -533,14 +568,13 @@ class LedgerEventHandler(
 
         val mat = item.type
         val amt = item.amount.coerceAtLeast(1)
-        val meta = LedgerMetadata.fromLocation(frame.location)
-            .copy(containerType = "ITEM_FRAME",
-                  containerLocation = "${frame.location.world?.name},${frame.location.blockX},${frame.location.blockY},${frame.location.blockZ}")
-        appendAsync(player.uniqueId, LedgerAction.FRAME_TAKE, mat, amt, meta)
-
-        // One legitimate item entity is about to spawn. Reserve it so the upcoming PICKUP doesn't
-        // get attributed as a fresh acquisition.
-        expectFrameDrop(mat, amt, frame.location, player.uniqueId)
+        // No FRAME_TAKE ledger entry — credit happens at pickup. Source context flows through
+        // the expected drop so the upcoming PICKUP audit entry shows it came from a frame.
+        expectFrameDrop(
+            material = mat, amount = amt, loc = frame.location, sourcePlayer = player.uniqueId,
+            sourceAction = LedgerAction.FRAME_TAKE,
+            sourceContext = "FRAME_TAKE:${frame.location.world?.name},${frame.location.blockX},${frame.location.blockY},${frame.location.blockZ}"
+        )
         frameContents.remove(frame.uniqueId)
     }
 
@@ -569,7 +603,11 @@ class LedgerEventHandler(
         else if (item.type != Material.AIR && isTracked(item.type)) { material = item.type; amount = item.amount.coerceAtLeast(1) }
         else return
 
-        expectFrameDrop(material, amount, frame.location, source)
+        expectFrameDrop(
+            material = material, amount = amount, loc = frame.location, sourcePlayer = source,
+            sourceAction = LedgerAction.FRAME_TAKE,
+            sourceContext = "FRAME_BREAK:${frame.location.world?.name},${frame.location.blockX},${frame.location.blockY},${frame.location.blockZ}"
+        )
     }
 
     // ========== UTILITY ==========

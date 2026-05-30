@@ -2,6 +2,25 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [2.6.0] - 2026-05-30
+
+### Fixed
+- Long-standing double-counting bug where mining a tracked block credited the
+  player twice — once when the block broke and once when the dropped item was
+  picked up. The ledger now credits the pickup only, and the originating event
+  (mine, frame take, pot break) is recorded as the pickup's source. Same fix
+  applies to intentional item-frame takes.
+- Excess pickups from a single expected drop (the dupe surplus) are no longer
+  credited to the ledger at all, so the resulting inventory-vs-ledger gap
+  reinforces the immediate dupe alert with a balance-reconciliation hit on the
+  next pass.
+
+### Changed
+- Ledger history entries for PICKUP now carry source attribution
+  (e.g. `MINE:DIAMOND_ORE|TOOL:NETHERITE_PICKAXE`), so admins can see at a glance
+  whether an acquisition came from mining, a frame, a pot break, or a generic
+  ground pickup.
+
 ## [2.5.0] - 2026-05-30
 
 ### Added
