@@ -1,0 +1,137 @@
+[CENTER][SIZE=7][COLOR=#c0392b][B]AntiDupePro[/B][/COLOR][/SIZE]
+[SIZE=4][COLOR=#7f8c8d]Forensic-grade item-duplication detector[/COLOR][/SIZE]
+[SIZE=3]Paper · Folia · Spigot — 1.21.x and 26.x[/SIZE][/CENTER]
+
+[CENTER][SIZE=4][I]Most anti-cheat plugins watch movement and combat. AntiDupePro
+watches the items themselves — and catches the dupes that quietly inflate your
+economy until your spawn is full of free elytras.[/I][/SIZE][/CENTER]
+
+[HR][/HR]
+
+[SIZE=6][COLOR=#c0392b][B]Why AntiDupePro?[/B][/COLOR][/SIZE]
+
+Other anti-dupe plugins use per-item NBT tags — every diamond gets a unique ID,
+which breaks vanilla stacking and irritates your players. AntiDupePro takes
+a different approach: items keep their owner UUID and stack normally, but every
+gain and loss is recorded in a tamper-evident ledger. When a player's actual
+inventory diverges from what the ledger says, you get an alert.
+
+The result: comprehensive detection without the UX friction.
+
+[HR][/HR]
+
+[SIZE=6][COLOR=#c0392b][B]What it catches[/B][/COLOR][/SIZE]
+
+A partial list of dupe families AntiDupePro detects out of the box:
+
+[LIST]
+[*][B]Stack-clone exploits[/B] — click-timing, drag, cursor desync
+[*][B]Shulker / bundle laundering[/B] — recursive content scan up to depth 10
+[*][B]Item frame dupes[/B] — piston-into-frame, chunk-race, end-crystal variants
+[*][B]Entity inventory dupes[/B] — horse, donkey, llama, chest boat, chest minecart
+[*][B]Hopper laundering[/B] — items moving through automation are scanned
+[*][B]Workstation outputs[/B] — smithing, anvil, loom, stonecutter, cartography, grindstone
+[*][B]Furnace / lectern / decorated pot / ender chest[/B] — full transfer tracking
+[*][B]Chunk-load entity respawn[/B] — same item entity picked up twice
+[*][B]Drop-pickup race[/B] — same-NBT dupes via entity persistence
+[*][B]Acquisition-rate abuse[/B] — TMAR thresholds per material
+[*][B]Witness-less acquisitions[/B] — Proof of Witness flags suspicious solo patterns
+[/LIST]
+
+The full coverage matrix is in the user guide on GitHub.
+
+[HR][/HR]
+
+[SIZE=6][COLOR=#c0392b][B]Compatibility[/B][/COLOR][/SIZE]
+
+[LIST]
+[*][B]Server software:[/B] Paper, Folia, Spigot, and Paper-compatible forks
+[*][B]Minecraft:[/B] 1.21.x on the main branch, 26.x on the [I]paper-26[/I] branch
+[*][B]Java:[/B] 21+ for 1.21.x · 25+ for 26.x
+[*][B]External services:[/B] none required (SQLite bundled). Redis optional for proxy networks.
+[/LIST]
+
+Folia compatibility is first-class — the plugin detects Folia at runtime and
+dispatches scheduler calls to the regional schedulers automatically.
+
+[HR][/HR]
+
+[SIZE=6][COLOR=#c0392b][B]Storage backends[/B][/COLOR][/SIZE]
+
+Pick one in [I]config.yml[/I]:
+
+[LIST]
+[*][B]SQLite[/B] — file-based, persistent, zero ops. Default and recommended for single servers.
+[*][B]Redis[/B] — fast and shareable across multiple servers behind Velocity / BungeeCord.
+[*][B]Memory[/B] — in-process only, lost on restart. For testing.
+[/LIST]
+
+[HR][/HR]
+
+[SIZE=6][COLOR=#c0392b][B]Installation[/B][/COLOR][/SIZE]
+
+[LIST=1]
+[*]Download the jar
+[*]Drop it into [I]plugins/[/I]
+[*]Start the server
+[*]Done — the plugin generates [I]config.yml[/I] and [I]materials.yml[/I] with sensible defaults
+[/LIST]
+
+Run [I]/adp help[/I] in-game to see the admin commands.
+
+[HR][/HR]
+
+[SIZE=6][COLOR=#c0392b][B]Commands[/B][/COLOR][/SIZE]
+
+All commands live under [I]/adp[/I] (aliases: [I]/antidupe[/I], [I]/antidupepro[/I]).
+
+[LIST]
+[*][I]/adp ledger status[/I] — chain tip, current suspects, system health
+[*][I]/adp ledger balance <player>[/I] — expected balances for each material
+[*][I]/adp ledger history <player>[/I] — recent ledger entries
+[*][I]/adp ledger witness <player>[/I] — witness statistics and suspicion analysis
+[*][I]/adp ledger suspects[/I] — list all currently flagged players
+[*][I]/adp ledger reconcile <player>[/I] — force a balance check on an online player
+[*][I]/adp ledger trust <player>[/I] — accumulated trust score
+[*][I]/adp ledger verify[/I] — verify the entire hash chain
+[/LIST]
+
+Permission [I]antidupe.admin[/I] grants all of the above and routes dupe alerts to chat.
+
+[HR][/HR]
+
+[SIZE=6][COLOR=#c0392b][B]Configuration[/B][/COLOR][/SIZE]
+
+Two files in [I]plugins/AntiDupePro/[/I]:
+
+[LIST]
+[*][B]config.yml[/B] — storage backend, modes (shadow / auto-delete), ledger settings
+[*][B]materials.yml[/B] — tracked materials, rate limits, alert thresholds
+[/LIST]
+
+Both files are extensively commented. You can add or remove tracked materials at
+any time without restarting the dependency stack — just edit the file and reload.
+
+[HR][/HR]
+
+[SIZE=6][COLOR=#c0392b][B]Free and open source[/B][/COLOR][/SIZE]
+
+[LIST]
+[*]No license key
+[*]No telemetry
+[*]No "premium" feature gating
+[*]Full source on GitHub, issues and PRs welcome
+[/LIST]
+
+[HR][/HR]
+
+[SIZE=6][COLOR=#c0392b][B]Links[/B][/COLOR][/SIZE]
+
+[LIST]
+[*][URL=https://github.com/darkstarworks/AntiDupePro]Source code and issue tracker[/URL]
+[*][URL=https://github.com/darkstarworks/AntiDupePro/blob/main/docs/user-guide.html]User guide (HTML)[/URL]
+[*][URL=https://github.com/darkstarworks/AntiDupePro/blob/main/CHANGELOG.md]Changelog[/URL]
+[/LIST]
+
+[CENTER][SIZE=3][I]If AntiDupePro saved you from cleaning up a dupe wave, a positive review
+on this page is the best way to support development.[/I][/SIZE][/CENTER]
