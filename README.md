@@ -2,7 +2,8 @@
   AntiDupePro — User Guide
   Plain HTML, GitBook-friendly. No external assets, no scripts.
 -->
-<img width="1024" height="256" alt="adp_banner_1024_white-bg" src="https://github.com/user-attachments/assets/0d6887ab-0262-409a-8683-c6677f785c99" />
+<img width="1024" height="256" alt="adp_banner_1024_black-bg" src="https://github.com/user-attachments/assets/0124c9ec-c6b4-48b3-8259-eb1748053a88" />
+
 
 <h1>User Guide</h1>
 
