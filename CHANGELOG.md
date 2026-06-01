@@ -2,6 +2,24 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [3.2.0] - 2026-05-31
+
+### Added
+- **`/adp ledger stash <player>`** — new admin command that lists a player's
+  recent CONTAINER_PUT / ENTITY_PUT / FRAME_PUT events with **clickable
+  coordinates**. Clicking the coords runs `/execute in <world> run tp @s x y z`
+  so the admin teleports directly to the stash location, including across
+  worlds. Built on the Spigot/Bukkit BaseComponent API so it works identically
+  on Spigot, Paper and Folia.
+- The current-suspects display now explains what `material: +N` means
+  (cumulative excess across all of that suspect's violations) and points
+  admins at the new stash command.
+
+### Notes
+- Adventure / MiniMessage was considered for click events but not used,
+  because Adventure isn't available on Spigot. The BungeeCord-style
+  BaseComponent API is present on every supported platform.
+
 ## [3.1.0] - 2026-05-31
 
 ### Added
@@ -187,7 +205,7 @@ keys.
 - External license verification and feature gating
 - Build-time obfuscation pass (release artefact is now a plain shaded jar)
 
-## [2.0.0] - 2024-12-07
+## [2.0.0] - 2025-12-07
 
 ### Added
 - Next-generation protection engine with enhanced detection capabilities
@@ -209,20 +227,20 @@ keys.
 - Separate database storage for new system (configurable)
 - Automatic maintenance and cleanup tasks
 
-## [1.0.3] - 2024-12-07
+## [1.0.3] - 2025-12-07
 
 ### Added
 - New admin command to reset item security status
 - Fixes issue where flagged items couldn't be merged
 
-## [1.0.2] - 2024-12-07
+## [1.0.2] - 2025-12-07
 
 ### Changed
 - Consolidated all commands under `/adp` base command
 - Added tab completion for subcommands
 - Added command aliases for convenience
 
-## [1.0.1] - 2024-12-07
+## [1.0.1] - 2025-12-07
 
 ### Added
 - New admin command for testing and demonstration purposes
@@ -235,7 +253,7 @@ keys.
 ### Fixed
 - Minor stability improvements
 
-## [1.0.0] - 2024-12-06
+## [1.0.0] - 2025-12-06
 
 ### Added
 - Initial release

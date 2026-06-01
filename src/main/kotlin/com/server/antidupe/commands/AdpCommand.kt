@@ -2,6 +2,8 @@ package com.server.antidupe.commands
 
 import com.server.antidupe.ledger.ChainOfCustody
 import com.server.antidupe.platform.PlatformScheduler
+import com.server.antidupe.util.Chat
+import com.server.antidupe.util.Chat.sendChat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.bukkit.Bukkit
@@ -66,10 +68,11 @@ class AdpCommand(
         if (args.size >= 2 && args[0].lowercase() in listOf("ledger", "coc", "chain")) {
             if (!sender.hasPermission("antidupe.admin") || chainOfCustody == null) return emptyList()
             return when (args.size) {
-                2 -> listOf("status", "balance", "history", "witness", "suspects", "reconcile", "trust", "verify", "help")
+                2 -> listOf("status", "balance", "history", "witness", "suspects", "stash",
+                            "reconcile", "trust", "verify", "help")
                     .filter { it.startsWith(args[1].lowercase()) }
                 3 -> when (args[1].lowercase()) {
-                    "balance", "history", "witness", "reconcile", "trust" ->
+                    "balance", "history", "witness", "reconcile", "trust", "stash" ->
                         Bukkit.getOnlinePlayers().map { it.name }
                             .filter { it.lowercase().startsWith(args[2].lowercase()) }
                     else -> emptyList()
@@ -90,6 +93,7 @@ class AdpCommand(
             sender.sendMessage("§e/adp ledger history <player> §7- Recent ledger entries")
             sender.sendMessage("§e/adp ledger witness <player> §7- Witness stats")
             sender.sendMessage("§e/adp ledger suspects §7- List suspects")
+            sender.sendMessage("§e/adp ledger stash <player> §7- Where they stashed items (clickable)")
             sender.sendMessage("§e/adp ledger reconcile <player> §7- Force reconciliation")
             sender.sendMessage("§e/adp ledger trust <player> §7- Trust score")
             sender.sendMessage("§e/adp ledger verify §7- Verify chain integrity")
@@ -115,6 +119,8 @@ class AdpCommand(
             "witness" -> if (args.size < 2) sender.sendMessage("§cUsage: /adp ledger witness <player>")
                          else ledgerWitness(sender, coc, args[1])
             "suspects" -> ledgerSuspects(sender, coc)
+            "stash" -> if (args.size < 2) sender.sendMessage("§cUsage: /adp ledger stash <player>")
+                       else ledgerStash(sender, coc, args[1])
             "reconcile" -> if (args.size < 2) sender.sendMessage("§cUsage: /adp ledger reconcile <player>")
                            else ledgerReconcile(sender, coc, args[1])
             "trust" -> if (args.size < 2) sender.sendMessage("§cUsage: /adp ledger trust <player>")
@@ -133,6 +139,7 @@ class AdpCommand(
             append("§e/adp ledger history <player> §7- Recent ledger entries\n")
             append("§e/adp ledger witness <player> §7- Witness statistics\n")
             append("§e/adp ledger suspects §7- List current suspects\n")
+            append("§e/adp ledger stash <player> §7- Where the player stashed items (clickable)\n")
             append("§e/adp ledger reconcile <player> §7- Force reconciliation\n")
             append("§e/adp ledger trust <player> §7- Trust score details\n")
             append("§e/adp ledger verify §7- Verify chain integrity")
@@ -213,6 +220,7 @@ class AdpCommand(
         val suspects = coc.getSuspects()
         if (suspects.isEmpty()) { sender.sendMessage("§aNo current suspects"); return }
         sender.sendMessage("§6§lCurrent Suspects (${suspects.size})")
+        sender.sendMessage("§8§o(material: +N = cumulative excess of that material across all violations)")
         suspects.sortedByDescending { it.violationCount }.forEach { s ->
             val top = s.getTotalExcess().maxByOrNull { it.value }
             sender.sendMessage(buildString {
@@ -220,7 +228,68 @@ class AdpCommand(
                 if (top != null) append(" §7(${top.key.name}: +${top.value})")
             })
         }
+        sender.sendMessage("§8§oUse §e/adp ledger stash <player> §8§oto see where they stashed items.")
     }
+
+    /**
+     * Show the player's recent CONTAINER_PUT / ENTITY_PUT / FRAME_PUT entries with clickable
+     * coordinates that fire `/execute in <world> run tp @s x y z` when the admin clicks.
+     */
+    private fun ledgerStash(sender: CommandSender, coc: ChainOfCustody, playerName: String) {
+        resolvePlayer(playerName, sender) { uuid ->
+            scope.launch {
+                val stashes = coc.getPlayerStashes(uuid, limit = 20)
+                scheduler.runMain(Runnable {
+                    if (stashes.isEmpty()) {
+                        sender.sendMessage("§7No recorded stash events for §e$playerName"); return@Runnable
+                    }
+                    sender.sendMessage("§6§lRecent stashes by $playerName §7(newest first, click coords to TP)")
+
+                    for (entry in stashes) {
+                        val time = dateFormat.format(Date(entry.timestamp))
+                        val container = entry.metadata.containerType ?: entry.action.name
+                        val coords = parseContainerCoords(entry.metadata.containerLocation)
+                            ?: parseEntryCoords(entry)
+                        val absQty = kotlin.math.abs(entry.quantity)
+
+                        val prefix = "§7$time §f$absQty§7×§e${entry.material.name} §7→ §b$container §7@ "
+                        if (coords != null) {
+                            val (world, x, y, z) = coords
+                            val display = "§a§n[$world $x, $y, $z]"
+                            val msg = Chat.line()
+                                .text(prefix)
+                                .clickToTp(display, world, x, y, z, hover = "Click to teleport to this stash")
+                                .build()
+                            sender.sendChat(msg)
+                        } else {
+                            sender.sendMessage("$prefix§8(location unknown)")
+                        }
+                    }
+                })
+            }
+        }
+    }
+
+    /** Parses "world,x,y,z" container-location strings produced by LedgerMetadata.withContainer. */
+    private fun parseContainerCoords(loc: String?): Coords? {
+        if (loc.isNullOrBlank()) return null
+        val parts = loc.split(",")
+        if (parts.size != 4) return null
+        return try {
+            Coords(parts[0], parts[1].toInt(), parts[2].toInt(), parts[3].toInt())
+        } catch (e: NumberFormatException) { null }
+    }
+
+    /** Falls back to the entry's own world/x/y/z if there's no containerLocation. */
+    private fun parseEntryCoords(entry: com.server.antidupe.ledger.LedgerEntry): Coords? {
+        val w = entry.metadata.worldName ?: return null
+        val x = entry.metadata.x ?: return null
+        val y = entry.metadata.y ?: return null
+        val z = entry.metadata.z ?: return null
+        return Coords(w, x.toInt(), y.toInt(), z.toInt())
+    }
+
+    private data class Coords(val world: String, val x: Int, val y: Int, val z: Int)
 
     private fun ledgerReconcile(sender: CommandSender, coc: ChainOfCustody, playerName: String) {
         val target = Bukkit.getPlayer(playerName) ?: run {
