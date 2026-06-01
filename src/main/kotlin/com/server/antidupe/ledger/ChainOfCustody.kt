@@ -90,6 +90,23 @@ class ChainOfCustody private constructor(
     suspend fun getPlayerHistory(player: UUID, limit: Int = 50): List<LedgerEntry> =
         ledgerStorage.getPlayerEntries(player, limit = limit.toLong())
 
+    /**
+     * Recent "stash" actions for a player: items they put into a chest, shulker, barrel,
+     * ender chest, lectern, decorated pot, horse / boat / minecart chest, or item frame.
+     * Used by the admin "where did they hide it" workflow.
+     */
+    suspend fun getPlayerStashes(player: UUID, limit: Int = 30): List<LedgerEntry> {
+        val stashActions = setOf(
+            LedgerAction.CONTAINER_PUT,
+            LedgerAction.ENTITY_PUT,
+            LedgerAction.FRAME_PUT
+        )
+        // Pull a generous window and filter; this only runs on the admin command path.
+        return ledgerStorage.getPlayerEntries(player, limit = (limit * 4).toLong())
+            .filter { it.action in stashActions }
+            .take(limit)
+    }
+
     suspend fun verifyIntegrity(): IntegrityResult = ledgerStorage.verifyChainIntegrity()
 
     private fun verifyIntegrityAsync() {
