@@ -386,6 +386,14 @@ alert_thresholds:
     can't be laundered through bundles or the shulker-dye crafting
     recipe vector.
   </li>
+  <li>
+    <strong>Deep container reconciliation (3.1.0+).</strong> The balance
+    check recursively descends into shulker boxes, barrels,
+    chests-stored-as-items and bundles at every nesting level. A player
+    carrying a duped shulker full of diamonds used to show a clean
+    balance against an empty main inventory — the deep scan now counts
+    the contents and surfaces the discrepancy.
+  </li>
 </ul>
 
 <p>
@@ -461,10 +469,62 @@ alert_thresholds:
   <tr><td><code>/adp ledger history &lt;player&gt;</code></td><td>Show the player's most recent 15 ledger entries.</td></tr>
   <tr><td><code>/adp ledger witness &lt;player&gt;</code></td><td>Show the player's witness statistics and any suspicious patterns.</td></tr>
   <tr><td><code>/adp ledger suspects</code></td><td>List all currently flagged players, ranked by violation count.</td></tr>
+  <tr><td><code>/adp ledger stash &lt;player&gt;</code></td><td>Show where the player stashed tracked items, with clickable coordinates that teleport you to each stash (added in 3.2.0).</td></tr>
   <tr><td><code>/adp ledger reconcile &lt;player&gt;</code></td><td>Force a balance check for an online player right now.</td></tr>
   <tr><td><code>/adp ledger trust &lt;player&gt;</code></td><td>Show the player's accumulated trust score.</td></tr>
   <tr><td><code>/adp ledger verify</code></td><td>Verify the entire hash chain. Tells you if anything has been tampered with.</td></tr>
 </table>
+
+<h3>Reading the suspects list</h3>
+
+<p>
+  <code>/adp ledger suspects</code> output looks like this:
+</p>
+
+<pre><code>Current Suspects (3)
+(material: +N = cumulative excess of that material across all violations)
+  R4gnar95 - 19 violations (ENCHANTED_BOOK: +60)
+  Arnold_158 - 8 violations (RAISER_ARMOR_TRIM_SMITHING_TEMPLATE: +50)
+  facurolo - 7 violations (DIAMOND: +69)
+Use /adp ledger stash &lt;player&gt; to see where they stashed items.</code></pre>
+
+<p>
+  The number on the right of each line — <code>+60</code>, <code>+50</code>,
+  <code>+69</code> — is the <strong>cumulative excess</strong> of the named
+  material across that suspect's violations. Concretely:
+</p>
+
+<ul>
+  <li><code>R4gnar95 — 19 violations (ENCHANTED_BOOK: +60)</code> means the
+    reconciliation engine has flagged R4gnar95 on 19 separate occasions,
+    and across all of those events they were carrying a total of 60 more
+    enchanted books than their ledger said they should hold.</li>
+  <li>The material shown is the one with the highest cumulative excess, so it's
+    the "what they're duping" at a glance.</li>
+</ul>
+
+<h3>Finding the stash</h3>
+
+<p>
+  Once you spot a suspect, run <code>/adp ledger stash &lt;player&gt;</code>
+  to see where they put the items. The output lists their last 20 stash events
+  — items placed into chests, shulkers, barrels, ender chests, lecterns,
+  decorated pots, horse/donkey/llama chests, chest boats and item frames —
+  newest first:
+</p>
+
+<pre><code>Recent stashes by R4gnar95 (newest first, click coords to TP)
+2026-05-31 14:22:05 16×ENCHANTED_BOOK → CHEST @ [overworld 102, 64, -200]
+2026-05-31 14:21:48 8×DIAMOND_BLOCK → BARREL @ [overworld 102, 65, -200]
+2026-05-31 14:15:11 1×ELYTRA → DECORATED_POT @ [the_end 0, 60, 0]
+2026-05-31 14:10:33 32×NETHERITE_INGOT → ENDER_CHEST @ [overworld 50, 70, 12]</code></pre>
+
+<p>
+  The bracketed coordinates are clickable in chat — a single click runs
+  <code>/execute in &lt;world&gt; run tp @s x y z</code>, teleporting you
+  directly to the stash, even across worlds. Hover for a confirmation
+  tooltip.
+</p>
 
 <hr/>
 
@@ -706,4 +766,4 @@ alert_thresholds:
 
 <hr/>
 
-<p><em>Last updated for AntiDupePro 3.0.0 — Minecraft 1.21.x (Paper, Folia, Spigot).</em></p>
+<p><em>Last updated for AntiDupePro 3.2.0 — Minecraft 1.21.x (Paper, Folia, Spigot) and 26.x (Paper, on the <code>paper-26</code> branch).</em></p>
