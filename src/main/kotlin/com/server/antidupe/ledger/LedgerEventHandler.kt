@@ -101,7 +101,7 @@ class LedgerEventHandler(
             val state = block.state as? DecoratedPot
             val content = state?.inventory?.item
             if (content != null && content.type != Material.AIR && isTracked(content.type)) {
-                expectFrameDrop(
+                authorizeDrop(
                     material = content.type, amount = content.amount,
                     loc = block.location, sourcePlayer = player.uniqueId,
                     sourceAction = LedgerAction.CONTAINER_TAKE,
@@ -120,7 +120,7 @@ class LedgerEventHandler(
             // No MINE ledger entry — the credit happens at pickup time. The PICKUP entry
             // inherits the source context (block type + tool) via the expected drop so the
             // history view still shows "this came from mining DIAMOND_ORE with NETHERITE_PICKAXE".
-            expectFrameDrop(
+            authorizeDrop(
                 material = drop.type, amount = drop.amount,
                 loc = block.location, sourcePlayer = player.uniqueId,
                 sourceAction = LedgerAction.MINE,
@@ -181,14 +181,15 @@ class LedgerEventHandler(
         // matched portion is credited; the excess (if any) is the dupe — we leave it OFF the
         // ledger so the upcoming reconciliation pass also catches it, AND fire an immediate
         // alert for visibility.
-        val match = matchPickupToFrameDrop(item.type, item.amount, event.item.location)
+        val match = matchPickup(item.type, item.amount, event.item.location)
         val excess = match?.excess ?: 0
         val creditAmount = (item.amount - excess).coerceAtLeast(0)
 
         if (excess > 0) {
-            logger.warning("[DUPE] ${player.name} picked up $excess extra ${item.type} from an expected drop area")
-            reconciliationEngine.flagFrameDupe(player, item.type, excess)
-            meta = meta.copy(notes = listOfNotNull(meta.notes, "DROP_EXCESS:$excess", match?.sourceContext)
+            val src = match?.sourceContext ?: "UNKNOWN_SOURCE"
+            logger.warning("[DUPE] ${player.name} picked up $excess ${item.type} beyond what nearby sources produced ($src)")
+            reconciliationEngine.flagDropExcess(player, item.type, excess, src)
+            meta = meta.copy(notes = listOfNotNull(meta.notes, "SOURCE_EXCESS:$excess", match?.sourceContext)
                 .joinToString("|"))
         } else if (match != null) {
             // Successful attribution — attach the source context to the audit entry.
@@ -242,6 +243,51 @@ class LedgerEventHandler(
 
         if (previousOwner != null && previousOwner != player.uniqueId || previousOwner == null) {
             reconciliationEngine.reconcileAsync(player)
+        }
+    }
+
+    /**
+     * Mob death drops (raid totems, mob loot, etc.). Each dropped tracked item authorises an
+     * acquisition of that quantity near the death location. Legitimate looting — including a
+     * whole raid farm's worth funnelled to a collection point — matches these authorisations;
+     * a duped entity (more items than mobs died to produce) overflows them and surfaces as
+     * source-bound excess at pickup time. This is the fix for the raid-farm false positives.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onEntityDeath(event: org.bukkit.event.entity.EntityDeathEvent) {
+        val dead = event.entity
+        val killer = dead.killer?.uniqueId
+        val loc = dead.location
+        for (drop in event.drops) {
+            if (!isTracked(drop.type)) continue
+            authorizeDrop(
+                material = drop.type, amount = drop.amount,
+                loc = loc, sourcePlayer = killer,
+                sourceAction = LedgerAction.LOOT,
+                sourceContext = "MOB_DEATH:${dead.type.name}"
+            )
+        }
+    }
+
+    /**
+     * Loot-table generation (chest/barrel loot on first open, plugin LootTable.fillInventory).
+     * Best-effort: this event's firing semantics vary across containers and versions, and vault
+     * loot is ejected as item entities anyway (covered by pickup). Where it does fire with a
+     * locatable holder, it authorises the generated items so taking them isn't unaccounted-for.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onLootGenerate(event: org.bukkit.event.world.LootGenerateEvent) {
+        val loc = (event.inventoryHolder as? org.bukkit.block.BlockState)?.location
+            ?: event.entity?.location
+            ?: return
+        for (item in event.loot) {
+            if (item == null || !isTracked(item.type)) continue
+            authorizeDrop(
+                material = item.type, amount = item.amount,
+                loc = loc, sourcePlayer = null,
+                sourceAction = LedgerAction.LOOT,
+                sourceContext = "LOOT_TABLE"
+            )
         }
     }
 
@@ -492,23 +538,34 @@ class LedgerEventHandler(
     // ========== ITEM FRAMES ==========
 
     /**
-     * Tracks expected drops in the world so [onPickup] can attribute pickups to the event that
-     * spawned them. Three roles:
-     *   1. Prevents double-counting (MINE + PICKUP previously credited the same item twice).
-     *   2. Surfaces excess pickups (frame-piston dupes, pot-break dupes) as alerts.
-     *   3. Carries source context (action + tool/block) into the PICKUP audit entry.
+     * Source-bounded acquisition authorization. Every legitimate item-generation event (mine,
+     * mob death, loot fill, frame break, pot break) registers an "authorized drop": *this much*
+     * of *this material* may legitimately be acquired near *here*, within a time window. Pickups
+     * consume authorizations; any portion of a pickup that can't be matched to an authorization
+     * is the source-bound excess — the signal that more items exist than legitimate sources
+     * produced (a duped entity).
+     *
+     * Three roles:
+     *   1. Avoids double-counting (MINE + PICKUP once credited the same item twice).
+     *   2. Surfaces excess pickups (frame-piston, pot-break, chunk-dupe drops) as a signal.
+     *   3. Carries source context (action + block/tool) into the PICKUP audit entry.
+     *
+     * The store is **chunk-keyed** so matching is O(nearby) not O(all drops) — essential under
+     * raid-farm volume where hundreds of mobs die in seconds.
      */
     private data class ExpectedDrop(
         val material: Material,
         val expectedAmount: Int,
-        var matchedAmount: Int,
+        @Volatile var matchedAmount: Int,
         val worldName: String,
         val x: Double, val y: Double, val z: Double,
         val sourcePlayer: UUID?,
         val sourceAction: LedgerAction?,
         val sourceContext: String?,
         val expiresAt: Long
-    )
+    ) {
+        val remaining: Int get() = (expectedAmount - matchedAmount).coerceAtLeast(0)
+    }
 
     private data class DropMatch(val excess: Int, val sourceAction: LedgerAction?, val sourceContext: String?)
 
@@ -516,36 +573,68 @@ class LedgerEventHandler(
 
     /** entity UUID -> what's currently in the frame. Only populated as frames are interacted with. */
     private val frameContents = ConcurrentHashMap<UUID, FrameContent>()
-    private val expectedDrops = ConcurrentLinkedDeque<ExpectedDrop>()
-    private val frameDropExpiryMs = 60_000L
-    private val frameDropMatchRadiusSq = 25.0   // 5 blocks
 
-    private fun pruneExpiredDrops() {
+    /** Authorized drops bucketed by "world:chunkX:chunkZ". */
+    private val authorizedDrops = ConcurrentHashMap<String, ConcurrentLinkedDeque<ExpectedDrop>>()
+
+    // Generous defaults: items in farms travel via water streams / drop chutes, so a tight radius
+    // would false-flag legitimate collection. The quantity bound does the real work; the radius
+    // only scopes "plausibly from a recent nearby source". Tuned by sensitivity in a later step.
+    private val dropMatchRadius = 24.0
+    private val dropMatchRadiusSq = dropMatchRadius * dropMatchRadius
+    private val dropChunkRadius = Math.ceil(dropMatchRadius / 16.0).toInt()
+    private val dropWindowMs = 300_000L  // 5 minutes
+
+    private fun chunkKey(worldName: String, blockX: Int, blockZ: Int): String =
+        "$worldName:${blockX shr 4}:${blockZ shr 4}"
+
+    private fun pruneExpiredDropsIn(key: String) {
+        val deque = authorizedDrops[key] ?: return
         val now = System.currentTimeMillis()
-        expectedDrops.removeIf { it.expiresAt < now || it.matchedAmount >= it.expectedAmount }
+        deque.removeIf { it.expiresAt < now || it.remaining <= 0 }
+        if (deque.isEmpty()) authorizedDrops.remove(key)
     }
 
     /**
-     * Try to attribute a pickup to a previously-registered expected drop.
-     * @return excess amount picked up over the expected amount (>0 = dupe candidate),
-     *         or null if no expected drop matched.
+     * Greedily consume authorizations matching this pickup across the nearby chunks, up to the
+     * pickup amount. The unconsumed remainder is the source-bound excess.
+     * @return a DropMatch when at least one authorization matched, else null (no nearby source —
+     *         the pickup is credited in full and left to balance reconciliation).
      */
-    private fun matchPickupToFrameDrop(material: Material, amount: Int, loc: Location): DropMatch? {
-        pruneExpiredDrops()
-        val worldName = loc.world?.name ?: return null
-        for (drop in expectedDrops) {
-            if (drop.material != material) continue
-            if (drop.worldName != worldName) continue
-            val dx = drop.x - loc.x; val dy = drop.y - loc.y; val dz = drop.z - loc.z
-            if (dx * dx + dy * dy + dz * dz > frameDropMatchRadiusSq) continue
-            drop.matchedAmount += amount
-            val excess = (drop.matchedAmount - drop.expectedAmount).coerceAtLeast(0)
-            return DropMatch(excess, drop.sourceAction, drop.sourceContext)
+    private fun matchPickup(material: Material, amount: Int, loc: Location): DropMatch? {
+        val world = loc.world ?: return null
+        val worldName = world.name
+        val cx = loc.blockX shr 4
+        val cz = loc.blockZ shr 4
+        val now = System.currentTimeMillis()
+
+        var remaining = amount
+        var matchedAny = false
+        var ctxAction: LedgerAction? = null
+        var ctx: String? = null
+
+        for (dcx in (cx - dropChunkRadius)..(cx + dropChunkRadius)) {
+            for (dcz in (cz - dropChunkRadius)..(cz + dropChunkRadius)) {
+                if (remaining <= 0) break
+                val deque = authorizedDrops["$worldName:$dcx:$dcz"] ?: continue
+                for (drop in deque) {
+                    if (remaining <= 0) break
+                    if (drop.material != material || drop.expiresAt < now || drop.remaining <= 0) continue
+                    val dx = drop.x - loc.x; val dy = drop.y - loc.y; val dz = drop.z - loc.z
+                    if (dx * dx + dy * dy + dz * dz > dropMatchRadiusSq) continue
+                    val take = minOf(drop.remaining, remaining)
+                    drop.matchedAmount += take
+                    remaining -= take
+                    if (!matchedAny) { matchedAny = true; ctxAction = drop.sourceAction; ctx = drop.sourceContext }
+                }
+            }
         }
-        return null
+
+        if (!matchedAny) return null
+        return DropMatch(excess = remaining, sourceAction = ctxAction, sourceContext = ctx)
     }
 
-    private fun expectFrameDrop(
+    private fun authorizeDrop(
         material: Material,
         amount: Int,
         loc: Location,
@@ -553,14 +642,17 @@ class LedgerEventHandler(
         sourceAction: LedgerAction? = null,
         sourceContext: String? = null
     ) {
+        if (amount <= 0) return
         val world = loc.world ?: return
-        expectedDrops.add(ExpectedDrop(
+        val key = chunkKey(world.name, loc.blockX, loc.blockZ)
+        pruneExpiredDropsIn(key)
+        authorizedDrops.getOrPut(key) { ConcurrentLinkedDeque() }.add(ExpectedDrop(
             material = material, expectedAmount = amount, matchedAmount = 0,
             worldName = world.name, x = loc.x, y = loc.y, z = loc.z,
             sourcePlayer = sourcePlayer,
             sourceAction = sourceAction,
             sourceContext = sourceContext,
-            expiresAt = System.currentTimeMillis() + frameDropExpiryMs
+            expiresAt = System.currentTimeMillis() + dropWindowMs
         ))
     }
 
@@ -612,7 +704,7 @@ class LedgerEventHandler(
         val amt = item.amount.coerceAtLeast(1)
         // No FRAME_TAKE ledger entry — credit happens at pickup. Source context flows through
         // the expected drop so the upcoming PICKUP audit entry shows it came from a frame.
-        expectFrameDrop(
+        authorizeDrop(
             material = mat, amount = amt, loc = frame.location, sourcePlayer = player.uniqueId,
             sourceAction = LedgerAction.FRAME_TAKE,
             sourceContext = "FRAME_TAKE:${frame.location.world?.name},${frame.location.blockX},${frame.location.blockY},${frame.location.blockZ}"
@@ -645,7 +737,7 @@ class LedgerEventHandler(
         else if (item.type != Material.AIR && isTracked(item.type)) { material = item.type; amount = item.amount.coerceAtLeast(1) }
         else return
 
-        expectFrameDrop(
+        authorizeDrop(
             material = material, amount = amount, loc = frame.location, sourcePlayer = source,
             sourceAction = LedgerAction.FRAME_TAKE,
             sourceContext = "FRAME_BREAK:${frame.location.world?.name},${frame.location.blockX},${frame.location.blockY},${frame.location.blockZ}"
