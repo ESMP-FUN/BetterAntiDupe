@@ -2,8 +2,10 @@
   AntiDupePro — User Guide
   Plain HTML, GitBook-friendly. No external assets, no scripts.
 -->
+<img width="1024" height="256" alt="adp_banner_1024_black-bg" src="https://github.com/user-attachments/assets/0124c9ec-c6b4-48b3-8259-eb1748053a88" />
 
-<h1>AntiDupePro — User Guide</h1>
+
+<h1>User Guide</h1>
 
 <p>
   AntiDupePro is a Paper / Spigot plugin that stops item duplication on

@@ -224,6 +224,19 @@ shadow_mode: true
 # setups.
 block_collect_to_cursor: false
 
+detection:
+  # Global sensitivity, 1 (very lenient) to 100 (very paranoid). 50 is balanced
+  # and right for most casual servers. Higher = a smaller surplus alerts.
+  sensitivity: 50
+  # Optional command run on the console when an admin confirms a duper with
+  # /adp ledger confirm. {player} is replaced with the name. Leave empty to do
+  # nothing. Example: "tempban {player} 7d Item duplication"
+  on_confirm_command: ""
+
+# Console verbosity: CRITICAL, ERROR, WARNING, INFO, DEBUG (each includes the
+# levels above it). CRITICAL and ERROR both map to the server's SEVERE level.
+console_log_level: INFO
+
 # ---------- v2 Chain of Custody ----------
 ledger:
   # Turn the v2 system on. Off by default while it matures.
@@ -418,7 +431,9 @@ alert_thresholds:
   <tr><td><code>/adp ledger stash &lt;player&gt;</code></td><td>Show where the player stashed tracked items, with clickable coordinates that teleport you to each stash (added in 3.2.0).</td></tr>
   <tr><td><code>/adp ledger reconcile &lt;player&gt;</code></td><td>Force a balance check for an online player right now.</td></tr>
   <tr><td><code>/adp ledger trust &lt;player&gt;</code></td><td>Show the player's accumulated trust score.</td></tr>
-  <tr><td><code>/adp ledger verify</code></td><td>Verify the entire hash chain. Tells you if anything has been tampered with.</td></tr>
+  <tr><td><code>/adp ledger confirm &lt;player&gt;</code></td><td>Verdict: confirm a real duper. Pins their suspicion high (future hits trip on far less) and runs <code>detection.on_confirm_command</code> if set.</td></tr>
+  <tr><td><code>/adp ledger clear &lt;player&gt;</code></td><td>Verdict: mark a false positive. Resets the player's suspicion and removes them from the suspect list.</td></tr>
+  <tr><td><code>/adp ledger verify</code></td><td>Verify the hash chains. Tells you if anything has been tampered with.</td></tr>
 </table>
 
 <h3>Reading the suspects list</h3>
@@ -566,32 +581,47 @@ Use /adp ledger stash &lt;player&gt; to see where they stashed items.</code></pr
 <h3>"I'm getting false-positive dupe alerts."</h3>
 
 <p>
-  A few common sources:
+  As of 3.3.0 the detection model is designed to make these rare. If you're
+  still seeing them:
 </p>
 
 <ul>
   <li>
-    <strong>Custom plugins giving items.</strong> If another plugin grants
-    items via <code>player.getInventory().addItem(...)</code> without
-    firing a Bukkit event, AntiDupePro can't see the legitimate source
-    and may flag the resulting balance. The plugin exposes a public API —
-    <code>ChainOfCustody.recordSystemGrant(player, material, amount, source)</code> —
-    that other plugins can call to declare legitimate grants. Or remove
-    the material from <code>tracked_materials</code>.
+    <strong>Turn sensitivity down.</strong> <code>detection.sensitivity</code>
+    (1–100, default 50) is the master dial. Lower it toward 1 for a more
+    forgiving server; raise it toward 100 only if you want to catch the
+    smallest discrepancies and accept more noise.
   </li>
   <li>
-    <strong>World-edit / instant-mining tools.</strong> Mining 200
-    diamond blocks in one second will trip TMAR. Raise the limit for
-    that material in <code>materials.yml</code>.
+    <strong>Clear the player.</strong> Run
+    <code>/adp ledger clear &lt;player&gt;</code> on a confirmed false positive.
+    This resets their suspicion so they aren't re-flagged on small wobbles.
+    Conversely, <code>/adp ledger confirm &lt;player&gt;</code> on a real
+    duper makes future hits trip on far less.
   </li>
   <li>
-    <strong>Old items from before the plugin was installed.</strong>
-    They have no owner UUID in their NBT and no ledger history. The
-    plugin treats them as untracked acquisitions — the first time the
-    player interacts with them (picks one up, puts it in a chest), they
-    become tracked from that point onward. No manual action is needed.
+    <strong>Custom plugins / shops giving items.</strong> Plugins that grant
+    items via direct API (shop purchases, kit/reward plugins) bypass the
+    events the ledger watches. The plugin self-heals this automatically — a
+    balance that goes negative is recognised as a tracking gap and re-baselined
+    to the player's real inventory rather than flagged. For zero-noise
+    integration, plugin authors can call
+    <code>ChainOfCustody.recordSystemGrant(player, material, amount, source)</code>.
+  </li>
+  <li>
+    <strong>Old items from before install.</strong> No owner UUID, no ledger
+    history. They become tracked the first time the player interacts with
+    them; a never-seen player's inventory is baselined on first join. No
+    manual action needed.
   </li>
 </ul>
+
+<p>
+  Note that acquisition-rate bursts (raid farms, fast vault looting) and
+  solo unwitnessed play no longer trigger alerts on their own — they only
+  nudge a player's suspicion, which decays on its own when nothing else is
+  wrong.
+</p>
 
 <h3>"I got a CRITICAL chunk-load dupe alert but the player swears they didn't cheat."</h3>
 
@@ -694,4 +724,4 @@ Use /adp ledger stash &lt;player&gt; to see where they stashed items.</code></pr
 
 <hr/>
 
-<p><em>Last updated for AntiDupePro 3.2.0 — Minecraft 1.21.x (Paper, Folia, Spigot) and 26.x (Paper, on the <code>paper-26</code> branch).</em></p>
+<p><em>Last updated for AntiDupePro 3.3.0 — Minecraft 1.21.x (Paper, Folia, Spigot) and 26.x (Paper, on the <code>paper-26</code> branch).</em></p>
