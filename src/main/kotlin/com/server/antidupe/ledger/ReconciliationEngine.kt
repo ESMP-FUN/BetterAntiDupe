@@ -253,10 +253,30 @@ class ReconciliationEngine(
     }
 
     /**
-     * Called by the event handler when an item-frame drop spawns more pickups than expected.
-     * Records a suspect profile entry and emits a HIGH-severity alert so admins get notified
-     * even if balance reconciliation would later mask the event.
+     * Called by the event handler when a pickup exceeds what nearby legitimate sources (mob
+     * deaths, mined blocks, frame/pot breaks, loot tables) produced — i.e. more items exist
+     * than were generated, the signature of a duped entity. Records a suspect entry and emits
+     * a HIGH-severity alert. [source] is the source context (e.g. MOB_DEATH:EVOKER).
      */
+    fun flagDropExcess(player: Player, material: Material, excess: Int, source: String) {
+        val now = System.currentTimeMillis()
+        val profile = suspects.getOrPut(player.uniqueId) { SuspectProfile(player.uniqueId, player.name) }
+        profile.recordViolation(
+            discrepancies = listOf(Discrepancy(material = material, expected = 0, actual = excess, excess = excess)),
+            tmarViolations = emptyList()
+        )
+        emitAlert(DupeAlert(
+            type = AlertType.BALANCE_DISCREPANCY,
+            player = player.uniqueId,
+            playerName = player.name,
+            material = material,
+            details = "$excess ${material.name} picked up beyond nearby source output ($source)",
+            severity = if (excess >= 4) Severity.CRITICAL else Severity.HIGH,
+            timestamp = now
+        ))
+    }
+
+    /** @deprecated retained for compatibility; use [flagDropExcess]. */
     fun flagFrameDupe(player: Player, material: Material, excess: Int) {
         val now = System.currentTimeMillis()
         val profile = suspects.getOrPut(player.uniqueId) { SuspectProfile(player.uniqueId, player.name) }
