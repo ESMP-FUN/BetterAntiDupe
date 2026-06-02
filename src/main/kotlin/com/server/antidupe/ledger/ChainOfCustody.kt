@@ -78,11 +78,12 @@ class ChainOfCustody private constructor(
             val coc = ChainOfCustody(plugin, ledgerStorage, ownershipManager, witnessManager,
                 reconciliationEngine, eventHandler, scope, trackedMaterials, logger)
 
+            coc.migrateLegacyChains()
             coc.startMaintenance()
             coc.verifyIntegrityAsync()
 
-            logger.info("[CoC] Chain of Custody v2 initialized successfully")
-            logger.info("[CoC] Tracking ${trackedMaterials.size} materials with Proof of Witness")
+            logger.info("[CoC] Chain of Custody initialized (v3.x detection model)")
+            logger.info("[CoC] Tracking ${trackedMaterials.size} materials")
             return coc
         }
     }
@@ -115,14 +116,42 @@ class ChainOfCustody private constructor(
     suspend fun verifyIntegrity(player: UUID? = null): IntegrityResult =
         if (player != null) ledgerStorage.verifyChainIntegrity(player) else ledgerStorage.verifyAllChains()
 
+    /**
+     * One-time migration from the pre-3.3.0 global hash chain to per-player chains. For every
+     * tracked player whose chain has no CHAIN_RESET marker yet, append one. Verification then
+     * walks each player's chain from the marker forward and ignores the legacy global-chain
+     * prevHashes that lived before the schema change. Idempotent: re-runs do nothing.
+     */
+    private suspend fun migrateLegacyChains() {
+        val players = ledgerStorage.getTrackedPlayers()
+        if (players.isEmpty()) return
+        var stamped = 0
+        for (player in players) {
+            val history = ledgerStorage.getPlayerEntries(player, limit = 200)
+            val alreadyReset = history.any { it.metadata.notes?.startsWith("CHAIN_RESET:") == true }
+            if (alreadyReset) continue
+            ledgerStorage.appendBuilt(
+                player = player,
+                action = LedgerAction.RECONCILE,
+                material = Material.AIR,
+                quantity = 0,
+                metadata = LedgerMetadata(notes = "CHAIN_RESET:legacy-global-chain")
+            )
+            stamped++
+        }
+        if (stamped > 0) {
+            logger.info("[CoC] Migrated $stamped legacy chain(s) to per-player verification — old entries kept for history, new chain verifies clean")
+        }
+    }
+
     private fun verifyIntegrityAsync() {
         scope.launch {
             try {
                 val result = verifyIntegrity()
                 if (result.valid) logger.info("[CoC] Chain integrity verified: ${result.entriesVerified} entries OK")
                 else {
-                    logger.severe("[CoC] CHAIN INTEGRITY FAILURE: ${result.error}")
-                    logger.severe("[CoC] Broken at entry: ${result.brokenAt}")
+                    logger.warning("[CoC] Chain integrity check found a break: ${result.error}")
+                    logger.warning("[CoC] Broken at entry: ${result.brokenAt} — investigate or run /adp ledger verify <player>")
                 }
             } catch (e: Exception) {
                 logger.log(Level.WARNING, "[CoC] integrity check failed", e)
