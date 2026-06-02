@@ -69,10 +69,10 @@ class AdpCommand(
             if (!sender.hasPermission("antidupe.admin") || chainOfCustody == null) return emptyList()
             return when (args.size) {
                 2 -> listOf("status", "balance", "history", "witness", "suspects", "stash",
-                            "reconcile", "trust", "verify", "help")
+                            "reconcile", "trust", "confirm", "clear", "verify", "help")
                     .filter { it.startsWith(args[1].lowercase()) }
                 3 -> when (args[1].lowercase()) {
-                    "balance", "history", "witness", "reconcile", "trust", "stash" ->
+                    "balance", "history", "witness", "reconcile", "trust", "stash", "confirm", "clear" ->
                         Bukkit.getOnlinePlayers().map { it.name }
                             .filter { it.lowercase().startsWith(args[2].lowercase()) }
                     else -> emptyList()
@@ -121,6 +121,10 @@ class AdpCommand(
             "suspects" -> ledgerSuspects(sender, coc)
             "stash" -> if (args.size < 2) sender.sendMessage("§cUsage: /adp ledger stash <player>")
                        else ledgerStash(sender, coc, args[1])
+            "confirm" -> if (args.size < 2) sender.sendMessage("§cUsage: /adp ledger confirm <player>")
+                         else ledgerVerdict(sender, coc, args[1], confirm = true)
+            "clear" -> if (args.size < 2) sender.sendMessage("§cUsage: /adp ledger clear <player>")
+                       else ledgerVerdict(sender, coc, args[1], confirm = false)
             "reconcile" -> if (args.size < 2) sender.sendMessage("§cUsage: /adp ledger reconcile <player>")
                            else ledgerReconcile(sender, coc, args[1])
             "trust" -> if (args.size < 2) sender.sendMessage("§cUsage: /adp ledger trust <player>")
@@ -142,6 +146,8 @@ class AdpCommand(
             append("§e/adp ledger stash <player> §7- Where the player stashed items (clickable)\n")
             append("§e/adp ledger reconcile <player> §7- Force reconciliation\n")
             append("§e/adp ledger trust <player> §7- Trust score details\n")
+            append("§e/adp ledger confirm <player> §7- Confirm a real duper (pins suspicion)\n")
+            append("§e/adp ledger clear <player> §7- Mark a false positive (resets suspicion)\n")
             append("§e/adp ledger verify §7- Verify chain integrity")
         })
     }
@@ -290,6 +296,32 @@ class AdpCommand(
     }
 
     private data class Coords(val world: String, val x: Int, val y: Int, val z: Int)
+
+    /**
+     * Admin verdict on a flagged player. `confirm` pins suspicion high (future hits trip easily)
+     * and runs the configured punishment command if set; `clear` marks it a false positive and
+     * resets the player's suspicion and suspect entry.
+     */
+    private fun ledgerVerdict(sender: CommandSender, coc: ChainOfCustody, playerName: String, confirm: Boolean) {
+        resolvePlayer(playerName, sender) { uuid ->
+            if (confirm) {
+                coc.confirmSuspect(uuid)
+                sender.sendMessage("§cConfirmed §e$playerName §cas a duper. Suspicion pinned high.")
+                // Optional configurable punishment hook: detection.on_confirm_command, with {player}.
+                val cmd = plugin.config.getString("detection.on_confirm_command", "")?.trim().orEmpty()
+                if (cmd.isNotEmpty()) {
+                    val resolved = cmd.replace("{player}", playerName)
+                    scheduler.runMain(Runnable {
+                        plugin.server.dispatchCommand(plugin.server.consoleSender, resolved)
+                    })
+                    sender.sendMessage("§7Ran punishment command: §f/$resolved")
+                }
+            } else {
+                coc.clearVerdict(uuid)
+                sender.sendMessage("§aCleared §e$playerName§a (false positive). Suspicion reset.")
+            }
+        }
+    }
 
     private fun ledgerReconcile(sender: CommandSender, coc: ChainOfCustody, playerName: String) {
         val target = Bukkit.getPlayer(playerName) ?: run {

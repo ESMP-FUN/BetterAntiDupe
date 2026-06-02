@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -43,6 +44,7 @@ class AntiDupePro : JavaPlugin() {
 
             saveDefaultConfig()
             materialsConfig = loadMaterialsConfig()
+            applyLogLevel()
             validateConfiguration()
             logger.info("✓ Configuration loaded")
 
@@ -53,6 +55,7 @@ class AntiDupePro : JavaPlugin() {
             }
 
             initializeChainOfCustody()
+            registerJoinBaseline()
 
             logger.info("=== AntiDupePro enabled successfully ===")
         } catch (e: Exception) {
@@ -188,6 +191,7 @@ class AntiDupePro : JavaPlugin() {
                     reconciliationCooldownMs = reconciliationCooldownMs,
                     alertThresholds = alertThresholds,
                     defaultAlertThreshold = defaultAlertThreshold,
+                    sensitivity = config.getInt("detection.sensitivity", 50),
                     logger = logger
                 )
             }
@@ -211,7 +215,10 @@ class AntiDupePro : JavaPlugin() {
                 logger.warning("[DUPE] ${alert.playerName}: ${alert.details}")
             }
 
-            chainOfCustody?.let { adpCommand.setChainOfCustody(it) }
+            chainOfCustody?.let {
+                adpCommand.setChainOfCustody(it)
+                it.reconciliationEngine.healLogLevel = healLogLevelFor()
+            }
 
             logger.info("✓ Chain of Custody initialized")
             logger.info("  Tracking ${trackedMaterials.size} materials, ${tmarLimits.size} TMAR limits")
@@ -221,4 +228,42 @@ class AntiDupePro : JavaPlugin() {
     }
 
     fun getChainOfCustody(): ChainOfCustody? = chainOfCustody
+
+    /**
+     * Map the config's 5-level scheme (CRITICAL/ERROR/WARNING/INFO/DEBUG, each including those
+     * above it) onto java.util.logging levels and apply it to the plugin logger. Note CRITICAL
+     * and ERROR both map to SEVERE (the JVM has no separate tier).
+     */
+    private fun applyLogLevel() {
+        val configured = (config.getString("console_log_level", "INFO") ?: "INFO").uppercase()
+        val level = when (configured) {
+            "CRITICAL", "ERROR" -> Level.SEVERE
+            "WARNING" -> Level.WARNING
+            "INFO" -> Level.INFO
+            "DEBUG" -> Level.FINE
+            else -> { logger.warning("Unknown console_log_level '$configured', using INFO"); Level.INFO }
+        }
+        logger.level = level
+    }
+
+    /** The self-heal "re-baselined" line is verbose by nature; show it only at DEBUG. */
+    private fun healLogLevelFor(): Level {
+        val configured = (config.getString("console_log_level", "INFO") ?: "INFO").uppercase()
+        return if (configured == "DEBUG") Level.INFO else Level.FINE
+    }
+
+    /** Seed a never-seen player's ledger from their inventory on first join (one-time baseline). */
+    private fun registerJoinBaseline() {
+        server.pluginManager.registerEvents(object : org.bukkit.event.Listener {
+            @org.bukkit.event.EventHandler
+            fun onJoin(event: org.bukkit.event.player.PlayerJoinEvent) {
+                val coc = chainOfCustody ?: return
+                val player = event.player
+                pluginScope.launch {
+                    try { coc.baselineIfNew(player) }
+                    catch (e: Exception) { logger.warning("Baseline failed for ${player.name}: ${e.message}") }
+                }
+            }
+        }, this)
+    }
 }
