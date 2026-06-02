@@ -60,6 +60,17 @@ class WitnessManager(
     }
 
     /**
+     * Whether any *other* player is within witness radius right now (ignoring line of sight).
+     * The unwitnessed-action signal is only meaningful when someone could plausibly have
+     * witnessed — solo play, with nobody around, is not suspicious and must never accrue heat.
+     */
+    fun othersNearby(actor: Player): Boolean {
+        val world = actor.world
+        val loc = actor.location
+        return world.players.any { it.uniqueId != actor.uniqueId && it.location.distanceSquared(loc) <= radiusSquared }
+    }
+
+    /**
      * Create a witness attestation for an action.
      * Returns the witnesses and a trust level.
      */

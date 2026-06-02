@@ -236,13 +236,15 @@ class LedgerEventHandler(
             }
         }
 
-        // Proof-of-Witness is a LOW-confidence signal only: it merely nudges transient heat,
-        // and only when there are actually other players around to have witnessed (gated by
-        // the witness manager). It never alerts on its own — solo farming is not a crime.
-        val pattern = witnessManager.hasSuspiciousPattern(player.uniqueId)
-        if (pattern.suspicious) {
-            logger.fine("[PoW] Pattern signal for ${player.name}: ${pattern.reason}")
-            reconciliationEngine.flagWitnessPattern(player.uniqueId)
+        // Proof-of-Witness is a LOW-confidence signal only: it merely nudges transient heat, and
+        // ONLY when other players are actually nearby to have witnessed. Solo farming — nobody
+        // around — never accrues heat. It never alerts on its own.
+        if (witnessManager.othersNearby(player)) {
+            val pattern = witnessManager.hasSuspiciousPattern(player.uniqueId)
+            if (pattern.suspicious) {
+                logger.fine("[PoW] Pattern signal for ${player.name}: ${pattern.reason}")
+                reconciliationEngine.flagWitnessPattern(player.uniqueId)
+            }
         }
 
         if (previousOwner != null && previousOwner != player.uniqueId || previousOwner == null) {

@@ -2,6 +2,47 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [3.3.0] - 2026-05-31
+
+A detection-architecture overhaul that eliminates the false-positive classes
+seen on raid farms and trial-vault looting, without weakening real detection.
+
+### Fixed
+- **Raid-farm / mob-loot false positives.** Mob deaths (and loot-table fills)
+  now authorise acquisitions, so legitimate looting of evoker totems and raid
+  drops no longer reads as a dupe. The quantity bound still flags a duped
+  entity (more items than mobs produced).
+- **Negative-ledger false positives.** A negative balance is proof of an
+  unobserved acquisition (e.g. /give, a shop plugin, a tracking gap), not a
+  dupe — duping makes a balance go positive, never negative. Reconciliation now
+  re-baselines to the real inventory and moves on instead of flagging. This was
+  the root cause of the "has 1 but ledger shows -146" alerts.
+- **Trial-vault / fast-loot false positives.** Proof-of-Witness and acquisition-
+  rate (TMAR) no longer fire standalone alerts; solo play with nobody nearby
+  never accrues suspicion at all.
+
+### Added
+- **Global `detection.sensitivity` (1–100, default 50).** One knob from very
+  lenient to very paranoid; scales the excess needed to alert.
+- **Per-player adaptive suspicion.** An earned floor (raised by deterministic
+  hits and admin confirmation; does not decay) plus transient heat (low-
+  confidence signals; decays over time). More-suspicious players trip on less.
+- **Confidence-tiered detection.** Deterministic detectors (entity-UUID reuse)
+  alert alone; source-bound excess and balance surplus are gated by suspicion +
+  sensitivity; TMAR and witness patterns are heat-only signals.
+- **Admin verdict loop.** `/adp ledger confirm <player>` pins suspicion high and
+  optionally runs `detection.on_confirm_command` ({player} placeholder);
+  `/adp ledger clear <player>` marks a false positive and resets suspicion.
+- **Baseline-on-join.** A never-seen player's owned inventory seeds their ledger
+  once, so pre-existing items don't read as a surplus.
+- **`console_log_level`** (CRITICAL/ERROR/WARNING/INFO/DEBUG) to control verbosity.
+
+### Changed
+- Source-bound matching consumes authorisations across multiple nearby drops
+  (fixes a latent excess false-flag when single drops merge into one ground
+  stack), and is chunk-keyed for O(nearby) performance under farm volume.
+- TMAR and Proof-of-Witness demoted from triggers to low-confidence signals.
+
 ## [3.2.0] - 2026-05-31
 
 ### Added
