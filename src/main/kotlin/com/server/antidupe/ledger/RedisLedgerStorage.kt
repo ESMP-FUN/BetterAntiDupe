@@ -26,8 +26,9 @@ class RedisLedgerStorage internal constructor(
 
     companion object {
         private const val KEY_ENTRY = "ledger:entry:"
-        private const val KEY_PLAYER_ENTRIES = "ledger:player:"
-        private const val KEY_TIP = "ledger:tip"
+        private const val KEY_PLAYER_ENTRIES = "ledger:player:"   // {uuid}:entries (ZSET by ts), {uuid}:chain (LIST insertion order)
+        private const val KEY_GLOBAL_TIP = "ledger:tip"            // display only, last-write-wins
+        private const val KEY_PLAYER_TIP = "ledger:tip:"           // {uuid} -> per-player chain tip
         private const val KEY_BALANCE = "balance:"
         private const val KEY_RECENT = "ledger:recent:"
         private const val SCAN_BATCH = 500L
@@ -57,18 +58,22 @@ class RedisLedgerStorage internal constructor(
     override suspend fun writeEntry(entry: LedgerEntry) {
         val entryKey = "$KEY_ENTRY${entry.id}"
         val playerEntriesKey = "${KEY_PLAYER_ENTRIES}${entry.player}:entries"
+        val playerChainKey = "${KEY_PLAYER_ENTRIES}${entry.player}:chain"
         val balanceKey = "$KEY_BALANCE${entry.player}:${entry.material.name}"
         val recentKey = "$KEY_RECENT${entry.player}:${entry.material.name}"
 
         redis.set(entryKey, entry.toJson())
         redis.zadd(playerEntriesKey, entry.timestamp.toDouble(), entry.id.toString())
+        // Append-order list for chain verification (immune to same-ms ties, unlike the ZSET).
+        redis.rpush(playerChainKey, entry.id.toString())
 
         val tipJson = JSONObject().apply {
             put("lastEntryId", entry.id.toString())
             put("lastHash", entry.hash)
             put("timestamp", entry.timestamp)
         }.toString()
-        redis.set(KEY_TIP, tipJson)
+        redis.set("$KEY_PLAYER_TIP${entry.player}", tipJson)  // per-player chain tip
+        redis.set(KEY_GLOBAL_TIP, tipJson)                     // global display tip
         redis.incrby(balanceKey, entry.quantity.toLong())
 
         if (entry.quantity > 0) {
@@ -78,10 +83,24 @@ class RedisLedgerStorage internal constructor(
         }
     }
 
-    override suspend fun readTipInternal(): ChainTip? {
-        val tipJson = redis.get(KEY_TIP) ?: return null
+    override suspend fun readPlayerTip(player: UUID): ChainTip? {
+        val tipJson = redis.get("$KEY_PLAYER_TIP$player") ?: return null
         val obj = JSONObject(tipJson)
         return ChainTip(UUID.fromString(obj.getString("lastEntryId")), obj.getString("lastHash"), obj.getLong("timestamp"))
+    }
+
+    override suspend fun getTip(): ChainTip? {
+        val tipJson = redis.get(KEY_GLOBAL_TIP) ?: return null
+        val obj = JSONObject(tipJson)
+        return ChainTip(UUID.fromString(obj.getString("lastEntryId")), obj.getString("lastHash"), obj.getLong("timestamp"))
+    }
+
+    override suspend fun getTrackedPlayers(): Set<UUID> {
+        // Player entry-index keys look like "ledger:player:<uuid>:entries".
+        return scanKeys("${KEY_PLAYER_ENTRIES}*:entries").mapNotNullTo(mutableSetOf()) { key ->
+            val uuidStr = key.removePrefix(KEY_PLAYER_ENTRIES).removeSuffix(":entries")
+            try { UUID.fromString(uuidStr) } catch (e: IllegalArgumentException) { null }
+        }
     }
 
     override suspend fun getEntry(id: UUID): LedgerEntry? {
@@ -127,10 +146,10 @@ class RedisLedgerStorage internal constructor(
         }
     }
 
-    override suspend fun getAllEntriesChronological(): List<LedgerEntry> {
-        return scanKeys("${KEY_ENTRY}*")
-            .mapNotNull { redis.get(it)?.let { json -> LedgerEntry.fromJson(json) } }
-            .sortedBy { it.timestamp }
+    override suspend fun getPlayerChainOrdered(player: UUID): List<LedgerEntry> {
+        val chainKey = "${KEY_PLAYER_ENTRIES}$player:chain"
+        val ids = redis.lrange(chainKey, 0, -1).toList()  // insertion order, oldest first
+        return ids.mapNotNull { getEntry(UUID.fromString(it)) }
     }
 
     override suspend fun markEntityPickup(

@@ -17,13 +17,18 @@ class MemoryLedgerStorage(logger: Logger) : LedgerStorage(logger) {
     private val balances = ConcurrentHashMap<Pair<UUID, Material>, Int>()
     private val recent = ConcurrentHashMap<Pair<UUID, Material>, MutableList<LedgerEntry>>()
     private val pickupHistory = ConcurrentHashMap<UUID, PreviousPickup>()
-    private val tip = AtomicReference<ChainTip?>(null)
+    private val playerTips = ConcurrentHashMap<UUID, ChainTip>()
+    private val globalTip = AtomicReference<ChainTip?>(null)
 
     init { logger.info("[Ledger] Using MEMORY backend (non-persistent)") }
 
     override fun close() { /* nothing to release */ }
 
-    override suspend fun readTipInternal(): ChainTip? = tip.get()
+    override suspend fun readPlayerTip(player: UUID): ChainTip? = playerTips[player]
+
+    override suspend fun getTip(): ChainTip? = globalTip.get()
+
+    override suspend fun getTrackedPlayers(): Set<UUID> = byPlayer.keys.toSet()
 
     override suspend fun writeEntry(entry: LedgerEntry) {
         entries[entry.id] = entry
@@ -33,7 +38,8 @@ class MemoryLedgerStorage(logger: Logger) : LedgerStorage(logger) {
             val list = recent.getOrPut(entry.player to entry.material) { Collections.synchronizedList(mutableListOf()) }
             list.add(entry)
         }
-        tip.set(ChainTip(entry.id, entry.hash, entry.timestamp))
+        playerTips[entry.player] = ChainTip(entry.id, entry.hash, entry.timestamp)
+        globalTip.set(ChainTip(entry.id, entry.hash, entry.timestamp))
     }
 
     override suspend fun getEntry(id: UUID): LedgerEntry? = entries[id]
@@ -76,6 +82,8 @@ class MemoryLedgerStorage(logger: Logger) : LedgerStorage(logger) {
         pickupHistory.entries.removeIf { it.value.pickedUpAt < cutoff }
     }
 
-    override suspend fun getAllEntriesChronological(): List<LedgerEntry> =
-        entries.values.sortedBy { it.timestamp }
+    override suspend fun getPlayerChainOrdered(player: UUID): List<LedgerEntry> {
+        val list = byPlayer[player] ?: return emptyList()
+        return synchronized(list) { list.toList() }  // already in insertion order
+    }
 }

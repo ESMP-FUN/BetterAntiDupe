@@ -10,13 +10,21 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.logging.Logger
 
 /**
- * Append-only ledger. Backends must implement [readTipInternal], [writeEntry], and the
- * read-only query methods. The chain-tip read+write is serialized by [appendMutex] so
- * concurrent producers can't break hash continuity.
+ * Append-only ledger with **per-player hash chains**. Each player's entries link to that
+ * player's previous entry via [LedgerEntry.prevHash], so appends for different players never
+ * contend — only same-player appends serialize, through a per-player [Mutex]. This removes the
+ * single global append lock that previously bottlenecked every item gain server-wide.
+ *
+ * Backends implement [readPlayerTip], [writeEntry], and the read-only query methods.
  */
 abstract class LedgerStorage protected constructor(protected val logger: Logger) {
 
-    private val appendMutex = Mutex()
+    /**
+     * One lock per player. Keyed by UUID so two different players' appends run concurrently.
+     * Bounded by the number of distinct players ever seen (small, cheap Mutex objects).
+     */
+    private val playerLocks = ConcurrentHashMap<UUID, Mutex>()
+    private fun lockFor(player: UUID): Mutex = playerLocks.getOrPut(player) { Mutex() }
 
     /**
      * Read-through balance cache. Lookups consult the cache first; misses load from storage and
@@ -31,21 +39,22 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
         material: Material,
         quantity: Int,
         metadata: LedgerMetadata
-    ): LedgerEntry = appendMutex.withLock {
-        val tip = readTipInternal()
+    ): LedgerEntry = lockFor(player).withLock {
+        val tip = readPlayerTip(player)
         val entry = LedgerEntry.create(player, action, material, quantity, metadata, tip?.lastHash)
         writeEntry(entry)
         balanceCache[player to material]?.addAndGet(quantity)
         entry
     }
 
-    suspend fun append(entry: LedgerEntry): LedgerEntry = appendMutex.withLock {
+    suspend fun append(entry: LedgerEntry): LedgerEntry = lockFor(entry.player).withLock {
         writeEntry(entry)
         balanceCache[entry.player to entry.material]?.addAndGet(entry.quantity)
         entry
     }
 
-    suspend fun getTip(): ChainTip? = appendMutex.withLock { readTipInternal() }
+    /** The most recent entry across all players — display-only (last-write-wins, unordered). */
+    abstract suspend fun getTip(): ChainTip?
 
     suspend fun getBalance(player: UUID, material: Material): Int {
         val key = player to material
@@ -60,9 +69,13 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
         balanceCache.remove(player to material)
     }
 
-    protected abstract suspend fun readTipInternal(): ChainTip?
+    /** Per-player chain tip — the anchor each new entry's prevHash links to. */
+    protected abstract suspend fun readPlayerTip(player: UUID): ChainTip?
     protected abstract suspend fun writeEntry(entry: LedgerEntry)
     protected abstract suspend fun readBalanceFromStorage(player: UUID, material: Material): Int
+
+    /** Distinct players that have at least one ledger entry. Used by [verifyAllChains]. */
+    abstract suspend fun getTrackedPlayers(): Set<UUID>
 
     abstract suspend fun getEntry(id: UUID): LedgerEntry?
     abstract suspend fun getAllBalances(player: UUID): Map<Material, Int>
@@ -95,8 +108,12 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
         return entries.sumOf { it.quantity }
     }
 
-    open suspend fun verifyChainIntegrity(fromEntry: UUID? = null): IntegrityResult {
-        val entries = if (fromEntry != null) getEntriesAfter(fromEntry) else getAllEntriesChronological()
+    /**
+     * Verify a single player's hash chain: every entry's own hash must be self-consistent, and
+     * each entry's prevHash must link to the previous entry in that player's chain.
+     */
+    open suspend fun verifyChainIntegrity(player: UUID): IntegrityResult {
+        val entries = getPlayerChainOrdered(player)
         var prevHash: String? = null
         var lastValid: UUID? = null
         for (entry in entries) {
@@ -113,12 +130,23 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
         return IntegrityResult(valid = true, entriesVerified = entries.size)
     }
 
-    protected abstract suspend fun getAllEntriesChronological(): List<LedgerEntry>
-
-    protected open suspend fun getEntriesAfter(afterEntry: UUID): List<LedgerEntry> {
-        val start = getEntry(afterEntry) ?: return emptyList()
-        return getAllEntriesChronological().filter { it.timestamp > start.timestamp }
+    /** Verify every player's chain. Returns the first failure found, or aggregate success. */
+    open suspend fun verifyAllChains(): IntegrityResult {
+        var total = 0
+        for (player in getTrackedPlayers()) {
+            val result = verifyChainIntegrity(player)
+            if (!result.valid) return result
+            total += result.entriesVerified
+        }
+        return IntegrityResult(valid = true, entriesVerified = total)
     }
+
+    /**
+     * A player's entries in chain (insertion) order, oldest first. Backends should order by a
+     * monotonic insertion key (SQLite rowid, Redis/Memory list order) rather than timestamp, so
+     * same-millisecond bursts don't read as chain breaks.
+     */
+    protected abstract suspend fun getPlayerChainOrdered(player: UUID): List<LedgerEntry>
 
     companion object {
         suspend fun create(plugin: JavaPlugin): LedgerStorage {
