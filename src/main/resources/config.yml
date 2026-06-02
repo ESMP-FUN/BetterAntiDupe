@@ -9,6 +9,11 @@ detection:
   # excess needed to alert and tighten source-bound match windows.
   sensitivity: 50
 
+  # Optional command run on the console when an admin confirms a duper with
+  # /adp ledger confirm. {player} is replaced with the name. Leave empty to do
+  # nothing. Example: "tempban {player} 7d Item duplication"
+  on_confirm_command: ""
+
 # Console log verbosity. One of: CRITICAL, ERROR, WARNING, INFO, DEBUG.
 # Each level includes the ones above it (WARNING also shows ERROR + CRITICAL).
 # Note: CRITICAL and ERROR both map to the server's SEVERE level.

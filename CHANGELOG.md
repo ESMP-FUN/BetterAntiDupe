@@ -2,7 +2,27 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
-## [3.3.0] - 2026-05-31
+## [3.3.1] - 2026-06-02
+
+### Fixed
+- **Chain integrity false alarm on upgrade from 3.2.x.** Pre-3.3.0 entries
+  stored a *global* prevHash (each entry linked to the previous one written
+  server-wide). 3.3.0's per-player verifier expected a *per-player* prevHash,
+  which meant the first entry below any player's most-recent legacy entry
+  read as a chain break on startup. Verification now starts from the most
+  recent CHAIN_RESET marker, and a one-time migration appends that marker
+  for every existing player on first 3.3.1 startup. Old entries remain
+  available for history and balance; the new chain verifies cleanly.
+- **`detection.on_confirm_command` is now included in the default config.yml.**
+  3.3.0 documented the key but didn't write it on first launch, so fresh
+  installs had to add it by hand.
+
+### Changed
+- Startup chain-check log demoted from SEVERE to WARNING — a break is worth
+  attention but isn't necessarily a dupe; the message now points at
+  `/adp ledger verify <player>` for a per-player drill-down.
+
+## [3.3.0] - 2026-06-02
 
 A detection-architecture overhaul that eliminates the false-positive classes
 seen on raid farms and trial-vault looting, without weakening real detection.

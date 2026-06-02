@@ -109,11 +109,20 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
     }
 
     /**
-     * Verify a single player's hash chain: every entry's own hash must be self-consistent, and
-     * each entry's prevHash must link to the previous entry in that player's chain.
+     * Verify a single player's hash chain from its most recent reset point forward. Every entry's
+     * own hash must be self-consistent, and each entry's prevHash must link to the previous entry
+     * in that player's chain.
+     *
+     * Entries before the most recent CHAIN_RESET (marker `notes = CHAIN_RESET:<reason>`) are kept
+     * for history/balance but not re-verified — used by the 3.3.0 migration to skip over legacy
+     * global-chain prevHashes inherited from 3.2.0 and earlier.
      */
     open suspend fun verifyChainIntegrity(player: UUID): IntegrityResult {
-        val entries = getPlayerChainOrdered(player)
+        val full = getPlayerChainOrdered(player)
+        // Take only entries from the last reset (inclusive) forward, if any reset exists.
+        val resetIdx = full.indexOfLast { it.metadata.notes?.startsWith("CHAIN_RESET:") == true }
+        val entries = if (resetIdx >= 0) full.subList(resetIdx, full.size) else full
+
         var prevHash: String? = null
         var lastValid: UUID? = null
         for (entry in entries) {
