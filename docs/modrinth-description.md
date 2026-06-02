@@ -1,4 +1,4 @@
-# AntiDupePro
+<img width="1024" height="256" alt="adp_banner_1024_black-bg" src="https://github.com/user-attachments/assets/0124c9ec-c6b4-48b3-8259-eb1748053a88" />
 
 **A forensic-grade item-duplication detector for Paper, Folia and Spigot servers.**
 
