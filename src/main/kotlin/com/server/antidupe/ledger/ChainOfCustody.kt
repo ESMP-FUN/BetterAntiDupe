@@ -21,6 +21,7 @@ class ChainOfCustody private constructor(
     val reconciliationEngine: ReconciliationEngine,
     private val eventHandler: LedgerEventHandler,
     private val scope: CoroutineScope,
+    private val trackedMaterialsView: Set<Material>,
     private val logger: Logger
 ) {
     private var maintenanceJob: Job? = null
@@ -39,10 +40,12 @@ class ChainOfCustody private constructor(
             reconciliationCooldownMs: Long,
             alertThresholds: Map<Material, Int>,
             defaultAlertThreshold: Int,
+            sensitivity: Int,
             logger: Logger
         ): ChainOfCustody {
             val ownershipManager = OwnershipManager(plugin)
             val witnessManager = WitnessManager(plugin, witnessRadius, verifiedThreshold, suspiciousSoloRatio)
+            val suspicionManager = SuspicionManager(sensitivity)
 
             val reconciliationEngine = ReconciliationEngine(
                 plugin = plugin,
@@ -52,6 +55,7 @@ class ChainOfCustody private constructor(
                 tmarLimits = tmarLimits,
                 logger = logger,
                 scope = scope,
+                suspicion = suspicionManager,
                 reconciliationCooldown = reconciliationCooldownMs,
                 alertThresholds = alertThresholds,
                 defaultAlertThreshold = defaultAlertThreshold
@@ -72,7 +76,7 @@ class ChainOfCustody private constructor(
             plugin.server.pluginManager.registerEvents(eventHandler, plugin)
 
             val coc = ChainOfCustody(plugin, ledgerStorage, ownershipManager, witnessManager,
-                reconciliationEngine, eventHandler, scope, logger)
+                reconciliationEngine, eventHandler, scope, trackedMaterials, logger)
 
             coc.startMaintenance()
             coc.verifyIntegrityAsync()
@@ -167,6 +171,43 @@ class ChainOfCustody private constructor(
     fun getSuspect(player: UUID): SuspectProfile? = reconciliationEngine.getSuspect(player)
     fun clearSuspect(player: UUID) = reconciliationEngine.clearSuspect(player)
 
+    /** Admin verdict: confirm a player is duping (pins suspicion high). */
+    fun confirmSuspect(player: UUID) = reconciliationEngine.confirmSuspect(player)
+    /** Admin verdict: false positive — clear suspicion and remove from the suspect list. */
+    fun clearVerdict(player: UUID) = reconciliationEngine.clearVerdict(player)
+    /** Current effective suspicion (0..100) for a player. */
+    fun suspicionOf(player: UUID): Double = reconciliationEngine.suspicionOf(player)
+
+    /**
+     * Seed a never-before-seen player's ledger from their current inventory, so pre-existing
+     * or externally-granted items don't read as a surplus. Safe because it only runs once per
+     * player (guarded by a BASELINE marker entry) — returning players keep their real history.
+     */
+    suspend fun baselineIfNew(player: Player) {
+        val already = ledgerStorage.getPlayerEntries(player.uniqueId, limit = 1).isNotEmpty()
+        if (already) return
+        for (material in trackedMaterialsView) {
+            val actual = ownershipManager.countOwnedInInventoryDeep(player, material)
+            if (actual > 0) {
+                ledgerStorage.appendBuilt(
+                    player = player.uniqueId,
+                    action = LedgerAction.ADMIN_GIVE,
+                    material = material,
+                    quantity = actual,
+                    metadata = LedgerMetadata(notes = "BASELINE_ON_JOIN")
+                )
+            }
+        }
+        // Always drop a marker so an empty-inventory new player isn't re-baselined every join.
+        ledgerStorage.appendBuilt(
+            player = player.uniqueId,
+            action = LedgerAction.RECONCILE,
+            material = Material.AIR,
+            quantity = 0,
+            metadata = LedgerMetadata(notes = "BASELINE_MARKER")
+        )
+    }
+
     private fun startMaintenance() {
         maintenanceJob = scope.launch {
             while (isActive) {
@@ -177,6 +218,8 @@ class ChainOfCustody private constructor(
                     // Pickup-history retention: 30 days. Entries older than this are evicted
                     // — long enough to catch latent chunk-load dupes, short enough to bound disk.
                     ledgerStorage.prunePickupHistory(30L * 86_400_000L)
+                    // Idle decay of transient suspicion heat (the earned floor is untouched).
+                    reconciliationEngine.decaySuspicion()
                     logger.fine("[CoC] Maintenance completed")
                 } catch (e: Exception) {
                     logger.warning("[CoC] Maintenance error: ${e.message}")

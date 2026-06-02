@@ -8,6 +8,7 @@ import org.bukkit.plugin.Plugin
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.logging.Level
 import java.util.logging.Logger
 
 /**
@@ -30,6 +31,7 @@ class ReconciliationEngine(
     private val tmarLimits: Map<Material, Int>,
     private val logger: Logger,
     private val scope: CoroutineScope,
+    private val suspicion: SuspicionManager,
     private val reconciliationCooldown: Long = 5000L,
     private val alertThresholds: Map<Material, Int> = emptyMap(),
     private val defaultAlertThreshold: Int = 5
@@ -37,6 +39,9 @@ class ReconciliationEngine(
     private val activeReconciliations = ConcurrentHashMap<UUID, Long>()
     private val suspects = ConcurrentHashMap<UUID, SuspectProfile>()
     private val alertListeners = CopyOnWriteArrayList<(DupeAlert) -> Unit>()
+
+    /** Configurable level for the verbose "[CoC] re-baselined" self-heal log line. */
+    @Volatile var healLogLevel: Level = Level.FINE
 
     fun addAlertListener(listener: (DupeAlert) -> Unit) {
         alertListeners.add(listener)
@@ -70,26 +75,38 @@ class ReconciliationEngine(
         val tmarViolations = mutableListOf<TmarViolation>()
 
         for (material in trackedMaterials) {
-            // Get ledger balance (expected)
             val ledgerBalance = ledgerStorage.getBalance(playerId, material)
-
-            // Actual count includes items hidden inside held shulkers / bundles / chests-as-items.
-            // The shallow count missed those, which let a duped shulker hide behind a "balance
-            // matches at zero" report.
             val actualCount = ownershipManager.countOwnedInInventoryDeep(player, material)
 
-            // Compare
+            // SELF-HEAL: a negative ledger is *proof our bookkeeping is incomplete* — more
+            // disposals were recorded than acquisitions, which duping cannot produce (duping
+            // makes you have MORE, a positive surplus). It only happens when an acquisition path
+            // went unobserved (/give, a shop plugin's addItem, a tracking gap). Punishing here
+            // would be punishing the player for our error. Instead adopt the real inventory as
+            // the new baseline and move on. Real dupes (positive surplus on a trustworthy ledger,
+            // entity-UUID reuse, source-bound excess) still fire.
+            if (ledgerBalance < 0) {
+                val correction = actualCount - ledgerBalance   // brings stored balance up to actual
+                ledgerStorage.appendBuilt(
+                    player = playerId,
+                    action = LedgerAction.ADMIN_GIVE,
+                    material = material,
+                    quantity = correction,
+                    metadata = LedgerMetadata(notes = "BASELINE_HEAL: ledger $ledgerBalance -> $actualCount")
+                )
+                logger.log(healLogLevel, "[CoC] Re-baselined ${player.name}/$material: ledger was $ledgerBalance, adopted actual $actualCount (incomplete-acquisition gap)")
+                continue
+            }
+
+            // Trustworthy ledger: a positive surplus is a real candidate. Gate the alert through
+            // the player's suspicion and the global sensitivity instead of a flat threshold.
             if (actualCount > ledgerBalance) {
                 val excess = actualCount - ledgerBalance
-                discrepancies.add(Discrepancy(
-                    material = material,
-                    expected = ledgerBalance,
-                    actual = actualCount,
-                    excess = excess
-                ))
+                discrepancies.add(Discrepancy(material, ledgerBalance, actualCount, excess))
 
-                // Emit alert for significant discrepancies
-                if (excess >= getAlertThreshold(material)) {
+                val threshold = suspicion.effectiveThreshold(playerId, getAlertThreshold(material))
+                if (excess >= threshold) {
+                    suspicion.bumpFloor(playerId, SuspicionManager.DETERMINISTIC_FLOOR_BUMP / 2)  // medium confidence
                     emitAlert(DupeAlert(
                         type = AlertType.BALANCE_DISCREPANCY,
                         player = playerId,
@@ -102,27 +119,14 @@ class ReconciliationEngine(
                 }
             }
 
-            // Check TMAR
+            // TMAR is a LOW-confidence signal now: legitimate farms and shop buyouts burst hard.
+            // It only nudges transient heat (which decays); it never fires a standalone alert.
             val tmarLimit = tmarLimits[material]
             if (tmarLimit != null) {
                 val recentAcquisitions = ledgerStorage.getRecentAcquisitions(playerId, material)
                 if (recentAcquisitions > tmarLimit) {
-                    tmarViolations.add(TmarViolation(
-                        material = material,
-                        acquired = recentAcquisitions,
-                        limit = tmarLimit,
-                        windowMinutes = 5
-                    ))
-
-                    emitAlert(DupeAlert(
-                        type = AlertType.TMAR_EXCEEDED,
-                        player = playerId,
-                        playerName = player.name,
-                        material = material,
-                        details = "Acquired $recentAcquisitions in 5 min (limit: $tmarLimit)",
-                        severity = Severity.MEDIUM,
-                        timestamp = now
-                    ))
+                    tmarViolations.add(TmarViolation(material, recentAcquisitions, tmarLimit, 5))
+                    suspicion.addHeat(playerId)
                 }
             }
         }
@@ -138,22 +142,21 @@ class ReconciliationEngine(
             )
         }
 
-        // Determine overall result
-        val dupeDetected = discrepancies.isNotEmpty() || tmarViolations.isNotEmpty()
+        // An alert-worthy discrepancy is one that cleared the suspicion-scaled threshold.
+        val alertWorthy = discrepancies.filter {
+            it.excess >= suspicion.effectiveThreshold(playerId, getAlertThreshold(it.material))
+        }
+        val dupeDetected = alertWorthy.isNotEmpty()
 
         if (dupeDetected) {
-            // Update suspect profile
             val profile = suspects.getOrPut(playerId) { SuspectProfile(playerId, player.name) }
-            profile.recordViolation(discrepancies, tmarViolations)
-        }
-
-        if (discrepancies.isNotEmpty()) {
+            profile.recordViolation(alertWorthy, tmarViolations)
             ledgerStorage.appendBuilt(
                 player = playerId,
                 action = LedgerAction.RECONCILE,
-                material = discrepancies.first().material,
+                material = alertWorthy.first().material,
                 quantity = 0,
-                metadata = LedgerMetadata(notes = "Reconciliation: ${discrepancies.size} discrepancies found")
+                metadata = LedgerMetadata(notes = "Reconciliation: ${alertWorthy.size} alert-worthy discrepancies")
             )
         }
 
@@ -236,35 +239,38 @@ class ReconciliationEngine(
      */
     fun flagEntityDupe(player: Player, material: Material, amount: Int, previous: PreviousPickup) {
         val now = System.currentTimeMillis()
+        // Deterministic, ~zero false positive → raise the earned floor and always alert.
+        suspicion.bumpFloor(player.uniqueId)
         val profile = suspects.getOrPut(player.uniqueId) { SuspectProfile(player.uniqueId, player.name) }
         profile.recordViolation(
-            discrepancies = listOf(Discrepancy(material = material, expected = 0, actual = amount, excess = amount)),
-            tmarViolations = emptyList()
+            listOf(Discrepancy(material, 0, amount, amount)), emptyList()
         )
         emitAlert(DupeAlert(
             type = AlertType.BALANCE_DISCREPANCY,
             player = player.uniqueId,
             playerName = player.name,
             material = material,
-            details = "Chunk-load / drop-race dupe: entity-UUID picked up ${(now - previous.pickedUpAt) / 1000}s after original consumption",
+            details = "Chunk-load / drop-race dupe: entity-UUID re-used ${(now - previous.pickedUpAt) / 1000}s after original pickup",
             severity = Severity.CRITICAL,
             timestamp = now
         ))
     }
 
     /**
-     * Called by the event handler when a pickup exceeds what nearby legitimate sources (mob
-     * deaths, mined blocks, frame/pot breaks, loot tables) produced — i.e. more items exist
-     * than were generated, the signature of a duped entity. Records a suspect entry and emits
-     * a HIGH-severity alert. [source] is the source context (e.g. MOB_DEATH:EVOKER).
+     * Pickup exceeded what nearby legitimate sources produced (source-bound excess). MEDIUM-HIGH
+     * confidence — strong, but with edges (e.g. re-picking up your own dropped item next to a
+     * mob death), so it's gated through suspicion/sensitivity rather than fired unconditionally.
+     * Always raises heat; alerts only when the excess clears the player's scaled threshold.
      */
     fun flagDropExcess(player: Player, material: Material, excess: Int, source: String) {
         val now = System.currentTimeMillis()
+        suspicion.addHeat(player.uniqueId, SuspicionManager.HEAT_PER_SIGNAL * 3)  // stronger than TMAR/witness
+        val threshold = suspicion.effectiveThreshold(player.uniqueId, getAlertThreshold(material))
+        if (excess < threshold) return
+
+        suspicion.bumpFloor(player.uniqueId, SuspicionManager.DETERMINISTIC_FLOOR_BUMP / 2)
         val profile = suspects.getOrPut(player.uniqueId) { SuspectProfile(player.uniqueId, player.name) }
-        profile.recordViolation(
-            discrepancies = listOf(Discrepancy(material = material, expected = 0, actual = excess, excess = excess)),
-            tmarViolations = emptyList()
-        )
+        profile.recordViolation(listOf(Discrepancy(material, 0, excess, excess)), emptyList())
         emitAlert(DupeAlert(
             type = AlertType.BALANCE_DISCREPANCY,
             player = player.uniqueId,
@@ -276,24 +282,22 @@ class ReconciliationEngine(
         ))
     }
 
-    /** @deprecated retained for compatibility; use [flagDropExcess]. */
-    fun flagFrameDupe(player: Player, material: Material, excess: Int) {
-        val now = System.currentTimeMillis()
-        val profile = suspects.getOrPut(player.uniqueId) { SuspectProfile(player.uniqueId, player.name) }
-        profile.recordViolation(
-            discrepancies = listOf(Discrepancy(material = material, expected = 0, actual = excess, excess = excess)),
-            tmarViolations = emptyList()
-        )
-        emitAlert(DupeAlert(
-            type = AlertType.BALANCE_DISCREPANCY,
-            player = player.uniqueId,
-            playerName = player.name,
-            material = material,
-            details = "Item-frame drop produced $excess extra ${material.name}",
-            severity = if (excess >= 4) Severity.CRITICAL else Severity.HIGH,
-            timestamp = now
-        ))
+    /** Low-confidence witness signal (unwitnessed-action pattern). Heat only, never alerts alone. */
+    fun flagWitnessPattern(player: UUID) = suspicion.addHeat(player)
+
+    // ===== Admin verdict loop =====
+
+    /** Admin confirms a player is duping: pin suspicion high so future hits trip easily. */
+    fun confirmSuspect(player: UUID) = suspicion.confirm(player)
+
+    /** Admin clears a player (false positive): drop suspicion and remove from the suspect list. */
+    fun clearVerdict(player: UUID) {
+        suspicion.clear(player)
+        suspects.remove(player)
     }
+
+    fun suspicionOf(player: UUID): Double = suspicion.suspicion(player)
+    fun decaySuspicion() = suspicion.decay()
 
     private fun getAlertThreshold(material: Material): Int =
         alertThresholds[material] ?: defaultAlertThreshold

@@ -1,6 +1,20 @@
 # AntiDupePro Configuration
 
 # =============================================================================
+# DETECTION
+# =============================================================================
+detection:
+  # Global detection sensitivity, 1 (very lenient) to 100 (very paranoid).
+  # 50 is balanced and right for most casual servers. Higher values lower the
+  # excess needed to alert and tighten source-bound match windows.
+  sensitivity: 50
+
+# Console log verbosity. One of: CRITICAL, ERROR, WARNING, INFO, DEBUG.
+# Each level includes the ones above it (WARNING also shows ERROR + CRITICAL).
+# Note: CRITICAL and ERROR both map to the server's SEVERE level.
+console_log_level: INFO
+
+# =============================================================================
 # STORAGE BACKEND
 # =============================================================================
 # SQLITE (default) — file-based, persistent, zero ops. Recommended.
