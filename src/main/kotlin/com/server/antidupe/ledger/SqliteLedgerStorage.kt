@@ -40,8 +40,20 @@ class SqliteLedgerStorage private constructor(
                 """.trimIndent())
                 st.execute("CREATE INDEX IF NOT EXISTS idx_entries_player_ts ON ledger_entries(player, ts)")
                 st.execute("CREATE INDEX IF NOT EXISTS idx_entries_ts ON ledger_entries(ts)")
+                // Per-player chain tip — the anchor each player's next entry links to.
+                // Fresh table name (not "ledger_tip") so we don't collide with the old global-tip
+                // schema on databases created before the per-player-chain refactor.
                 st.execute("""
-                    CREATE TABLE IF NOT EXISTS ledger_tip (
+                    CREATE TABLE IF NOT EXISTS ledger_player_tip (
+                        player TEXT PRIMARY KEY,
+                        last_entry_id TEXT NOT NULL,
+                        last_hash TEXT NOT NULL,
+                        ts INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                // Global display tip (last-write-wins, unordered) for the status command only.
+                st.execute("""
+                    CREATE TABLE IF NOT EXISTS ledger_global_tip (
                         k INTEGER PRIMARY KEY CHECK (k=0),
                         last_entry_id TEXT NOT NULL,
                         last_hash TEXT NOT NULL,
@@ -105,8 +117,20 @@ class SqliteLedgerStorage private constructor(
                 st.setString(9, entry.metadata.toJsonObject().toString())
                 st.executeUpdate()
             }
+            // Per-player chain tip.
             conn.prepareStatement(
-                "INSERT INTO ledger_tip(k, last_entry_id, last_hash, ts) VALUES (0, ?, ?, ?) " +
+                "INSERT INTO ledger_player_tip(player, last_entry_id, last_hash, ts) VALUES (?, ?, ?, ?) " +
+                "ON CONFLICT(player) DO UPDATE SET last_entry_id=excluded.last_entry_id, last_hash=excluded.last_hash, ts=excluded.ts"
+            ).use { st ->
+                st.setString(1, entry.player.toString())
+                st.setString(2, entry.id.toString())
+                st.setString(3, entry.hash)
+                st.setLong(4, entry.timestamp)
+                st.executeUpdate()
+            }
+            // Global display tip (cosmetic, last-write-wins).
+            conn.prepareStatement(
+                "INSERT INTO ledger_global_tip(k, last_entry_id, last_hash, ts) VALUES (0, ?, ?, ?) " +
                 "ON CONFLICT(k) DO UPDATE SET last_entry_id=excluded.last_entry_id, last_hash=excluded.last_hash, ts=excluded.ts"
             ).use { st ->
                 st.setString(1, entry.id.toString())
@@ -144,13 +168,35 @@ class SqliteLedgerStorage private constructor(
         }
     }
 
-    override suspend fun readTipInternal(): ChainTip? = withContext(Dispatchers.IO) {
-        conn.createStatement().use { st ->
-            st.executeQuery("SELECT last_entry_id, last_hash, ts FROM ledger_tip WHERE k=0").use { rs ->
+    override suspend fun readPlayerTip(player: UUID): ChainTip? = withContext(Dispatchers.IO) {
+        conn.prepareStatement("SELECT last_entry_id, last_hash, ts FROM ledger_player_tip WHERE player=?").use { st ->
+            st.setString(1, player.toString())
+            st.executeQuery().use { rs ->
                 if (!rs.next()) null
                 else ChainTip(UUID.fromString(rs.getString(1)), rs.getString(2), rs.getLong(3))
             }
         }
+    }
+
+    override suspend fun getTip(): ChainTip? = withContext(Dispatchers.IO) {
+        conn.createStatement().use { st ->
+            st.executeQuery("SELECT last_entry_id, last_hash, ts FROM ledger_global_tip WHERE k=0").use { rs ->
+                if (!rs.next()) null
+                else ChainTip(UUID.fromString(rs.getString(1)), rs.getString(2), rs.getLong(3))
+            }
+        }
+    }
+
+    override suspend fun getTrackedPlayers(): Set<UUID> = withContext(Dispatchers.IO) {
+        val out = mutableSetOf<UUID>()
+        conn.createStatement().use { st ->
+            st.executeQuery("SELECT DISTINCT player FROM ledger_entries").use { rs ->
+                while (rs.next()) {
+                    try { out.add(UUID.fromString(rs.getString(1))) } catch (_: IllegalArgumentException) {}
+                }
+            }
+        }
+        out
     }
 
     override suspend fun getEntry(id: UUID): LedgerEntry? = withContext(Dispatchers.IO) {
@@ -217,11 +263,14 @@ class SqliteLedgerStorage private constructor(
         Unit
     }
 
-    override suspend fun getAllEntriesChronological(): List<LedgerEntry> = withContext(Dispatchers.IO) {
+    override suspend fun getPlayerChainOrdered(player: UUID): List<LedgerEntry> = withContext(Dispatchers.IO) {
         val out = mutableListOf<LedgerEntry>()
+        // rowid is the SQLite insertion sequence — true chain order, immune to same-ms ties.
         conn.prepareStatement(
-            "SELECT id, player, ts, action, material, quantity, prev_hash, hash, metadata FROM ledger_entries ORDER BY ts ASC"
+            "SELECT id, player, ts, action, material, quantity, prev_hash, hash, metadata FROM ledger_entries " +
+            "WHERE player=? ORDER BY rowid ASC"
         ).use { st ->
+            st.setString(1, player.toString())
             st.executeQuery().use { rs -> while (rs.next()) out.add(rowToEntry(rs)) }
         }
         out

@@ -107,7 +107,9 @@ class ChainOfCustody private constructor(
             .take(limit)
     }
 
-    suspend fun verifyIntegrity(): IntegrityResult = ledgerStorage.verifyChainIntegrity()
+    /** Verify a single player's chain, or all players' chains if [player] is null. */
+    suspend fun verifyIntegrity(player: UUID? = null): IntegrityResult =
+        if (player != null) ledgerStorage.verifyChainIntegrity(player) else ledgerStorage.verifyAllChains()
 
     private fun verifyIntegrityAsync() {
         scope.launch {
