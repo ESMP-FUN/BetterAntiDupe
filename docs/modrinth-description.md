@@ -33,7 +33,8 @@ A non-exhaustive list of dupe families AntiDupePro detects:
 - **Entity inventory dupes** — horses, donkeys, llamas, chest boats, chest minecarts
 - **Hopper laundering** — items passing through automation are scanned
 - **Workstation outputs** — smithing, anvil, loom, stonecutter, cartography, grindstone, furnaces
-- **Container transfers** — chests, barrels, ender chests, lecterns, decorated pots
+- **Container transfers** — chests (single *and* double), barrels, ender chests, lecterns, decorated pots — recorded by what *actually* moved, so shift-clicks, number-key swaps, double-click gathering and drags are all measured exactly
+- **Villager trades & enchanting** — buying a tracked item or enchanting a book is credited properly
 - **Chunk-load entity respawn** — the "same item entity picked up twice" family
 - **Drop-pickup race** — same-NBT dupes via item-entity persistence
 - **Acquisition-rate abuse** — TMAR (Theoretical Max Acquisition Rate) thresholds per material
@@ -55,6 +56,11 @@ is tamper-evident: editing the database directly breaks the hash chain and
 Reconciliation walks the player's inventory recursively — including the contents
 of held shulkers and bundles — and compares the total to the ledger balance.
 A surplus is a dupe.
+
+Built to be **false-alarm shy**: actions are verified one tick after they happen
+(so other plugins cancelling a pickup or block place can't skew the books),
+items handed out by shop/kit/vault plugins are never held against the player,
+and every alert is gated through per-material thresholds you control.
 
 ---
 

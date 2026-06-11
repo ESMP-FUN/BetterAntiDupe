@@ -2,6 +2,54 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [3.3.2] - 2026-06-11
+
+A false-alarm crackdown. If your console ever filled up with repeated
+`[DUPE]` alerts, or honest players got flagged, this update is for you.
+
+### Fixed
+- **Alert flood stopped.** When another plugin blocked an item pickup
+  (vault, claim and loot-protection plugins do this), AntiDupePro could
+  spam hundreds of CRITICAL dupe alerts per second for a single item.
+  It now waits one tick and only reacts to pickups that really happened —
+  and a given item can only trigger that alert once.
+- **Worn gear counted twice.** Equipped armor and offhand items were
+  double-counted, so a worn elytra read as 2 and caused bogus
+  "has more than the ledger says" alerts.
+- **Double chests were invisible.** Items moved in and out of double
+  chests weren't recorded at all, which slowly built up false alarms.
+- **Chest moves measured, not guessed.** Shift-clicks into nearly-full
+  chests, number-key swaps, offhand swaps, double-click gathering and
+  drag-moves are now recorded by what *actually* moved. This removes a
+  whole family of false alarms (and a loophole dupers could abuse).
+- **Mining drops counted correctly.** Fortune could make the real drop
+  differ from the prediction; the plugin now looks at the real drops.
+- **Placing blocks / dropping items** is also double-checked one tick
+  later, so other plugins undoing those actions can't skew balances.
+- **More stable on busy servers.** Inventory checks now run on the
+  correct thread (proper Folia support) and database writes can no
+  longer collide with each other.
+- **Suspicion cools down properly.** It now only fades while a player
+  has been quiet, instead of fading constantly.
+- **Stash teleport links** now work for stashes in the Nether and End.
+
+### Added
+- **Villager trades are tracked.** Buying a tracked item (e.g. an
+  enchanted book from a librarian) is now recorded properly.
+- **Enchanting a book is tracked** — the new enchanted book is credited.
+- Alert severity now follows your own `alert_thresholds` settings
+  instead of a built-in list of "important" items.
+
+### Good to know
+- If players were wrongly flagged before this update, run
+  `/adp ledger clear <player>` once to reset them.
+- Plugins that hand out items directly (shops, kits, vault plugins like
+  ElytraVaults) are invisible to any event-based tracker. AntiDupePro is
+  built to not punish players for that — but if a specific item still
+  alerts too eagerly, raise its number in `alert_thresholds`
+  (materials.yml), or ask the plugin's author to call the
+  `recordSystemGrant` API.
+
 ## [3.3.1] - 2026-06-02
 
 ### Fixed

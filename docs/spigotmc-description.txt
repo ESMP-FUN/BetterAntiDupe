@@ -28,6 +28,8 @@ A partial list of dupe families AntiDupePro detects out of the box:
 [*][B]Hopper laundering[/B] — items moving through automation are scanned
 [*][B]Workstation outputs[/B] — smithing, anvil, loom, stonecutter, cartography, grindstone
 [*][B]Furnace / lectern / decorated pot / ender chest[/B] — full transfer tracking
+[*][B]Single & double chests[/B] — transfers recorded by what [I]actually[/I] moved (shift-clicks, number keys, double-click gathering, drags)
+[*][B]Villager trades & book enchanting[/B] — tracked items bought or created are credited properly
 [*][B]Chunk-load entity respawn[/B] — same item entity picked up twice
 [*][B]Drop-pickup race[/B] — same-NBT dupes via entity persistence
 [*][B]Acquisition-rate abuse[/B] — TMAR thresholds per material

@@ -66,6 +66,29 @@ class PlatformScheduler(private val plugin: Plugin) {
         server.scheduler.runTask(plugin, task)
     }
 
+    /**
+     * Run a task on the region thread that owns [entity], after [delayTicks]. On Folia the
+     * entity scheduler is used; if the entity is retired before the delay elapses, the task
+     * still runs (so callers can observe "entity is gone" as a state).
+     */
+    fun runForEntityLater(entity: Entity, delayTicks: Long, task: Runnable) {
+        if (isFolia) {
+            try {
+                val entityScheduler = entity.javaClass.getMethod("getScheduler").invoke(entity)
+                val scheduled = entityScheduler.javaClass.getMethod(
+                    "runDelayed",
+                    Plugin::class.java,
+                    Consumer::class.java,
+                    Runnable::class.java,
+                    Long::class.javaPrimitiveType
+                ).invoke(entityScheduler, plugin, Consumer<Any> { task.run() }, Runnable { task.run() }, delayTicks)
+                if (scheduled == null) task.run()  // entity already retired; run inline
+                return
+            } catch (e: Throwable) { /* fall through */ }
+        }
+        server.scheduler.runTaskLater(plugin, task, delayTicks)
+    }
+
     /** Run a task on a background pool. */
     fun runAsync(task: Runnable) {
         val sched = paperAsyncScheduler
