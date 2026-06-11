@@ -2,6 +2,23 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [3.3.3] - 2026-06-12
+
+The plugin is now translatable!
+
+### Added
+- **messages.yml** — every message shown in-game (alerts, all `/adp`
+  command output) now lives in `plugins/AntiDupePro/messages.yml`.
+  Translate or restyle anything you like:
+  - Colors use `&` codes (`&c` = red, `&l` = bold).
+  - `{placeholders}` are filled in by the plugin — keep them, but you
+    can move them around in the sentence.
+  - Any line you delete falls back to the built-in English text, so
+    updates can add new messages without breaking your translation.
+- Console logs stay English on purpose — that keeps errors searchable
+  and makes it easier to get help.
+- Ready-made translations (e.g. `messages_de.yml`) are planned for 3.3.4.
+
 ## [3.3.2] - 2026-06-11
 
 A false-alarm crackdown. If your console ever filled up with repeated
