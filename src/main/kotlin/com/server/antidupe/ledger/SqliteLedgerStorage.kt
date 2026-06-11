@@ -1,6 +1,8 @@
 package com.server.antidupe.ledger
 
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.withContext
 import org.bukkit.Material
 import org.bukkit.plugin.java.JavaPlugin
@@ -13,6 +15,15 @@ class SqliteLedgerStorage private constructor(
     private val conn: Connection,
     logger: Logger
 ) : LedgerStorage(logger) {
+
+    /**
+     * All SQLite access is confined to ONE thread. The per-player append mutex only
+     * serializes same-player appends; with plain Dispatchers.IO two different players'
+     * writeEntry calls would interleave `autoCommit = false` / `commit()` on the single
+     * shared connection and cross-commit each other's half-finished transactions.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val db: CoroutineDispatcher = Dispatchers.IO.limitedParallelism(1)
 
     companion object {
         suspend fun create(plugin: JavaPlugin, logger: Logger): SqliteLedgerStorage = withContext(Dispatchers.IO) {
@@ -99,7 +110,7 @@ class SqliteLedgerStorage private constructor(
         try { conn.close() } catch (e: Exception) { logger.warning("[Ledger] SQLite close: ${e.message}") }
     }
 
-    override suspend fun writeEntry(entry: LedgerEntry) = withContext(Dispatchers.IO) {
+    override suspend fun writeEntry(entry: LedgerEntry) = withContext(db) {
         conn.autoCommit = false
         try {
             conn.prepareStatement("""
@@ -168,7 +179,7 @@ class SqliteLedgerStorage private constructor(
         }
     }
 
-    override suspend fun readPlayerTip(player: UUID): ChainTip? = withContext(Dispatchers.IO) {
+    override suspend fun readPlayerTip(player: UUID): ChainTip? = withContext(db) {
         conn.prepareStatement("SELECT last_entry_id, last_hash, ts FROM ledger_player_tip WHERE player=?").use { st ->
             st.setString(1, player.toString())
             st.executeQuery().use { rs ->
@@ -178,7 +189,7 @@ class SqliteLedgerStorage private constructor(
         }
     }
 
-    override suspend fun getTip(): ChainTip? = withContext(Dispatchers.IO) {
+    override suspend fun getTip(): ChainTip? = withContext(db) {
         conn.createStatement().use { st ->
             st.executeQuery("SELECT last_entry_id, last_hash, ts FROM ledger_global_tip WHERE k=0").use { rs ->
                 if (!rs.next()) null
@@ -187,7 +198,7 @@ class SqliteLedgerStorage private constructor(
         }
     }
 
-    override suspend fun getTrackedPlayers(): Set<UUID> = withContext(Dispatchers.IO) {
+    override suspend fun getTrackedPlayers(): Set<UUID> = withContext(db) {
         val out = mutableSetOf<UUID>()
         conn.createStatement().use { st ->
             st.executeQuery("SELECT DISTINCT player FROM ledger_entries").use { rs ->
@@ -199,7 +210,7 @@ class SqliteLedgerStorage private constructor(
         out
     }
 
-    override suspend fun getEntry(id: UUID): LedgerEntry? = withContext(Dispatchers.IO) {
+    override suspend fun getEntry(id: UUID): LedgerEntry? = withContext(db) {
         conn.prepareStatement(
             "SELECT id, player, ts, action, material, quantity, prev_hash, hash, metadata FROM ledger_entries WHERE id=?"
         ).use { st ->
@@ -208,7 +219,7 @@ class SqliteLedgerStorage private constructor(
         }
     }
 
-    override suspend fun readBalanceFromStorage(player: UUID, material: Material): Int = withContext(Dispatchers.IO) {
+    override suspend fun readBalanceFromStorage(player: UUID, material: Material): Int = withContext(db) {
         conn.prepareStatement("SELECT balance FROM ledger_balance WHERE player=? AND material=?").use { st ->
             st.setString(1, player.toString())
             st.setString(2, material.name)
@@ -216,7 +227,7 @@ class SqliteLedgerStorage private constructor(
         }
     }
 
-    override suspend fun getAllBalances(player: UUID): Map<Material, Int> = withContext(Dispatchers.IO) {
+    override suspend fun getAllBalances(player: UUID): Map<Material, Int> = withContext(db) {
         val out = mutableMapOf<Material, Int>()
         conn.prepareStatement("SELECT material, balance FROM ledger_balance WHERE player=? AND balance != 0").use { st ->
             st.setString(1, player.toString())
@@ -229,7 +240,7 @@ class SqliteLedgerStorage private constructor(
         out
     }
 
-    override suspend fun getRecentAcquisitions(player: UUID, material: Material, windowMs: Long): Int = withContext(Dispatchers.IO) {
+    override suspend fun getRecentAcquisitions(player: UUID, material: Material, windowMs: Long): Int = withContext(db) {
         val cutoff = System.currentTimeMillis() - windowMs
         conn.prepareStatement(
             "SELECT COALESCE(SUM(qty), 0) FROM ledger_recent WHERE player=? AND material=? AND ts >= ?"
@@ -241,7 +252,7 @@ class SqliteLedgerStorage private constructor(
         }
     }
 
-    override suspend fun getPlayerEntries(player: UUID, limit: Long, offset: Long): List<LedgerEntry> = withContext(Dispatchers.IO) {
+    override suspend fun getPlayerEntries(player: UUID, limit: Long, offset: Long): List<LedgerEntry> = withContext(db) {
         val out = mutableListOf<LedgerEntry>()
         conn.prepareStatement(
             "SELECT id, player, ts, action, material, quantity, prev_hash, hash, metadata FROM ledger_entries " +
@@ -255,7 +266,7 @@ class SqliteLedgerStorage private constructor(
         out
     }
 
-    override suspend fun pruneRecentWindows() = withContext(Dispatchers.IO) {
+    override suspend fun pruneRecentWindows() = withContext(db) {
         val cutoff = System.currentTimeMillis() - 5 * 60 * 1000L
         conn.prepareStatement("DELETE FROM ledger_recent WHERE ts < ?").use { st ->
             st.setLong(1, cutoff); st.executeUpdate()
@@ -263,7 +274,7 @@ class SqliteLedgerStorage private constructor(
         Unit
     }
 
-    override suspend fun getPlayerChainOrdered(player: UUID): List<LedgerEntry> = withContext(Dispatchers.IO) {
+    override suspend fun getPlayerChainOrdered(player: UUID): List<LedgerEntry> = withContext(db) {
         val out = mutableListOf<LedgerEntry>()
         // rowid is the SQLite insertion sequence — true chain order, immune to same-ms ties.
         conn.prepareStatement(
@@ -278,7 +289,7 @@ class SqliteLedgerStorage private constructor(
 
     override suspend fun markEntityPickup(
         entityUuid: UUID, playerUuid: UUID, material: Material, amount: Int
-    ): PreviousPickup? = withContext(Dispatchers.IO) {
+    ): PreviousPickup? = withContext(db) {
         val now = System.currentTimeMillis()
         val inserted = conn.prepareStatement(
             "INSERT OR IGNORE INTO pickup_history(entity_uuid, player_uuid, material, amount, picked_up_at) VALUES (?, ?, ?, ?, ?)"
@@ -307,7 +318,7 @@ class SqliteLedgerStorage private constructor(
         }
     }
 
-    override suspend fun prunePickupHistory(olderThanMs: Long) = withContext(Dispatchers.IO) {
+    override suspend fun prunePickupHistory(olderThanMs: Long) = withContext(db) {
         val cutoff = System.currentTimeMillis() - olderThanMs
         conn.prepareStatement("DELETE FROM pickup_history WHERE picked_up_at < ?").use { st ->
             st.setLong(1, cutoff)

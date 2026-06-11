@@ -106,32 +106,20 @@ class OwnershipManager(private val plugin: Plugin) {
     }
 
     /**
-     * Count items of a specific type owned by a player in their inventory
+     * Count items of a specific type owned by a player in their inventory.
+     *
+     * NOTE: `PlayerInventory.getContents()` is the FULL 41-slot array — storage (0-35),
+     * armor (36-39) AND offhand (40). Iterating it alone covers everything; adding
+     * `armorContents`/`itemInOffHand` on top double-counts worn gear (a worn elytra
+     * read as 2) and was the source of phantom +1 discrepancies.
      */
     fun countOwnedInInventory(player: Player, material: Material): Int {
         var count = 0
-
-        // Main inventory
         for (item in player.inventory.contents.filterNotNull()) {
             if (item.type == material && isOwnedBy(item, player)) {
                 count += item.amount
             }
         }
-
-        // Armor slots
-        for (item in player.inventory.armorContents.filterNotNull()) {
-            if (item.type == material && isOwnedBy(item, player)) {
-                count += item.amount
-            }
-        }
-
-        // Offhand
-        player.inventory.itemInOffHand.let { item ->
-            if (item.type == material && isOwnedBy(item, player)) {
-                count += item.amount
-            }
-        }
-
         return count
     }
 
@@ -140,25 +128,11 @@ class OwnershipManager(private val plugin: Plugin) {
      */
     fun countAllInInventory(player: Player, material: Material): Int {
         var count = 0
-
         for (item in player.inventory.contents.filterNotNull()) {
             if (item.type == material) {
                 count += item.amount
             }
         }
-
-        for (item in player.inventory.armorContents.filterNotNull()) {
-            if (item.type == material) {
-                count += item.amount
-            }
-        }
-
-        player.inventory.itemInOffHand.let { item ->
-            if (item.type == material) {
-                count += item.amount
-            }
-        }
-
         return count
     }
 
@@ -167,25 +141,11 @@ class OwnershipManager(private val plugin: Plugin) {
      */
     fun getTrackedInventory(player: Player): Map<Material, Int> {
         val tracked = mutableMapOf<Material, Int>()
-
         for (item in player.inventory.contents.filterNotNull()) {
             if (isOwnedBy(item, player)) {
                 tracked[item.type] = (tracked[item.type] ?: 0) + item.amount
             }
         }
-
-        for (item in player.inventory.armorContents.filterNotNull()) {
-            if (isOwnedBy(item, player)) {
-                tracked[item.type] = (tracked[item.type] ?: 0) + item.amount
-            }
-        }
-
-        player.inventory.itemInOffHand.let { item ->
-            if (isOwnedBy(item, player)) {
-                tracked[item.type] = (tracked[item.type] ?: 0) + item.amount
-            }
-        }
-
         return tracked
     }
 
@@ -217,6 +177,53 @@ class OwnershipManager(private val plugin: Plugin) {
             count += countAllInContainer(item, material, depth = 0)
         }
         return count
+    }
+
+    /**
+     * Single-pass deep snapshot of all owned tracked materials. Equivalent to calling
+     * [countOwnedInInventoryDeep] once per material, but walks the inventory (and nested
+     * containers/bundles) exactly once. MUST be called on the player's thread — callers
+     * reconciling asynchronously snapshot here first, then compute off-thread.
+     */
+    fun snapshotOwnedDeep(player: Player, materials: Set<Material>): Map<Material, Int> {
+        val counts = HashMap<Material, Int>()
+        for (item in player.inventory.contents) {
+            if (item == null) continue
+            if (item.type in materials && isOwnedBy(item, player)) {
+                counts.merge(item.type, item.amount, Int::plus)
+            }
+            collectOwnedInContainer(item, player.uniqueId, materials, counts, depth = 0)
+        }
+        return counts
+    }
+
+    private fun collectOwnedInContainer(
+        stack: ItemStack, ownerUuid: UUID, materials: Set<Material>,
+        sink: MutableMap<Material, Int>, depth: Int
+    ) {
+        if (depth >= MAX_RECURSION_DEPTH) return
+        val meta = stack.itemMeta ?: return
+
+        if (meta is BlockStateMeta && meta.hasBlockState()) {
+            val state = meta.blockState
+            if (state is Container) {
+                for (inner in state.inventory.contents) {
+                    if (inner == null) continue
+                    if (inner.type in materials && getOwner(inner) == ownerUuid) {
+                        sink.merge(inner.type, inner.amount, Int::plus)
+                    }
+                    collectOwnedInContainer(inner, ownerUuid, materials, sink, depth + 1)
+                }
+            }
+        }
+        if (meta is BundleMeta) {
+            for (inner in meta.items) {
+                if (inner.type in materials && getOwner(inner) == ownerUuid) {
+                    sink.merge(inner.type, inner.amount, Int::plus)
+                }
+                collectOwnedInContainer(inner, ownerUuid, materials, sink, depth + 1)
+            }
+        }
     }
 
     private fun countOwnedInContainer(stack: ItemStack, ownerUuid: UUID, material: Material, depth: Int): Int {
@@ -267,10 +274,10 @@ class OwnershipManager(private val plugin: Plugin) {
         return count
     }
 
+    // getContents() already spans storage + armor + offhand (slots 0-40); yielding armor and
+    // offhand again would scan a held bundle/shulker's contents twice.
     private fun allHeldItems(player: Player): Sequence<ItemStack> = sequence {
         for (item in player.inventory.contents.filterNotNull()) yield(item)
-        for (item in player.inventory.armorContents.filterNotNull()) yield(item)
-        yield(player.inventory.itemInOffHand)
     }
 
     /**

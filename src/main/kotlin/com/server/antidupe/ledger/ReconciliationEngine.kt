@@ -1,7 +1,9 @@
 package com.server.antidupe.ledger
 
+import com.server.antidupe.platform.PlatformScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
@@ -10,6 +12,8 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.logging.Level
 import java.util.logging.Logger
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * The Reconciliation Engine is the core dupe detection mechanism.
@@ -31,6 +35,7 @@ class ReconciliationEngine(
     private val tmarLimits: Map<Material, Int>,
     private val logger: Logger,
     private val scope: CoroutineScope,
+    private val scheduler: PlatformScheduler,
     private val suspicion: SuspicionManager,
     private val reconciliationCooldown: Long = 5000L,
     private val alertThresholds: Map<Material, Int> = emptyMap(),
@@ -50,6 +55,36 @@ class ReconciliationEngine(
     private fun emitAlert(alert: DupeAlert) {
         alertListeners.forEach { it(alert) }
     }
+
+    private class InventorySnapshot(
+        val ownedCounts: Map<Material, Int>,
+        val foreignItems: List<ForeignItem>
+    )
+
+    /**
+     * Snapshot the player's owned-item counts and foreign items ON THE PLAYER'S THREAD.
+     * Bukkit inventories (and the BlockStateMeta deserialization the deep scan performs) are
+     * not safe to touch from a coroutine on Dispatchers.IO — on Folia it's an outright
+     * cross-region violation. Reconciliation hops to the entity thread for one cheap pass,
+     * then does all storage I/O and threshold math off-thread on the immutable snapshot.
+     */
+    private suspend fun snapshotInventory(player: Player): InventorySnapshot =
+        suspendCancellableCoroutine { cont ->
+            scheduler.runForEntity(player, Runnable {
+                try {
+                    cont.resume(InventorySnapshot(
+                        ownedCounts = ownershipManager.snapshotOwnedDeep(player, trackedMaterials),
+                        foreignItems = ownershipManager.findForeignItemsDeep(player)
+                    ))
+                } catch (t: Throwable) {
+                    cont.resumeWithException(t)
+                }
+            })
+        }
+
+    /** Main-thread snapshot of owned deep counts — also used by the join baseline. */
+    suspend fun snapshotOwned(player: Player): Map<Material, Int> =
+        snapshotInventory(player).ownedCounts
 
     /**
      * Perform full reconciliation for a player.
@@ -71,12 +106,14 @@ class ReconciliationEngine(
         }
         activeReconciliations[playerId] = now
 
+        val snapshot = snapshotInventory(player)
+
         val discrepancies = mutableListOf<Discrepancy>()
         val tmarViolations = mutableListOf<TmarViolation>()
 
         for (material in trackedMaterials) {
             val ledgerBalance = ledgerStorage.getBalance(playerId, material)
-            val actualCount = ownershipManager.countOwnedInInventoryDeep(player, material)
+            val actualCount = snapshot.ownedCounts[material] ?: 0
 
             // SELF-HEAL: a negative ledger is *proof our bookkeeping is incomplete* — more
             // disposals were recorded than acquisitions, which duping cannot produce (duping
@@ -132,8 +169,7 @@ class ReconciliationEngine(
         }
 
         // Check for foreign items (items with different owner)
-        val foreignItems = ownershipManager.findForeignItemsDeep(player)
-        val foreignAlerts = foreignItems.map { foreign ->
+        val foreignAlerts = snapshot.foreignItems.map { foreign ->
             ForeignItemAlert(
                 material = foreign.item.type,
                 amount = foreign.item.amount,
@@ -176,7 +212,7 @@ class ReconciliationEngine(
     suspend fun quickCheck(player: Player, material: Material): QuickCheckResult {
         val playerId = player.uniqueId
         val ledgerBalance = ledgerStorage.getBalance(playerId, material)
-        val actualCount = ownershipManager.countOwnedInInventory(player, material)
+        val actualCount = snapshotInventory(player).ownedCounts[material] ?: 0
 
         return QuickCheckResult(
             material = material,
@@ -302,24 +338,26 @@ class ReconciliationEngine(
     private fun getAlertThreshold(material: Material): Int =
         alertThresholds[material] ?: defaultAlertThreshold
 
+    /**
+     * Severity scales with how far the excess clears the material's configured alert
+     * threshold, so per-material value judgements live in materials.yml rather than a
+     * hardcoded list that ignores custom-tracked materials.
+     */
     private fun calculateSeverity(material: Material, excess: Int): Severity {
-        val baseValue = when (material) {
-            Material.ENCHANTED_GOLDEN_APPLE -> 100
-            Material.BEACON -> 80
-            Material.NETHER_STAR -> 70
-            Material.ELYTRA -> 90
-            Material.NETHERITE_INGOT -> 50
-            Material.DIAMOND_BLOCK -> 30
-            else -> 10
-        }
-
-        val score = baseValue * excess
+        val threshold = getAlertThreshold(material).coerceAtLeast(1)
+        val ratio = excess.toDouble() / threshold
         return when {
-            score >= 200 -> Severity.CRITICAL
-            score >= 100 -> Severity.HIGH
-            score >= 50 -> Severity.MEDIUM
+            ratio >= 4.0 -> Severity.CRITICAL
+            ratio >= 2.0 -> Severity.HIGH
+            ratio >= 1.0 -> Severity.MEDIUM
             else -> Severity.LOW
         }
+    }
+
+    /** Evict stale per-player bookkeeping; called from the maintenance loop. */
+    fun pruneMaintenance() {
+        val cutoff = System.currentTimeMillis() - 3_600_000L
+        activeReconciliations.entries.removeIf { it.value < cutoff }
     }
 }
 

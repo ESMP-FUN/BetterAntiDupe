@@ -33,6 +33,7 @@ class SuspicionManager(@Volatile var sensitivity: Int = 50) {
         const val HEAT_PER_SIGNAL = 1.0             // a low-confidence nudge
         const val HEAT_DECAY_PER_TICK = 1.0         // removed per idle decay tick (5 min)
         const val HEAT_REPEAT_WINDOW_MS = 60_000L   // low-confidence nudges only count on repeat within this
+        const val IDLE_BEFORE_DECAY_MS = 300_000L   // heat only erodes after 5 min without signals
         const val MAX = 100.0
     }
 
@@ -67,10 +68,15 @@ class SuspicionManager(@Volatile var sensitivity: Int = 50) {
     fun decay() {
         val now = System.currentTimeMillis()
         scores.forEach { (_, s) ->
-            if (now - s.lastSignal >= 0 && s.heat > 0) {
+            // Only decay players who have been quiet — an active pattern keeps its heat.
+            // (The previous `>= 0` check was vacuously true and eroded heat on every tick,
+            // so sustained low-confidence patterns could never accumulate.)
+            if (now - s.lastSignal >= IDLE_BEFORE_DECAY_MS && s.heat > 0) {
                 s.heat = (s.heat - HEAT_DECAY_PER_TICK).coerceAtLeast(0.0)
             }
         }
+        // Evict fully-cooled players so the map doesn't grow forever.
+        scores.entries.removeIf { it.value.floor == 0.0 && it.value.heat == 0.0 }
     }
 
     /** Admin confirmed this player is duping — pin the floor high so future hits trip easily. */

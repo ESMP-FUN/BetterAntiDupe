@@ -36,9 +36,6 @@ class WitnessManager(
 ) {
     private val radiusSquared = witnessRadius * witnessRadius
 
-    // Pending attestation requests: actionId -> pending witnesses
-    private val pendingAttestations = ConcurrentHashMap<UUID, AttestationRequest>()
-
     // Player trust scores based on witness history
     private val trustScores = ConcurrentHashMap<UUID, TrustScore>()
 
@@ -344,14 +341,6 @@ data class SuspicionAnalysis(
     val totalActions: Int = 0
 )
 
-data class AttestationRequest(
-    val actionId: UUID,
-    val actor: UUID,
-    val expectedWitnesses: List<UUID>,
-    val createdAt: Long,
-    val receivedAttestations: MutableList<UUID> = mutableListOf()
-)
-
 /**
  * Running trust score for a player based on witness history
  */
@@ -392,9 +381,6 @@ class TrustScore(val playerId: UUID) {
         }
     }
 
-    fun penalize(amount: Double, reason: String) {
-        score = maxOf(0.0, score - amount)
-    }
 }
 
 data class WitnessStats(

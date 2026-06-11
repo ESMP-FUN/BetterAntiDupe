@@ -55,6 +55,7 @@ class ChainOfCustody private constructor(
                 tmarLimits = tmarLimits,
                 logger = logger,
                 scope = scope,
+                scheduler = scheduler,
                 suspicion = suspicionManager,
                 reconciliationCooldown = reconciliationCooldownMs,
                 alertThresholds = alertThresholds,
@@ -74,6 +75,7 @@ class ChainOfCustody private constructor(
             )
 
             plugin.server.pluginManager.registerEvents(eventHandler, plugin)
+            eventHandler.registerPaperOnlyListeners()
 
             val coc = ChainOfCustody(plugin, ledgerStorage, ownershipManager, witnessManager,
                 reconciliationEngine, eventHandler, scope, trackedMaterials, logger)
@@ -215,8 +217,9 @@ class ChainOfCustody private constructor(
     suspend fun baselineIfNew(player: Player) {
         val already = ledgerStorage.getPlayerEntries(player.uniqueId, limit = 1).isNotEmpty()
         if (already) return
-        for (material in trackedMaterialsView) {
-            val actual = ownershipManager.countOwnedInInventoryDeep(player, material)
+        // Snapshot on the player's thread (we're on Dispatchers.IO here) — single pass.
+        val owned = reconciliationEngine.snapshotOwned(player)
+        for ((material, actual) in owned) {
             if (actual > 0) {
                 ledgerStorage.appendBuilt(
                     player = player.uniqueId,
@@ -247,6 +250,11 @@ class ChainOfCustody private constructor(
                     // Pickup-history retention: 30 days. Entries older than this are evicted
                     // — long enough to catch latent chunk-load dupes, short enough to bound disk.
                     ledgerStorage.prunePickupHistory(30L * 86_400_000L)
+                    // Sweep expired source-bound authorizations (chunks visited once would
+                    // otherwise hold their empty deques forever).
+                    eventHandler.pruneAuthorizedDrops()
+                    // Evict stale reconciliation cooldowns.
+                    reconciliationEngine.pruneMaintenance()
                     // Idle decay of transient suspicion heat (the earned floor is untouched).
                     reconciliationEngine.decaySuspicion()
                     logger.fine("[CoC] Maintenance completed")
