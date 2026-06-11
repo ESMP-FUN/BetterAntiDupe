@@ -132,4 +132,5 @@ are welcome.
 
 - **Source / issues**: [github.com/darkstarworks/AntiDupePro](https://github.com/darkstarworks/AntiDupePro)
 - **User guide**: [gitbook/user-guide](https://darkstarworks.gitbook.io/plugins/mc/antidupepro)
+- **Notifications & translation guide**: [docs/notifications-and-translation.html](https://github.com/darkstarworks/AntiDupePro/blob/main/docs/notifications-and-translation.html)
 - **Changelog**: [gitbook/changelog](https://darkstarworks.gitbook.io/plugins/mc/antidupepro/changelog)

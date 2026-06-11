@@ -294,65 +294,16 @@ alert_thresholds:
   DIAMOND_BLOCK: 3
   default: 5</code></pre>
 
-<h3>Webhook notifications — Discord, Telegram, Slack &amp; more (3.3.4+)</h3>
+<h3>Webhook notifications &amp; translation</h3>
 
 <p>
-  AntiDupePro can push dupe alerts to services outside the game, so you get
-  pinged even when no admin is online. Configure it in the
-  <code>notifications</code> section of <code>config.yml</code>:
-</p>
-
-<pre><code>notifications:
-  # Only send alerts at or above this severity: LOW, MEDIUM, HIGH, CRITICAL.
-  min_severity: HIGH
-  # Don't re-send the same kind of alert more often than this (seconds).
-  rate_limit_seconds: 30
-
-  discord:
-    enabled: false
-    webhook_url: ""     # channel settings -> Integrations -> Webhooks
-
-  telegram:
-    enabled: false
-    bot_token: ""       # create a bot with @BotFather
-    chat_id: ""         # the group/channel id the bot posts in
-
-  slack:
-    enabled: false
-    webhook_url: ""     # api.slack.com/messaging/webhooks
-
-  generic:
-    enabled: false
-    url: ""             # POSTs a JSON body - for n8n, Zapier, custom bots</code></pre>
-
-<ul>
-  <li>Everything is <strong>off by default</strong> — enable only what you use.</li>
-  <li><code>min_severity: HIGH</code> keeps small wobbles out of your channel; set <code>CRITICAL</code> for only the highest-confidence detections.</li>
-  <li>The rate limit means an alert burst sends one message, not hundreds.</li>
-  <li>A broken/unreachable webhook never affects the server — it logs one console warning per minute until it works again.</li>
-  <li>Notification text follows your <code>messages.yml</code> language.</li>
-  <li><strong>Upgrading?</strong> Your existing <code>config.yml</code> is preserved, so copy the section above into it — the plugin uses safe defaults (everything off) until you do.</li>
-</ul>
-
-<p>
-  The generic webhook sends
-  <code>{"plugin", "type", "severity", "player", "playerUuid", "material", "details", "timestamp"}</code>
-  as JSON — enough to build any custom automation on top.
-</p>
-
-<h3>messages.yml — translating the plugin (3.3.3+)</h3>
-
-<p>
-  Everything the plugin shows in-game — dupe alerts and all
-  <code>/adp</code> command output — comes from
-  <code>plugins/AntiDupePro/messages.yml</code>. To translate or restyle:
+  Two features have their own short guide —
+  <a href="notifications-and-translation.html">Notifications &amp; Translation</a>:
 </p>
 
 <ul>
-  <li>Edit any line. Colours use <code>&amp;</code> codes (<code>&amp;c</code> = red, <code>&amp;l</code> = bold).</li>
-  <li>Keep the <code>{placeholders}</code> (like <code>{player}</code>) — the plugin fills them in. You can move them anywhere in the sentence.</li>
-  <li>Delete any line you don't want to customise — it falls back to the built-in English text. This also means plugin updates can add new messages without breaking your file.</li>
-  <li>Console log lines are not translatable on purpose: they stay English so errors remain searchable and support stays easy.</li>
+  <li><strong>Alerts outside the game (3.3.4+)</strong> — push dupe alerts to Discord, Telegram, Slack, or any custom webhook. Step-by-step setup per service, all off by default, configured in the <code>notifications</code> section of <code>config.yml</code>.</li>
+  <li><strong>Translating the plugin (3.3.3+)</strong> — every in-game message lives in <code>messages.yml</code>; edit any line, deleted lines fall back to English.</li>
 </ul>
 
 <hr/>

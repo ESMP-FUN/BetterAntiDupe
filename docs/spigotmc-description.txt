@@ -116,6 +116,7 @@ any time without restarting the dependency stack — just edit the file and relo
 [LIST]
 [*][URL=https://github.com/darkstarworks/AntiDupePro]Source code and issue tracker[/URL]
 [*][URL=https://darkstarworks.gitbook.io/plugins/mc/antidupepro]User guide (HTML)[/URL]
+[*][URL=https://github.com/darkstarworks/AntiDupePro/blob/main/docs/notifications-and-translation.html]Notifications & translation guide[/URL]
 [*][URL=https://darkstarworks.gitbook.io/plugins/mc/antidupepro/changelog]Changelog[/URL]
 [/LIST]
 [CENTER][SIZE=3][I]If AntiDupePro saved you from cleaning up a dupe wave, a positive review

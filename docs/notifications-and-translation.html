@@ -1,0 +1,160 @@
+<!--
+  AntiDupePro — Notifications & Translation Guide
+  Plain HTML, GitBook-friendly. No external assets, no scripts.
+-->
+
+<h1>AntiDupePro — Notifications &amp; Translation</h1>
+
+<p>
+  This short guide covers the two "make it yours" features:
+  getting dupe alerts <strong>outside the game</strong> (Discord, Telegram,
+  Slack, custom webhooks — since 3.3.4) and <strong>translating or
+  restyling</strong> every in-game message (since 3.3.3).
+  For installation, detection and admin commands, see the
+  <a href="user-guide.html">main user guide</a>.
+</p>
+
+<hr/>
+
+<h2>Table of Contents</h2>
+
+<ol>
+  <li><a href="#notifications">Alerts outside the game (webhooks)</a></li>
+  <li><a href="#discord">Discord setup</a></li>
+  <li><a href="#telegram">Telegram setup</a></li>
+  <li><a href="#slack">Slack setup</a></li>
+  <li><a href="#generic">Custom webhook (everything else)</a></li>
+  <li><a href="#notify-tips">Good to know</a></li>
+  <li><a href="#translation">Translating the plugin (messages.yml)</a></li>
+</ol>
+
+<hr/>
+
+<h2 id="notifications">1. Alerts outside the game (webhooks)</h2>
+
+<p>
+  AntiDupePro can ping you when a dupe is detected, even when no admin is
+  online. Everything lives in the <code>notifications</code> section of
+  <code>config.yml</code>, and everything is <strong>off by default</strong>:
+</p>
+
+<pre><code>notifications:
+  # Only send alerts at or above this severity: LOW, MEDIUM, HIGH, CRITICAL.
+  min_severity: HIGH
+
+  # Don't re-send the same kind of alert more often than this (seconds).
+  rate_limit_seconds: 30
+
+  discord:
+    enabled: false
+    webhook_url: ""
+
+  telegram:
+    enabled: false
+    bot_token: ""
+    chat_id: ""
+
+  slack:
+    enabled: false
+    webhook_url: ""
+
+  generic:
+    enabled: false
+    url: ""</code></pre>
+
+<p>
+  <strong>Upgrading from an older version?</strong> Your existing
+  <code>config.yml</code> is kept as-is, so this section won't appear by
+  itself — copy the block above into your file, enable what you use, and
+  restart.
+</p>
+
+<h2 id="discord">2. Discord setup</h2>
+
+<ol>
+  <li>In Discord, open the channel where alerts should appear.</li>
+  <li>Channel settings (gear icon) → <strong>Integrations</strong> → <strong>Webhooks</strong> → <strong>New Webhook</strong>.</li>
+  <li>Click <strong>Copy Webhook URL</strong>.</li>
+  <li>In <code>config.yml</code>: set <code>discord.enabled: true</code> and paste the URL into <code>webhook_url</code>.</li>
+  <li>Restart the server. Alerts now arrive as colored Discord embeds (red = critical).</li>
+</ol>
+
+<h2 id="telegram">3. Telegram setup</h2>
+
+<ol>
+  <li>In Telegram, message <strong>@BotFather</strong>, send <code>/newbot</code>, and follow the steps. You get a <strong>bot token</strong> (looks like <code>123456:ABC-DEF...</code>).</li>
+  <li>Add your new bot to the group or channel where alerts should appear.</li>
+  <li>Find the chat id: add <strong>@getidsbot</strong> (or @userinfobot) to the same group — it tells you the id (group ids usually start with <code>-100</code>).</li>
+  <li>In <code>config.yml</code>: set <code>telegram.enabled: true</code>, paste the token into <code>bot_token</code> and the id into <code>chat_id</code>.</li>
+  <li>Restart the server.</li>
+</ol>
+
+<h2 id="slack">4. Slack setup</h2>
+
+<ol>
+  <li>Create an <strong>Incoming Webhook</strong> for your workspace: <a href="https://api.slack.com/messaging/webhooks">api.slack.com/messaging/webhooks</a>.</li>
+  <li>Pick the channel, copy the webhook URL.</li>
+  <li>In <code>config.yml</code>: set <code>slack.enabled: true</code> and paste the URL into <code>webhook_url</code>.</li>
+  <li>Restart the server.</li>
+</ol>
+
+<h2 id="generic">5. Custom webhook (everything else)</h2>
+
+<p>
+  For anything not listed above — n8n, Zapier, Make, a home-grown bot —
+  enable <code>generic</code> and set <code>url</code>. AntiDupePro sends an
+  HTTP POST with this JSON body for every alert:
+</p>
+
+<pre><code>{
+  "plugin": "AntiDupePro",
+  "type": "BALANCE_DISCREPANCY",
+  "severity": "CRITICAL",
+  "player": "Steve",
+  "playerUuid": "069a79f4-44e9-4726-a5be-fca90e38aaf5",
+  "material": "ENCHANTED_BOOK",
+  "details": "Has 12 but ledger shows 4 (excess: 8)",
+  "timestamp": 1781234567890
+}</code></pre>
+
+<h2 id="notify-tips">6. Good to know</h2>
+
+<ul>
+  <li><strong>min_severity</strong> — <code>HIGH</code> (the default) keeps small wobbles out of your channel. Use <code>CRITICAL</code> if you only want the highest-confidence detections, or <code>LOW</code> to see everything.</li>
+  <li><strong>Burst protection</strong> — the same kind of alert (same player + same item) is sent at most once per <code>rate_limit_seconds</code>. A detection burst becomes one message, not a hundred.</li>
+  <li><strong>It can't hurt the server</strong> — sending happens in the background. If a webhook is broken or unreachable, the game is unaffected; the console gets one warning per minute until it works again.</li>
+  <li><strong>Language</strong> — notification text follows your <code>messages.yml</code>, with color codes removed.</li>
+  <li><strong>Keep webhook URLs secret</strong> — anyone who has the URL can post to your channel. Don't commit your <code>config.yml</code> to a public repo.</li>
+</ul>
+
+<hr/>
+
+<h2 id="translation">7. Translating the plugin (messages.yml)</h2>
+
+<p>
+  Everything the plugin shows in-game — dupe alerts and all
+  <code>/adp</code> command output — comes from
+  <code>plugins/AntiDupePro/messages.yml</code>. The file is created on
+  first start with the English defaults.
+</p>
+
+<ul>
+  <li><strong>Edit any line.</strong> Colors use <code>&amp;</code> codes (<code>&amp;c</code> = red, <code>&amp;l</code> = bold, <code>&amp;r</code> = reset).</li>
+  <li><strong>Keep the <code>{placeholders}</code></strong> (like <code>{player}</code> or <code>{material}</code>) — the plugin fills them in. You can move them anywhere in the sentence, which matters for languages with different word order.</li>
+  <li><strong>Delete what you don't customise.</strong> Any missing line falls back to the built-in English text. This also means plugin updates can add new messages without ever breaking your translation.</li>
+  <li><strong>Console logs stay English on purpose</strong> — that keeps error messages searchable and makes it easier to get support.</li>
+</ul>
+
+<p>Example — turning the alert German:</p>
+
+<pre><code>alerts:
+  broadcast: "&amp;c&amp;l[DUPE] &amp;e{player} &amp;7({type}) &amp;f{material}: &amp;c{details}"
+  balance-discrepancy: "Hat {actual}, aber das Kassenbuch zeigt {expected} (Überschuss: {excess})"</code></pre>
+
+<p>
+  Changes take effect on the next server restart.
+</p>
+
+<hr/>
+
+<p><em>Last updated for AntiDupePro 3.3.4 — see the <a href="user-guide.html">main user guide</a> for everything else.</em></p>
