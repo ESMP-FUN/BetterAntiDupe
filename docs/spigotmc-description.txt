@@ -95,6 +95,8 @@ Two files in [I]plugins/AntiDupePro/[/I]:
 [*][B]materials.yml[/B] — tracked materials, rate limits, alert thresholds
 [*][B]messages.yml[/B] — every in-game message, fully translatable (deleted keys fall back to English)
 [/LIST]
+
+Dupe alerts can also be pushed [B]outside the game[/B]: Discord, Telegram, Slack, or any custom JSON webhook — with severity filtering and burst protection. See the [I]notifications[/I] section of config.yml.
 Both files are extensively commented. You can add or remove tracked materials at
 any time without restarting the dependency stack — just edit the file and reload.
 [CENTER][SIZE=3][COLOR=#808080]

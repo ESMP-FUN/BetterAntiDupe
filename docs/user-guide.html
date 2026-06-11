@@ -294,6 +294,52 @@ alert_thresholds:
   DIAMOND_BLOCK: 3
   default: 5</code></pre>
 
+<h3>Webhook notifications — Discord, Telegram, Slack &amp; more (3.3.4+)</h3>
+
+<p>
+  AntiDupePro can push dupe alerts to services outside the game, so you get
+  pinged even when no admin is online. Configure it in the
+  <code>notifications</code> section of <code>config.yml</code>:
+</p>
+
+<pre><code>notifications:
+  # Only send alerts at or above this severity: LOW, MEDIUM, HIGH, CRITICAL.
+  min_severity: HIGH
+  # Don't re-send the same kind of alert more often than this (seconds).
+  rate_limit_seconds: 30
+
+  discord:
+    enabled: false
+    webhook_url: ""     # channel settings -> Integrations -> Webhooks
+
+  telegram:
+    enabled: false
+    bot_token: ""       # create a bot with @BotFather
+    chat_id: ""         # the group/channel id the bot posts in
+
+  slack:
+    enabled: false
+    webhook_url: ""     # api.slack.com/messaging/webhooks
+
+  generic:
+    enabled: false
+    url: ""             # POSTs a JSON body - for n8n, Zapier, custom bots</code></pre>
+
+<ul>
+  <li>Everything is <strong>off by default</strong> — enable only what you use.</li>
+  <li><code>min_severity: HIGH</code> keeps small wobbles out of your channel; set <code>CRITICAL</code> for only the highest-confidence detections.</li>
+  <li>The rate limit means an alert burst sends one message, not hundreds.</li>
+  <li>A broken/unreachable webhook never affects the server — it logs one console warning per minute until it works again.</li>
+  <li>Notification text follows your <code>messages.yml</code> language.</li>
+  <li><strong>Upgrading?</strong> Your existing <code>config.yml</code> is preserved, so copy the section above into it — the plugin uses safe defaults (everything off) until you do.</li>
+</ul>
+
+<p>
+  The generic webhook sends
+  <code>{"plugin", "type", "severity", "player", "playerUuid", "material", "details", "timestamp"}</code>
+  as JSON — enough to build any custom automation on top.
+</p>
+
 <h3>messages.yml — translating the plugin (3.3.3+)</h3>
 
 <p>
@@ -760,4 +806,4 @@ Use /adp ledger stash &lt;player&gt; to see where they stashed items.</code></pr
 
 <hr/>
 
-<p><em>Last updated for AntiDupePro 3.3.3 — Minecraft 1.21.x (Paper, Folia, Spigot) and 26.x (Paper, on the <code>paper-26</code> branch).</em></p>
+<p><em>Last updated for AntiDupePro 3.3.4 — Minecraft 1.21.x (Paper, Folia, Spigot) and 26.x (Paper, on the <code>paper-26</code> branch).</em></p>
