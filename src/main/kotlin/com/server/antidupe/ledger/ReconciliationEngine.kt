@@ -151,7 +151,11 @@ class ReconciliationEngine(
                         material = material,
                         details = "Has $actualCount but ledger shows $ledgerBalance (excess: $excess)",
                         severity = calculateSeverity(material, excess),
-                        timestamp = now
+                        timestamp = now,
+                        messageKey = "alerts.balance-discrepancy",
+                        placeholders = mapOf(
+                            "actual" to "$actualCount", "expected" to "$ledgerBalance", "excess" to "$excess"
+                        )
                     ))
                 }
             }
@@ -288,7 +292,9 @@ class ReconciliationEngine(
             material = material,
             details = "Chunk-load / drop-race dupe: entity-UUID re-used ${(now - previous.pickedUpAt) / 1000}s after original pickup",
             severity = Severity.CRITICAL,
-            timestamp = now
+            timestamp = now,
+            messageKey = "alerts.entity-dupe",
+            placeholders = mapOf("seconds" to "${(now - previous.pickedUpAt) / 1000}")
         ))
     }
 
@@ -314,7 +320,11 @@ class ReconciliationEngine(
             material = material,
             details = "$excess ${material.name} picked up beyond nearby source output ($source)",
             severity = if (excess >= 4) Severity.CRITICAL else Severity.HIGH,
-            timestamp = now
+            timestamp = now,
+            messageKey = "alerts.drop-excess",
+            placeholders = mapOf(
+                "excess" to "$excess", "material" to material.name, "source" to source
+            )
         ))
     }
 
@@ -413,9 +423,13 @@ data class DupeAlert(
     val player: UUID,
     val playerName: String,
     val material: Material,
-    val details: String,
+    val details: String,             // English, for console logs
     val severity: Severity,
-    val timestamp: Long
+    val timestamp: Long,
+    // Translation hook: the display layer formats messageKey + placeholders via
+    // messages.yml; `details` stays English so logs remain searchable.
+    val messageKey: String = "",
+    val placeholders: Map<String, String> = emptyMap()
 )
 
 enum class AlertType {
