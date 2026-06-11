@@ -3,6 +3,7 @@ package io.github.darkstarworks
 import com.server.antidupe.commands.AdpCommand
 import com.server.antidupe.ledger.ChainOfCustody
 import com.server.antidupe.ledger.LedgerStorage
+import com.server.antidupe.notify.AlertNotifier
 import com.server.antidupe.platform.PlatformScheduler
 import com.server.antidupe.util.Messages
 import kotlinx.coroutines.CoroutineScope
@@ -198,7 +199,11 @@ class AntiDupePro : JavaPlugin() {
                 )
             }
 
+            val notifier = AlertNotifier(config.getConfigurationSection("notifications"), pluginScope, logger)
+
             chainOfCustody?.onDupeAlert { alert ->
+                notifier.handle(alert)
+
                 // In-game text comes from messages.yml; the console log below stays English.
                 val details = if (alert.messageKey.isNotEmpty())
                     Messages.msg(alert.messageKey, alert.placeholders) else alert.details

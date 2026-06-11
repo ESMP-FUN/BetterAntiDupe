@@ -2,6 +2,33 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [3.3.4] - 2026-06-12
+
+Get dupe alerts outside the game!
+
+### Added
+- **Webhook notifications** — AntiDupePro can now push dupe alerts to:
+  - **Discord** (paste a channel webhook URL)
+  - **Telegram** (bot token + chat id)
+  - **Slack** (incoming webhook URL)
+  - **Anything else** via a generic JSON webhook (n8n, Zapier, your own bot)
+- All off by default. Set them up in the new `notifications` section of
+  `config.yml` — each option has step-by-step comments.
+- Built-in safety rails:
+  - `min_severity` (default HIGH) so small wobbles don't ping your phone.
+  - `rate_limit_seconds` (default 30) so an alert burst sends one message,
+    not hundreds.
+  - A broken webhook never affects the server — it just logs one warning
+    per minute until it works again.
+- Notifications use the same language as your `messages.yml`.
+
+### Good to know
+- **Updating from an older version?** Your existing `config.yml` is kept,
+  so the new `notifications` section won't appear automatically. Copy it
+  from the default config (shown in the user guide) into your file.
+- The ready-made translations move to a later release — webhooks were the
+  more-requested feature.
+
 ## [3.3.3] - 2026-06-12
 
 The plugin is now translatable!
