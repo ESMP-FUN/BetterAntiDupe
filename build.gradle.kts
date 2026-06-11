@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.github.darkstarworks"
-version = "3.3.2-paper26"
+version = "3.3.2-mc26"
 
 repositories {
     mavenCentral()
@@ -38,10 +38,20 @@ tasks.build {
     dependsOn("shadowJar")
 }
 
+// The plain (non-shaded) jar has no runtime use - skip building it entirely.
+tasks.jar {
+    enabled = false
+}
+
 // Trim the shaded jar. sqlite-jdbc ships native binaries for ~23 platforms;
 // a Minecraft server only ever runs on a small subset. Everything in here is
 // excluded because we cannot reach a state where it gets loaded.
 tasks.shadowJar {
+    // Final artifact is the shaded jar itself: AntiDupePro-<version>.jar.
+    // No "-all" classifier, and the thin (dependency-less) jar task is disabled
+    // below because it is never released or used.
+    archiveClassifier.set("")
+
     // SQLite native binaries — keep only platforms that realistically host
     // a Paper / Spigot server. Saves ~13 MB of jar.
     exclude("org/sqlite/native/Linux-Android/**")  // Minecraft server doesn't run on Android
