@@ -29,6 +29,19 @@ object Chat {
 
     fun line(): Builder = Builder()
 
+    /**
+     * Resolve a Bukkit world name to the namespaced dimension key `/execute in` expects
+     * (e.g. world_nether -> minecraft:the_nether). Falls back to a lowercased guess when
+     * the world isn't loaded or `World.getKey()` is unavailable (Spigot).
+     */
+    fun worldKeyOf(worldName: String): String {
+        return try {
+            org.bukkit.Bukkit.getWorld(worldName)?.key?.toString()
+        } catch (e: Throwable) {
+            null  // Spigot: World.getKey() doesn't exist
+        } ?: "minecraft:${worldName.lowercase()}"
+    }
+
     /** Send a clickable component message via the Spigot API. Console gets a plain-text fallback. */
     fun CommandSender.sendChat(components: Array<BaseComponent>) {
         // CommandSender.Spigot exists on Spigot and Paper; sends to console as plain text too.
@@ -53,15 +66,19 @@ object Chat {
 
         /**
          * Add a clickable segment that fires `/tp <x> <y> <z>` when clicked. Uses
-         * `/execute in <world> run tp @s <x> <y> <z>` so cross-world teleports also work.
+         * `/execute in <dimensionKey> run tp @s <x> <y> <z>` so cross-world teleports also work.
+         *
+         * [dimensionKey] must be the full namespaced dimension key (e.g. `minecraft:the_nether`),
+         * NOT the Bukkit world name — for the default nether/end and renamed custom worlds the
+         * two differ, and `/execute in` only accepts the key. See [worldKeyOf].
          */
         fun clickToTp(
             display: String,
-            worldName: String,
+            dimensionKey: String,
             x: Int, y: Int, z: Int,
             hover: String = "Click to teleport here"
         ): Builder {
-            val command = "/execute in minecraft:$worldName run tp @s $x $y $z"
+            val command = "/execute in $dimensionKey run tp @s $x $y $z"
             val parts = TextComponent.fromLegacyText(display)
             // Apply the click + hover to every part of the legacy text.
             for (part in parts) {

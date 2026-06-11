@@ -9,7 +9,11 @@ import io.lettuce.core.SetArgs
 import io.lettuce.core.api.StatefulRedisConnection
 import io.lettuce.core.api.coroutines
 import io.lettuce.core.api.coroutines.RedisCoroutinesCommands
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import org.bukkit.Material
 import org.json.JSONObject
 import java.util.UUID
@@ -55,31 +59,48 @@ class RedisLedgerStorage internal constructor(
         try { client.shutdown(100, 500, TimeUnit.MILLISECONDS) } catch (e: Exception) { logger.warning("[Ledger] client shutdown: ${e.message}") }
     }
 
-    override suspend fun writeEntry(entry: LedgerEntry) {
-        val entryKey = "$KEY_ENTRY${entry.id}"
-        val playerEntriesKey = "${KEY_PLAYER_ENTRIES}${entry.player}:entries"
-        val playerChainKey = "${KEY_PLAYER_ENTRIES}${entry.player}:chain"
-        val balanceKey = "$KEY_BALANCE${entry.player}:${entry.material.name}"
-        val recentKey = "$KEY_RECENT${entry.player}:${entry.material.name}"
+    /**
+     * MULTI/EXEC is connection-scoped state, so a single global mutex keeps concurrent
+     * appends (different players bypass the per-player append lock) from interleaving
+     * transactions. Uses the sync command API - lettuce's coroutine API doesn't expose
+     * transactions - on the IO dispatcher.
+     */
+    private val txMutex = Mutex()
 
-        redis.set(entryKey, entry.toJson())
-        redis.zadd(playerEntriesKey, entry.timestamp.toDouble(), entry.id.toString())
-        // Append-order list for chain verification (immune to same-ms ties, unlike the ZSET).
-        redis.rpush(playerChainKey, entry.id.toString())
+    override suspend fun writeEntry(entry: LedgerEntry): Unit = txMutex.withLock {
+        withContext(Dispatchers.IO) {
+            val entryKey = "$KEY_ENTRY${entry.id}"
+            val playerEntriesKey = "${KEY_PLAYER_ENTRIES}${entry.player}:entries"
+            val playerChainKey = "${KEY_PLAYER_ENTRIES}${entry.player}:chain"
+            val balanceKey = "$KEY_BALANCE${entry.player}:${entry.material.name}"
+            val recentKey = "$KEY_RECENT${entry.player}:${entry.material.name}"
 
-        val tipJson = JSONObject().apply {
-            put("lastEntryId", entry.id.toString())
-            put("lastHash", entry.hash)
-            put("timestamp", entry.timestamp)
-        }.toString()
-        redis.set("$KEY_PLAYER_TIP${entry.player}", tipJson)  // per-player chain tip
-        redis.set(KEY_GLOBAL_TIP, tipJson)                     // global display tip
-        redis.incrby(balanceKey, entry.quantity.toLong())
+            val tipJson = JSONObject().apply {
+                put("lastEntryId", entry.id.toString())
+                put("lastHash", entry.hash)
+                put("timestamp", entry.timestamp)
+            }.toString()
 
-        if (entry.quantity > 0) {
-            redis.zadd(recentKey, entry.timestamp.toDouble(), "${entry.quantity}:${entry.id}")
-            val cutoff = System.currentTimeMillis() - RECENT_WINDOW_MS
-            redis.zremrangebyscore(recentKey, Range.create(Double.NEGATIVE_INFINITY, cutoff.toDouble()))
+            val sync = connection.sync()
+            sync.multi()
+            try {
+                sync.set(entryKey, entry.toJson())
+                sync.zadd(playerEntriesKey, entry.timestamp.toDouble(), entry.id.toString())
+                // Append-order list for chain verification (immune to same-ms ties, unlike the ZSET).
+                sync.rpush(playerChainKey, entry.id.toString())
+                sync.set("$KEY_PLAYER_TIP${entry.player}", tipJson)  // per-player chain tip
+                sync.set(KEY_GLOBAL_TIP, tipJson)                     // global display tip
+                sync.incrby(balanceKey, entry.quantity.toLong())
+                if (entry.quantity > 0) {
+                    sync.zadd(recentKey, entry.timestamp.toDouble(), "${entry.quantity}:${entry.id}")
+                    val cutoff = System.currentTimeMillis() - RECENT_WINDOW_MS
+                    sync.zremrangebyscore(recentKey, Range.create(Double.NEGATIVE_INFINITY, cutoff.toDouble()))
+                }
+                sync.exec()
+            } catch (e: Exception) {
+                try { sync.discard() } catch (_: Exception) {}
+                throw e
+            }
         }
     }
 

@@ -59,9 +59,16 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
     suspend fun getBalance(player: UUID, material: Material): Int {
         val key = player to material
         balanceCache[key]?.let { return it.get() }
-        val fromStorage = readBalanceFromStorage(player, material)
-        balanceCache.putIfAbsent(key, AtomicInteger(fromStorage))
-        return balanceCache[key]?.get() ?: fromStorage
+        // Populate under the player's append lock: an append landing between the storage
+        // read and the cache insert would otherwise be missing from the cached value until
+        // a manual invalidate.
+        return lockFor(player).withLock {
+            balanceCache[key]?.get() ?: run {
+                val fromStorage = readBalanceFromStorage(player, material)
+                balanceCache.putIfAbsent(key, AtomicInteger(fromStorage))
+                balanceCache[key]?.get() ?: fromStorage
+            }
+        }
     }
 
     /** Drop the cached balance for one (player, material) — used after manual repairs. */
