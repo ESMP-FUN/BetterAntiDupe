@@ -208,9 +208,13 @@ class AntiDupePro : JavaPlugin() {
                     }
                 }
 
-                Bukkit.getOnlinePlayers()
-                    .filter { it.isOp || it.hasPermission("antidupe.admin") }
-                    .forEach { it.sendMessage(message) }
+                // Alerts can be emitted from reconciliation coroutines — hop to the main
+                // (global region) thread before touching the online-player roster.
+                scheduler.runMain(Runnable {
+                    Bukkit.getOnlinePlayers()
+                        .filter { it.isOp || it.hasPermission("antidupe.admin") }
+                        .forEach { it.sendMessage(message) }
+                })
 
                 logger.warning("[DUPE] ${alert.playerName}: ${alert.details}")
             }

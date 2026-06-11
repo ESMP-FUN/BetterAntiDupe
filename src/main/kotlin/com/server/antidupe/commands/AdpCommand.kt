@@ -264,7 +264,7 @@ class AdpCommand(
                             val display = "§a§n[$world $x, $y, $z]"
                             val msg = Chat.line()
                                 .text(prefix)
-                                .clickToTp(display, world, x, y, z, hover = "Click to teleport to this stash")
+                                .clickToTp(display, Chat.worldKeyOf(world), x, y, z, hover = "Click to teleport to this stash")
                                 .build()
                             sender.sendChat(msg)
                         } else {

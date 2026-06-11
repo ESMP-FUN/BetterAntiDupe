@@ -105,7 +105,7 @@
   <li>Stop your server.</li>
   <li>Place <code>AntiDupePro-X.Y.Z-all.jar</code> in <code>plugins/</code>.</li>
   <li>Start the server. On first boot you will see something like this in the console:
-    <pre><code>[AntiDupePro] === AntiDupePro v3.2.0 ===
+    <pre><code>[AntiDupePro] === AntiDupePro v3.3.2 ===
 [AntiDupePro] Initializing Chain of Custody...
 [AntiDupePro] ✓ Scheduler initialized (Bukkit mode)
 [AntiDupePro] ✓ Configuration loaded
@@ -358,6 +358,14 @@ alert_thresholds:
     furnaces, smokers, blast furnaces, lecterns, ender chests, decorated
     pots, horse/donkey/llama chests, chest boats and chest minecarts all
     track item movement correctly. Inputs and outputs reconcile.
+    Since 3.3.2 this includes <strong>double chests</strong>,
+    <strong>villager trades</strong> and <strong>enchanting a book</strong>.
+  </li>
+  <li>
+    <strong>Accurate chest accounting (3.3.2).</strong> Moving items with
+    shift-clicks, number keys, offhand swaps, double-click gathering or
+    drag-moves is recorded by what <em>actually</em> moved — not by what
+    the click "should" have moved. Fewer false alarms, no loopholes.
   </li>
   <li>
     <strong>Bundle content scanning.</strong> Items stored inside
@@ -587,6 +595,12 @@ Use /adp ledger stash &lt;player&gt; to see where they stashed items.</code></pr
 
 <ul>
   <li>
+    <strong>Update to 3.3.2 first.</strong> It fixed several causes of false
+    alarms: worn armor/elytras counted twice, double chests not being
+    tracked, shift-clicks into nearly-full chests, and an alert flood that
+    happened when another plugin blocked an item pickup.
+  </li>
+  <li>
     <strong>Turn sensitivity down.</strong> <code>detection.sensitivity</code>
     (1–100, default 50) is the master dial. Lower it toward 1 for a more
     forgiving server; raise it toward 100 only if you want to catch the
@@ -632,6 +646,12 @@ Use /adp ledger stash &lt;player&gt; to see where they stashed items.</code></pr
   and the next chunk save, the chunk reverts on restart and the player
   legitimately picks up the same entity again. This produces a
   false-positive CRITICAL alert.
+</p>
+
+<p>
+  (Before 3.3.2 this alert could also fire hundreds of times in a row when
+  another plugin blocked a pickup — that was a bug, not a dupe, and it's
+  fixed. Each item can now only trigger this alert once.)
 </p>
 
 <p>
@@ -724,4 +744,4 @@ Use /adp ledger stash &lt;player&gt; to see where they stashed items.</code></pr
 
 <hr/>
 
-<p><em>Last updated for AntiDupePro 3.3.0 — Minecraft 1.21.x (Paper, Folia, Spigot) and 26.x (Paper, on the <code>paper-26</code> branch).</em></p>
+<p><em>Last updated for AntiDupePro 3.3.2 — Minecraft 1.21.x (Paper, Folia, Spigot) and 26.x (Paper, on the <code>paper-26</code> branch).</em></p>

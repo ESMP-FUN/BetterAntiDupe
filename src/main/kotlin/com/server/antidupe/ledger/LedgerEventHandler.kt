@@ -8,6 +8,7 @@ import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.block.Container
 import org.bukkit.block.DecoratedPot
+import org.bukkit.block.DoubleChest
 import org.bukkit.entity.AbstractHorse
 import org.bukkit.entity.Boat
 import org.bukkit.entity.Entity
@@ -18,16 +19,19 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
-import org.bukkit.event.block.BlockBreakEvent
+import org.bukkit.event.block.BlockDropItemEvent
 import org.bukkit.event.block.BlockPlaceEvent
+import org.bukkit.event.enchantment.EnchantItemEvent
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityPickupItemEvent
 import org.bukkit.event.hanging.HangingBreakByEntityEvent
 import org.bukkit.event.hanging.HangingBreakEvent
+import org.bukkit.event.inventory.ClickType
 import org.bukkit.event.inventory.CraftItemEvent
 import org.bukkit.event.inventory.FurnaceExtractEvent
 import org.bukkit.event.inventory.InventoryAction
 import org.bukkit.event.inventory.InventoryClickEvent
+import org.bukkit.event.inventory.InventoryDragEvent
 import org.bukkit.event.inventory.InventoryType
 import org.bukkit.event.player.PlayerDropItemEvent
 import org.bukkit.event.player.PlayerInteractEntityEvent
@@ -87,44 +91,38 @@ class LedgerEventHandler(
 
     // ========== ACQUISITION ==========
 
+    /**
+     * Block-break drops, observed via BlockDropItemEvent rather than BlockBreakEvent +
+     * `block.getDrops(tool)`. Two reasons:
+     *   1. `getDrops` performs a fresh random loot roll — for fortune-affected blocks it can
+     *      disagree with the items actually dropped, under-authorizing and false-flagging
+     *      the pickup as source-bound excess.
+     *   2. The stacks `getDrops` returns are detached copies; tagging them never reached the
+     *      real item entities. Here we get the actual entities and tag their live stacks.
+     * This also covers decorated-pot contents (the stored item is part of the drop list), so
+     * a deposit (CONTAINER_PUT -1) followed by break + pickup (+1) still nets to zero.
+     */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onBlockBreak(event: BlockBreakEvent) {
+    fun onBlockDropItem(event: BlockDropItemEvent) {
         val player = event.player
         if (shouldSkip(player)) return
 
-        val block = event.block
-
-        // Decorated pots store player-deposited items as block-state inventory. Those drops
-        // were *deposited*, not *mined*, so we register them as expected drops (matched on the
-        // subsequent pickup) and skip the MINE crediting entirely for this block.
-        if (block.type == Material.DECORATED_POT) {
-            val state = block.state as? DecoratedPot
-            val content = state?.inventory?.item
-            if (content != null && content.type != Material.AIR && isTracked(content.type)) {
-                authorizeDrop(
-                    material = content.type, amount = content.amount,
-                    loc = block.location, sourcePlayer = player.uniqueId,
-                    sourceAction = LedgerAction.CONTAINER_TAKE,
-                    sourceContext = "POT_BREAK:${block.type.name}"
-                )
-            }
-            return
-        }
-
+        val brokenType = event.blockState.type
         val tool = player.inventory.itemInMainHand
-        val drops = block.getDrops(tool)
-        for (drop in drops) {
-            if (!isTracked(drop.type)) continue
-            ownershipManager.setOwner(drop, player.uniqueId)
+        for (itemEntity in event.items) {
+            val stack = itemEntity.itemStack
+            if (!isTracked(stack.type)) continue
+            ownershipManager.setOwner(stack, player.uniqueId)
+            itemEntity.itemStack = stack
 
             // No MINE ledger entry — the credit happens at pickup time. The PICKUP entry
             // inherits the source context (block type + tool) via the expected drop so the
             // history view still shows "this came from mining DIAMOND_ORE with NETHERITE_PICKAXE".
             authorizeDrop(
-                material = drop.type, amount = drop.amount,
-                loc = block.location, sourcePlayer = player.uniqueId,
+                material = stack.type, amount = stack.amount,
+                loc = itemEntity.location, sourcePlayer = player.uniqueId,
                 sourceAction = LedgerAction.MINE,
-                sourceContext = "MINE:${block.type.name}|TOOL:${tool.type.name}"
+                sourceContext = "MINE:${brokenType.name}|TOOL:${tool.type.name}"
             )
         }
     }
@@ -177,64 +175,87 @@ class LedgerEventHandler(
             logger.warning("[PoW] ${player.name} picked up untracked ${item.type} with no witnesses")
         }
 
-        // Match this pickup against any expected drop (mine, frame, pot break, etc.). The
-        // matched portion is credited; the excess (if any) is the dupe — we leave it OFF the
-        // ledger so the upcoming reconciliation pass also catches it, AND fire an immediate
-        // alert for visibility.
-        val match = matchPickup(item.type, item.amount, event.item.location)
-        val excess = match?.excess ?: 0
-        val creditAmount = (item.amount - excess).coerceAtLeast(0)
-
-        if (excess > 0) {
-            val src = match?.sourceContext ?: "UNKNOWN_SOURCE"
-            logger.warning("[DUPE] ${player.name} picked up $excess ${item.type} beyond what nearby sources produced ($src)")
-            reconciliationEngine.flagDropExcess(player, item.type, excess, src)
-            meta = meta.copy(notes = listOfNotNull(meta.notes, "SOURCE_EXCESS:$excess", match?.sourceContext)
-                .joinToString("|"))
-        } else if (match != null) {
-            // Successful attribution — attach the source context to the audit entry.
-            meta = meta.copy(notes = listOfNotNull(meta.notes, match.sourceContext).joinToString("|").ifBlank { null })
-        }
-
         ownershipManager.setOwner(item, player.uniqueId)
 
-        // Hand off the credit + entity-uuid dupe check to a coroutine. Both checks need the
-        // persistent store, so the actual append decision is async — but that's fine because
-        // the item is already in the player's inventory; we just need the ledger to reflect it.
-        val finalMeta = meta
+        // Defer the source-matching, credit and entity-uuid dupe check by one tick so we only
+        // act on pickups that actually COMPLETED. Another plugin can cancel the pickup at a
+        // later priority (vault / drop-protection plugins do this); the item then survives
+        // inside the player's hitbox and the event re-fires every tick. Acting at event time
+        // would mark the UUID consumed on the first (failed) attempt and then flag every
+        // subsequent re-fire as a dupe — an alert storm — while also crediting items that
+        // never entered the inventory and burning drop authorizations a real pickup needs.
+        val baseMeta = meta
         val capturedPlayerId = player.uniqueId
         val capturedMaterial = item.type
         val capturedAmount = item.amount
-        val entityUuid = event.item.uniqueId
+        val itemEntity = event.item
+        val entityUuid = itemEntity.uniqueId
+        val pickupLoc = itemEntity.location.clone()
 
-        scope.launch {
-            val prev = try {
-                ledgerStorage.markEntityPickup(entityUuid, capturedPlayerId, capturedMaterial, capturedAmount)
-            } catch (e: Exception) {
-                logger.warning("[Ledger] markEntityPickup failed: ${e.message}")
-                null
+        scheduler.runForEntityLater(itemEntity, 1, Runnable {
+            val survived = itemEntity.isValid
+            val amountAfter = if (survived) itemEntity.itemStack.amount else 0
+            val consumed = capturedAmount - amountAfter
+            if (consumed <= 0) return@Runnable  // pickup was cancelled downstream — nothing moved
+
+            // Match the completed pickup against expected drops (mine, frame, pot break, etc.).
+            // The matched portion is credited; the excess (if any) is the dupe — we leave it OFF
+            // the ledger so the reconciliation pass also catches it, AND alert immediately.
+            val match = matchPickup(capturedMaterial, consumed, pickupLoc)
+            val excess = match?.excess ?: 0
+            val creditAmount = (consumed - excess).coerceAtLeast(0)
+
+            var deferredMeta = baseMeta
+            if (excess > 0) {
+                val src = match?.sourceContext ?: "UNKNOWN_SOURCE"
+                logger.warning("[DUPE] ${player.name} picked up $excess $capturedMaterial beyond what nearby sources produced ($src)")
+                reconciliationEngine.flagDropExcess(player, capturedMaterial, excess, src)
+                deferredMeta = deferredMeta.copy(notes = listOfNotNull(deferredMeta.notes, "SOURCE_EXCESS:$excess", match?.sourceContext)
+                    .joinToString("|"))
+            } else if (match != null) {
+                // Successful attribution — attach the source context to the audit entry.
+                deferredMeta = deferredMeta.copy(notes = listOfNotNull(deferredMeta.notes, match.sourceContext).joinToString("|").ifBlank { null })
             }
+            val finalMeta = deferredMeta
 
-            if (prev != null) {
-                // Chunk-load / drop-race dupe: this exact entity UUID was already consumed.
-                // Skip the PICKUP credit entirely — the resulting inventory-vs-ledger gap will
-                // also surface in reconciliation, providing a double-check.
-                scheduler.runMain(Runnable {
-                    val online = plugin.server.getPlayer(capturedPlayerId) ?: return@Runnable
-                    logger.severe("[DUPE] ${online.name} picked up entity $entityUuid which was previously consumed by ${prev.playerUuid} ${(System.currentTimeMillis() - prev.pickedUpAt) / 1000}s ago")
-                    reconciliationEngine.flagEntityDupe(online, capturedMaterial, capturedAmount, prev)
-                })
-                return@launch
-            }
+            scope.launch {
+                // A partial pickup (near-full inventory) leaves the remainder on the ground under
+                // the SAME entity UUID, so the UUID only counts as consumed once the entity is gone.
+                val prev = if (!survived) {
+                    try {
+                        ledgerStorage.markEntityPickup(entityUuid, capturedPlayerId, capturedMaterial, consumed)
+                    } catch (e: Exception) {
+                        logger.warning("[Ledger] markEntityPickup failed: ${e.message}")
+                        null
+                    }
+                } else null
 
-            if (creditAmount > 0) {
-                try {
-                    ledgerStorage.appendBuilt(capturedPlayerId, LedgerAction.PICKUP, capturedMaterial, creditAmount, finalMeta)
-                } catch (e: Exception) {
-                    logger.warning("[Ledger] PICKUP append failed: ${e.message}")
+                if (prev != null) {
+                    // Chunk-load / drop-race dupe: this exact entity UUID was already consumed.
+                    // Skip the PICKUP credit entirely — the resulting inventory-vs-ledger gap will
+                    // also surface in reconciliation, providing a double-check. Alert at most once
+                    // per entity UUID so a pathological re-fire can never spam the alert channel.
+                    val nowMs = System.currentTimeMillis()
+                    flaggedDupeEntities.entries.removeIf { nowMs - it.value > dupeAlertSuppressMs }
+                    if (flaggedDupeEntities.putIfAbsent(entityUuid, nowMs) == null) {
+                        scheduler.runMain(Runnable {
+                            val online = plugin.server.getPlayer(capturedPlayerId) ?: return@Runnable
+                            logger.severe("[DUPE] ${online.name} picked up entity $entityUuid which was previously consumed by ${prev.playerUuid} ${(System.currentTimeMillis() - prev.pickedUpAt) / 1000}s ago")
+                            reconciliationEngine.flagEntityDupe(online, capturedMaterial, consumed, prev)
+                        })
+                    }
+                    return@launch
+                }
+
+                if (creditAmount > 0) {
+                    try {
+                        ledgerStorage.appendBuilt(capturedPlayerId, LedgerAction.PICKUP, capturedMaterial, creditAmount, finalMeta)
+                    } catch (e: Exception) {
+                        logger.warning("[Ledger] PICKUP append failed: ${e.message}")
+                    }
                 }
             }
-        }
+        })
 
         // Proof-of-Witness is a LOW-confidence signal only: it merely nudges transient heat, and
         // ONLY when other players are actually nearby to have witnessed. Solo farming — nobody
@@ -306,10 +327,20 @@ class LedgerEventHandler(
         val item = event.itemInHand
         if (!isTracked(item.type)) return
 
-        appendAsync(
-            player.uniqueId, LedgerAction.PLACE, item.type, -1,
-            LedgerMetadata.fromLocation(event.block.location)
-        )
+        // Deferred one tick: a plugin cancelling at MONITOR (after us) reverts the placement;
+        // debiting at event time would leave the ledger one short and surface later as a
+        // phantom excess. If the block isn't there next tick, nothing left the inventory.
+        val block = event.blockPlaced
+        val placedType = block.type
+        val material = item.type
+        val playerId = player.uniqueId
+        scheduler.runForEntityLater(player, 1, Runnable {
+            if (block.type != placedType) return@Runnable
+            appendAsync(
+                playerId, LedgerAction.PLACE, material, -1,
+                LedgerMetadata.fromLocation(block.location)
+            )
+        })
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -319,10 +350,21 @@ class LedgerEventHandler(
         val item = event.itemDrop.itemStack
         if (!isTracked(item.type)) return
 
-        appendAsync(
-            player.uniqueId, LedgerAction.DROP, item.type, -item.amount,
-            LedgerMetadata.fromLocation(event.itemDrop.location)
-        )
+        // Deferred one tick: a plugin cancelling at MONITOR (after us) removes the drop entity
+        // and returns the item — debiting then would create a phantom deficit. If the entity is
+        // gone for another reason (hopper suction etc.) skipping the debit only leaves the
+        // ledger high, which is the safe direction.
+        val dropEntity = event.itemDrop
+        val material = item.type
+        val amount = item.amount
+        val playerId = player.uniqueId
+        scheduler.runForEntityLater(dropEntity, 1, Runnable {
+            if (!dropEntity.isValid) return@Runnable
+            appendAsync(
+                playerId, LedgerAction.DROP, material, -amount,
+                LedgerMetadata.fromLocation(dropEntity.location)
+            )
+        })
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -341,8 +383,20 @@ class LedgerEventHandler(
     // ========== CONTAINER / ENTITY TRANSFER ==========
 
     /**
-     * Correct put/take classification by InventoryAction. Handles both block containers
-     * (chest/shulker/barrel/etc) and entity inventories (horse/donkey/llama/chest boat/chest minecart).
+     * Container transfers are recorded by SNAPSHOT-DIFF rather than per-InventoryAction
+     * emulation. At click/drag time we snapshot the per-material totals of the open container,
+     * then one tick later we count again and record the delta as a put or take.
+     *
+     * Why: action emulation had systematic holes that all surfaced as false dupe alerts —
+     * MOVE_TO_OTHER_INVENTORY records the full stack even when only part fits (phantom PUT
+     * deficits), HOTBAR_SWAP / HOTBAR_MOVE_AND_READD / COLLECT_TO_CURSOR / SWAP_OFFHAND and
+     * drags weren't handled at all (invisible takes), and PLACE_SOME math was wrong. The diff
+     * records what *actually moved*, is immune to clicks cancelled at a later MONITOR handler
+     * (delta = 0), and automatically covers any InventoryAction added in future versions.
+     *
+     * Plugin GUIs (null or custom holders — shops, backpacks, vault menus) are deliberately
+     * NOT classified: their item flow is plugin-internal, usually click-cancelled, and a shop
+     * plugin must declare grants via [ChainOfCustody.recordSystemGrant] instead.
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onInventoryClick(event: InventoryClickEvent) {
@@ -359,48 +413,90 @@ class LedgerEventHandler(
         }
 
         val target = classifyTopInventory(topInv) ?: return
-        val clickedTop = event.rawSlot < topInv.size
 
-        val current = event.currentItem
-        val cursor = event.cursor
-
-        when (event.action) {
-            InventoryAction.MOVE_TO_OTHER_INVENTORY -> {
-                if (current == null || !isTracked(current.type)) return
-                if (clickedTop) recordTake(player, current.type, current.amount, target)
-                else recordPut(player, current.type, current.amount, target)
+        // Materials that could plausibly move in this interaction: the clicked slot, the
+        // cursor, and the hotbar/offhand stack for number-key and F swaps.
+        val materials = HashSet<Material>()
+        event.currentItem?.let { if (it.type != Material.AIR && isTracked(it.type)) materials.add(it.type) }
+        event.cursor.let { if (it.type != Material.AIR && isTracked(it.type)) materials.add(it.type) }
+        if (event.click == ClickType.NUMBER_KEY && event.hotbarButton >= 0) {
+            player.inventory.getItem(event.hotbarButton)?.let {
+                if (it.type != Material.AIR && isTracked(it.type)) materials.add(it.type)
             }
-            InventoryAction.PICKUP_ALL, InventoryAction.PICKUP_HALF,
-            InventoryAction.PICKUP_ONE, InventoryAction.PICKUP_SOME -> {
-                if (!clickedTop || current == null || !isTracked(current.type)) return
-                val qty = when (event.action) {
-                    InventoryAction.PICKUP_HALF -> (current.amount + 1) / 2
-                    InventoryAction.PICKUP_ONE -> 1
-                    else -> current.amount
-                }
-                recordTake(player, current.type, qty, target)
-            }
-            InventoryAction.PLACE_ALL, InventoryAction.PLACE_ONE, InventoryAction.PLACE_SOME -> {
-                if (!clickedTop || cursor.type == Material.AIR || !isTracked(cursor.type)) return
-                val qty = when (event.action) {
-                    InventoryAction.PLACE_ONE -> 1
-                    InventoryAction.PLACE_SOME -> cursor.amount - (current?.amount ?: 0).coerceAtLeast(0)
-                    else -> cursor.amount
-                }
-                if (qty > 0) recordPut(player, cursor.type, qty, target)
-            }
-            InventoryAction.SWAP_WITH_CURSOR -> {
-                if (!clickedTop) return
-                if (current != null && isTracked(current.type)) recordTake(player, current.type, current.amount, target)
-                if (isTracked(cursor.type)) recordPut(player, cursor.type, cursor.amount, target)
-            }
-            else -> Unit
         }
+        if (event.click == ClickType.SWAP_OFFHAND) {
+            player.inventory.itemInOffHand.let {
+                if (it.type != Material.AIR && isTracked(it.type)) materials.add(it.type)
+            }
+        }
+        if (materials.isEmpty()) return
+
+        scheduleContainerDiff(player, topInv, target, materials)
+    }
+
+    /** Drag-distributing across container slots — covered by the same snapshot-diff. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onInventoryDrag(event: InventoryDragEvent) {
+        val player = event.whoClicked as? Player ?: return
+        if (shouldSkip(player)) return
+
+        val topInv = event.view.topInventory
+        val target = classifyTopInventory(topInv) ?: return
+        if (event.rawSlots.none { it < topInv.size }) return  // drag stayed in player inventory
+
+        val mat = event.oldCursor.type
+        if (mat == Material.AIR || !isTracked(mat)) return
+        scheduleContainerDiff(player, topInv, target, hashSetOf(mat))
+    }
+
+    private class PendingContainerDiff(
+        val inventory: Inventory,
+        val target: StorageTarget,
+        val preCounts: MutableMap<Material, Int>
+    )
+
+    /** One pending diff per player (a player has at most one open top inventory). Main-thread only. */
+    private val pendingDiffs = ConcurrentHashMap<UUID, PendingContainerDiff>()
+
+    private fun countInInventory(inv: Inventory, material: Material): Int {
+        var total = 0
+        for (stack in inv.contents) {
+            if (stack != null && stack.type == material) total += stack.amount
+        }
+        return total
+    }
+
+    private fun scheduleContainerDiff(player: Player, inv: Inventory, target: StorageTarget, materials: Set<Material>) {
+        val existing = pendingDiffs[player.uniqueId]
+        if (existing != null && existing.inventory === inv) {
+            // Another click in the same tick: extend the material set, keeping the FIRST
+            // pre-count for materials already snapshotted (the diff spans the whole tick).
+            for (mat in materials) existing.preCounts.getOrPut(mat) { countInInventory(inv, mat) }
+            return
+        }
+
+        val pending = PendingContainerDiff(inv, target,
+            materials.associateWithTo(HashMap()) { countInInventory(inv, it) })
+        pendingDiffs[player.uniqueId] = pending
+
+        scheduler.runForEntityLater(player, 1, Runnable {
+            if (pendingDiffs[player.uniqueId] === pending) pendingDiffs.remove(player.uniqueId)
+            for ((mat, pre) in pending.preCounts) {
+                val post = countInInventory(pending.inventory, mat)
+                val delta = post - pre
+                // A hopper feeding/draining the container in the same tick can skew the delta
+                // slightly; rare enough that we accept the attribution.
+                if (delta > 0) recordPut(player, mat, delta, pending.target)
+                else if (delta < 0) recordTake(player, mat, -delta, pending.target)
+            }
+        })
     }
 
     private sealed class StorageTarget(val label: String, val location: Location?, val isEntity: Boolean)
     private class BlockContainerTarget(c: Container) : StorageTarget(c.type.name,
         try { c.location } catch (e: Exception) { null }, false)
+    private class DoubleChestTarget(dc: DoubleChest) : StorageTarget("DOUBLE_CHEST",
+        try { dc.location } catch (e: Exception) { null }, false)
     private class EntityContainerTarget(e: Entity) : StorageTarget(e.type.name, e.location, true)
     private object EnderChestTarget : StorageTarget("ENDER_CHEST", null, false)
 
@@ -408,6 +504,10 @@ class LedgerEventHandler(
         if (topInv.type == InventoryType.ENDER_CHEST) return EnderChestTarget
         val holder = topInv.holder ?: return null
         if (holder is Container) return BlockContainerTarget(holder)
+        // A double chest's combined inventory is held by DoubleChest, which is an
+        // InventoryHolder but NOT a Container — without this branch the most common storage
+        // block on any server was completely untracked.
+        if (holder is DoubleChest) return DoubleChestTarget(holder)
         // Entity-backed inventories: horses, donkeys, llamas, mules, chest boats, storage minecarts.
         val asEntity = holder as? Entity ?: return null
         if (asEntity is Player) return null
@@ -461,6 +561,63 @@ class LedgerEventHandler(
     }
 
     /**
+     * Villager trades hand the player a tracked item (librarians sell ENCHANTED_BOOK) with no
+     * inventory event we can classify. Paper's PlayerTradeEvent fires once per completed trade,
+     * including each repeat of a shift-click batch. Paper-only — registered via
+     * [registerPaperOnlyListeners] so this class still loads on Spigot.
+     */
+    fun registerPaperOnlyListeners() {
+        try {
+            Class.forName("io.papermc.paper.event.player.PlayerTradeEvent")
+            plugin.server.pluginManager.registerEvents(PaperTradeListener(), plugin)
+        } catch (e: ClassNotFoundException) {
+            logger.info("[Ledger] PlayerTradeEvent unavailable (Spigot?) — villager trades won't be credited")
+        }
+    }
+
+    private inner class PaperTradeListener : Listener {
+        @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+        fun onTrade(event: io.papermc.paper.event.player.PlayerTradeEvent) {
+            val player = event.player
+            if (shouldSkip(player)) return
+            val result = event.trade.result
+            if (!isTracked(result.type)) return
+
+            val meta = LedgerMetadata.fromLocation(player.location)
+                .copy(notes = "VILLAGER:${event.villager.type.name}")
+            appendAsync(player.uniqueId, LedgerAction.VILLAGER_TRADE, result.type, result.amount, meta)
+        }
+    }
+
+    /**
+     * Enchanting a BOOK turns it into an ENCHANTED_BOOK in place — a tracked material
+     * materialising with no transfer event. Credit the new material (and debit the source
+     * if it happens to be tracked), then tag the result next tick while the table is open.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onEnchant(event: EnchantItemEvent) {
+        val player = event.enchanter
+        if (shouldSkip(player)) return
+        val before = event.item.type
+        val after = if (before == Material.BOOK) Material.ENCHANTED_BOOK else before
+        if (after == before) return  // enchanted in place, same material — balance unchanged
+
+        val meta = LedgerMetadata.fromLocation(event.enchantBlock.location)
+            .copy(notes = "ENCHANT:${before.name}")
+        if (isTracked(after)) appendAsync(player.uniqueId, LedgerAction.STATION_OUTPUT, after, 1, meta)
+        if (isTracked(before)) appendAsync(player.uniqueId, LedgerAction.CONSUME, before, -1, meta)
+
+        val inv = event.inventory
+        scheduler.runForEntityLater(player, 1, Runnable {
+            val slot = inv.getItem(0) ?: return@Runnable
+            if (slot.type == after && isTracked(after)) {
+                ownershipManager.setOwner(slot, player.uniqueId)
+                inv.setItem(0, slot)
+            }
+        })
+    }
+
+    /**
      * Furnace / smoker / blast furnace output extracted by a player.
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -504,6 +661,9 @@ class LedgerEventHandler(
         // Pot is single-slot; only inserts succeed when empty or holding same item with room.
         if (current != null && current.type != Material.AIR && !current.isSimilar(held)) return
 
+        // Known edge: a plugin cancelling this interaction at MONITOR (after us) would leave a
+        // phantom -1. Pot deposits are niche enough that we accept it rather than pay for a
+        // deferred pot-content comparison; the same applies to onFrameRightClick below.
         val meta = LedgerMetadata.fromLocation(block.location).copy(containerType = "DECORATED_POT")
         appendAsync(player.uniqueId, LedgerAction.CONTAINER_PUT, held.type, -1, meta)
     }
@@ -580,6 +740,10 @@ class LedgerEventHandler(
     /** entity UUID -> what's currently in the frame. Only populated as frames are interacted with. */
     private val frameContents = ConcurrentHashMap<UUID, FrameContent>()
 
+    /** Entity UUIDs already alerted as re-used — suppresses repeat alerts for the same entity. */
+    private val flaggedDupeEntities = ConcurrentHashMap<UUID, Long>()
+    private val dupeAlertSuppressMs = 60_000L
+
     /** Authorized drops bucketed by "world:chunkX:chunkZ". */
     private val authorizedDrops = ConcurrentHashMap<String, ConcurrentLinkedDeque<ExpectedDrop>>()
 
@@ -593,6 +757,21 @@ class LedgerEventHandler(
 
     private fun chunkKey(worldName: String, blockX: Int, blockZ: Int): String =
         "$worldName:${blockX shr 4}:${blockZ shr 4}"
+
+    /**
+     * Sweep all expired/exhausted authorizations. [pruneExpiredDropsIn] only prunes a chunk
+     * when something NEW is authorized there, so a chunk mined once would otherwise keep its
+     * (expired) deque forever. Called from the maintenance loop.
+     */
+    fun pruneAuthorizedDrops() {
+        val now = System.currentTimeMillis()
+        val iter = authorizedDrops.entries.iterator()
+        while (iter.hasNext()) {
+            val entry = iter.next()
+            entry.value.removeIf { it.expiresAt < now || it.remaining <= 0 }
+            if (entry.value.isEmpty()) iter.remove()
+        }
+    }
 
     private fun pruneExpiredDropsIn(key: String) {
         val deque = authorizedDrops[key] ?: return
