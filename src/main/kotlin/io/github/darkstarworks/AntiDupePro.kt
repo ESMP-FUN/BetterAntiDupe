@@ -4,6 +4,7 @@ import com.server.antidupe.commands.AdpCommand
 import com.server.antidupe.ledger.ChainOfCustody
 import com.server.antidupe.ledger.LedgerStorage
 import com.server.antidupe.platform.PlatformScheduler
+import com.server.antidupe.util.Messages
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -43,6 +44,7 @@ class AntiDupePro : JavaPlugin() {
             logger.info("✓ Scheduler initialized (${if (scheduler.isFolia) "Folia" else "Bukkit"} mode)")
 
             saveDefaultConfig()
+            Messages.init(this)
             materialsConfig = loadMaterialsConfig()
             applyLogLevel()
             validateConfiguration()
@@ -197,16 +199,16 @@ class AntiDupePro : JavaPlugin() {
             }
 
             chainOfCustody?.onDupeAlert { alert ->
-                val message = buildString {
-                    append("§c§l[DUPE] ")
-                    append("§e${alert.playerName} ")
-                    append("§7(${alert.type.name}) ")
-                    append("§f${alert.material.name}: ")
-                    append("§c${alert.details}")
-                    if (alert.severity == com.server.antidupe.ledger.Severity.CRITICAL) {
-                        append(" §4§l[CRITICAL]")
-                    }
-                }
+                // In-game text comes from messages.yml; the console log below stays English.
+                val details = if (alert.messageKey.isNotEmpty())
+                    Messages.msg(alert.messageKey, alert.placeholders) else alert.details
+                val message = Messages.msg("alerts.broadcast",
+                    "player" to alert.playerName,
+                    "type" to alert.type.name,
+                    "material" to alert.material.name,
+                    "details" to details
+                ) + if (alert.severity == com.server.antidupe.ledger.Severity.CRITICAL)
+                    Messages.msg("alerts.critical-suffix") else ""
 
                 // Alerts can be emitted from reconciliation coroutines — hop to the main
                 // (global region) thread before touching the online-player roster.

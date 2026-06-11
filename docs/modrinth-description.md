@@ -105,10 +105,11 @@ Permission `antidupe.admin` grants all of the above and routes dupe alerts to ch
 
 ## Configuration
 
-Two YAML files in `plugins/AntiDupePro/`:
+Three YAML files in `plugins/AntiDupePro/`:
 
 - `config.yml` — storage backend, modes (shadow / auto-delete), ledger settings
 - `materials.yml` — tracked materials, rate limits, alert thresholds
+- `messages.yml` — every in-game message; **fully translatable** (missing keys fall back to English)
 
 Both are documented inline. Sensible defaults; you can add your own materials to
 the list at any time and restart.
@@ -126,5 +127,5 @@ are welcome.
 ## Links
 
 - **Source / issues**: [github.com/darkstarworks/AntiDupePro](https://github.com/darkstarworks/AntiDupePro)
-- **User guide**: [docs/user-guide.html](https://github.com/darkstarworks/AntiDupePro/blob/main/docs/user-guide.html)
-- **Changelog**: [CHANGELOG.md](https://github.com/darkstarworks/AntiDupePro/blob/main/CHANGELOG.md)
+- **User guide**: [gitbook/user-guide](https://darkstarworks.gitbook.io/plugins/mc/antidupepro)
+- **Changelog**: [gitbook/changelog](https://darkstarworks.gitbook.io/plugins/mc/antidupepro/changelog)

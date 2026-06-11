@@ -1,0 +1,137 @@
+# ------------------------------------------------------------------------
+# AntiDupePro - messages.yml
+#
+# Every player-facing message lives here. Translate or restyle freely.
+#   - Colour codes use & (e.g. &c = red, &l = bold, &r = reset).
+#   - {placeholders} are filled in by the plugin - keep them, but you may
+#     move them around in the sentence.
+#   - Any key you DELETE falls back to the built-in English default, so
+#     you only need to keep the lines you actually changed.
+#
+# Console log lines are intentionally not translatable (they stay English
+# so errors remain searchable and support stays easy).
+# ------------------------------------------------------------------------
+
+alerts:
+  # Broadcast to admins when a dupe is detected. {details} is one of the
+  # three detail messages below.
+  broadcast: "&c&l[DUPE] &e{player} &7({type}) &f{material}: &c{details}"
+  critical-suffix: " &4&l[CRITICAL]"
+  balance-discrepancy: "Has {actual} but ledger shows {expected} (excess: {excess})"
+  entity-dupe: "Chunk-load / drop-race dupe: entity-UUID re-used {seconds}s after original pickup"
+  drop-excess: "{excess} {material} picked up beyond nearby source output ({source})"
+
+commands:
+  no-permission: "&cYou don't have permission to use ledger commands."
+  not-initialized: "&cChain of Custody is not initialized."
+  unknown-subcommand: "&cUnknown subcommand. Use &e/adp help&c for available commands."
+  unknown-ledger-subcommand: "&cUnknown ledger subcommand. Use &e/adp ledger help"
+  player-lookup: "&7Looking up &e{player}&7..."
+  unknown-player: "&cUnknown player: {player}"
+  usage: "&cUsage: {usage}"
+
+  help:
+    header: "&8&m-----------------------------------------"
+    title: "&6&lAntiDupePro Commands"
+    admin-lines:
+      - "&e/adp ledger status &7- System status"
+      - "&e/adp ledger balance <player> &7- Item balances"
+      - "&e/adp ledger history <player> &7- Recent ledger entries"
+      - "&e/adp ledger witness <player> &7- Witness stats"
+      - "&e/adp ledger suspects &7- List suspects"
+      - "&e/adp ledger stash <player> &7- Where they stashed items (clickable)"
+      - "&e/adp ledger reconcile <player> &7- Force reconciliation"
+      - "&e/adp ledger trust <player> &7- Trust score"
+      - "&e/adp ledger verify &7- Verify chain integrity"
+    user-line: "&e/adp help &7- Show this help message"
+
+  ledger-help:
+    - "&6&lChain of Custody Commands"
+    - "&e/adp ledger status &7- System status and chain tip"
+    - "&e/adp ledger balance <player> &7- Player's item balances"
+    - "&e/adp ledger history <player> &7- Recent ledger entries"
+    - "&e/adp ledger witness <player> &7- Witness statistics"
+    - "&e/adp ledger suspects &7- List current suspects"
+    - "&e/adp ledger stash <player> &7- Where the player stashed items (clickable)"
+    - "&e/adp ledger reconcile <player> &7- Force reconciliation"
+    - "&e/adp ledger trust <player> &7- Trust score details"
+    - "&e/adp ledger confirm <player> &7- Confirm a real duper (pins suspicion)"
+    - "&e/adp ledger clear <player> &7- Mark a false positive (resets suspicion)"
+    - "&e/adp ledger verify &7- Verify chain integrity"
+
+  status:
+    header: "&6&lChain of Custody Status"
+    tip: "&7Chain Tip: &f{tip}..."
+    hash: "&7Hash: &f{hash}..."
+    suspects: "&7Active Suspects: &c{count}"
+    suspect-names: "&7Suspect Names: &e{names}"
+
+  balance:
+    none: "&7No tracked items for &e{player}"
+    header: "&6&lBalances for {player}"
+    line-positive: "  &7{material}: &a{count}"
+    line-negative: "  &7{material}: &c{count}"
+
+  history:
+    none: "&7No ledger entries for &e{player}"
+    header: "&6&lRecent History for {player}"
+    line: "  &7{time} &f{action} {qty} &e{material}{witness}"
+    qty-gain: "&a+{n}"
+    qty-loss: "&c{n}"
+    witness-suffix: " &8[{count}W]"
+
+  witness:
+    header: "&6&lWitness Stats for {player}"
+    total: "&7Total Actions: &f{count}"
+    witnessed: "&7Witnessed: &a{count} &7({percent}%)"
+    verified: "&7Verified (3+ witnesses): &a{count}"
+    solo: "&7Solo (no witnesses): &e{count}"
+    trust: "&7Trust Score: &f{score}/100"
+    suspicious: "&c&lSUSPICIOUS: {reason}"
+    ok: "&aNo suspicious patterns detected"
+
+  suspects:
+    none: "&aNo current suspects"
+    header: "&6&lCurrent Suspects ({count})"
+    legend: "&8&o(material: +N = cumulative excess of that material across all violations)"
+    entry: "  &e{player} &7- &c{violations} violations"
+    entry-top-material: " &7({material}: +{excess})"
+    hint: "&8&oUse &e/adp ledger stash <player> &8&oto see where they stashed items."
+
+  stash:
+    none: "&7No recorded stash events for &e{player}"
+    header: "&6&lRecent stashes by {player} &7(newest first, click coords to TP)"
+    line-prefix: "&7{time} &f{qty}&7x&e{material} &7-> &b{container} &7@ "
+    location: "&a&n[{world} {x}, {y}, {z}]"
+    location-unknown: "&8(location unknown)"
+    hover: "Click to teleport to this stash"
+
+  verdict:
+    confirmed: "&cConfirmed &e{player} &cas a duper. Suspicion pinned high."
+    cleared: "&aCleared &e{player}&a (false positive). Suspicion reset."
+    ran-command: "&7Ran punishment command: &f/{command}"
+
+  reconcile:
+    must-be-online: "&cPlayer must be online for reconciliation"
+    running: "&7Running reconciliation for &e{player}&7..."
+    skipped: "&7Reconciliation skipped: {reason}"
+    dupe-detected: "&c&lDUPE DETECTED!"
+    discrepancy: "  &c{material}: has {actual}, should have {expected} (excess: {excess})"
+    tmar: "  &e{material}: {acquired}/{limit} in {window}min"
+    clean: "&aNo discrepancies found - player balances verified"
+
+  trust:
+    header: "&6&lTrust Score for {player}"
+    score: "&7Score: {color}{score}&7/100"
+    verified: "&7Verified Actions: &a{count}"
+    corroborated: "&7Corroborated: &e{count}"
+    solo: "&7Solo: &7{count}"
+    contested: "&7Contested: &c{count}"
+
+  verify:
+    start: "&7Verifying chain integrity..."
+    ok: "&a[OK] Chain integrity verified: {count} entries OK"
+    fail-header: "&c&l[X] CHAIN INTEGRITY FAILURE!"
+    fail-error: "&c  Error: {error}"
+    fail-broken: "&c  Broken at: {entry}"
+    fail-last-valid: "&c  Last valid: {entry}"

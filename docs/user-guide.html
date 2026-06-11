@@ -183,6 +183,7 @@
 <ul>
   <li><code>config.yml</code> — plugin behaviour: storage backend, modes, ledger settings.</li>
   <li><code>materials.yml</code> — the lists of tracked items, rate limits, and alert thresholds. Kept separate so this file can grow long without cluttering the main config.</li>
+  <li><code>messages.yml</code> — every in-game message (since 3.3.3). Translate or restyle freely; see below.</li>
 </ul>
 
 <p>
@@ -292,6 +293,21 @@ alert_thresholds:
   NETHERITE_INGOT: 2
   DIAMOND_BLOCK: 3
   default: 5</code></pre>
+
+<h3>messages.yml — translating the plugin (3.3.3+)</h3>
+
+<p>
+  Everything the plugin shows in-game — dupe alerts and all
+  <code>/adp</code> command output — comes from
+  <code>plugins/AntiDupePro/messages.yml</code>. To translate or restyle:
+</p>
+
+<ul>
+  <li>Edit any line. Colours use <code>&amp;</code> codes (<code>&amp;c</code> = red, <code>&amp;l</code> = bold).</li>
+  <li>Keep the <code>{placeholders}</code> (like <code>{player}</code>) — the plugin fills them in. You can move them anywhere in the sentence.</li>
+  <li>Delete any line you don't want to customise — it falls back to the built-in English text. This also means plugin updates can add new messages without breaking your file.</li>
+  <li>Console log lines are not translatable on purpose: they stay English so errors remain searchable and support stays easy.</li>
+</ul>
 
 <hr/>
 
@@ -744,4 +760,4 @@ Use /adp ledger stash &lt;player&gt; to see where they stashed items.</code></pr
 
 <hr/>
 
-<p><em>Last updated for AntiDupePro 3.3.2 — Minecraft 1.21.x (Paper, Folia, Spigot) and 26.x (Paper, on the <code>paper-26</code> branch).</em></p>
+<p><em>Last updated for AntiDupePro 3.3.3 — Minecraft 1.21.x (Paper, Folia, Spigot) and 26.x (Paper, on the <code>paper-26</code> branch).</em></p>
