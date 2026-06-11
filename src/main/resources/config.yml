@@ -14,6 +14,48 @@ detection:
   # nothing. Example: "tempban {player} 7d Item duplication"
   on_confirm_command: ""
 
+# =============================================================================
+# NOTIFICATIONS (Discord / Telegram / Slack / custom webhooks)
+# =============================================================================
+# Push dupe alerts to services outside the game. Everything is off by default.
+# Notifications use the same language as your messages.yml.
+notifications:
+  # Only send alerts at or above this severity: LOW, MEDIUM, HIGH, CRITICAL.
+  # HIGH is a good default - your channel won't be bothered by small wobbles.
+  min_severity: HIGH
+
+  # Don't re-send the same kind of alert (same player + same item) more often
+  # than this many seconds. Protects your channel from alert bursts.
+  rate_limit_seconds: 30
+
+  # Discord: channel settings -> Integrations -> Webhooks -> New Webhook,
+  # then paste the webhook URL here.
+  discord:
+    enabled: false
+    webhook_url: ""
+
+  # Telegram: create a bot with @BotFather to get the bot token. The chat id
+  # is the group/channel the bot should post in (add the bot there first;
+  # @userinfobot or @getidsbot can tell you the id).
+  telegram:
+    enabled: false
+    bot_token: ""
+    chat_id: ""
+
+  # Slack: create an Incoming Webhook (api.slack.com/messaging/webhooks)
+  # and paste the URL here.
+  slack:
+    enabled: false
+    webhook_url: ""
+
+  # Generic webhook for everything else (n8n, Zapier, your own bot...).
+  # Sends an HTTP POST with a JSON body describing the alert:
+  # { "plugin", "type", "severity", "player", "playerUuid", "material",
+  #   "details", "timestamp" }
+  generic:
+    enabled: false
+    url: ""
+
 # Console log verbosity. One of: CRITICAL, ERROR, WARNING, INFO, DEBUG.
 # Each level includes the ones above it (WARNING also shows ERROR + CRITICAL).
 # Note: CRITICAL and ERROR both map to the server's SEVERE level.
