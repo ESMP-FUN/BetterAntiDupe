@@ -20,27 +20,14 @@ import org.bukkit.command.CommandSender
  * Usage:
  *   val msg = Chat.line()
  *       .text("§7Stashed §e16x §fDIAMOND_BLOCK §7at ")
- *       .clickToTp("§b[overworld 100, 64, -200]", "world", 100, 64, -200,
- *                  hover = "Click to teleport")
+ *       .clickRunCommand("§b[overworld 100, 64, -200]", "/adp ledger tp world 100 64 -200",
+ *                        hover = "Click to teleport")
  *       .build()
  *   sender.sendChat(msg)
  */
 object Chat {
 
     fun line(): Builder = Builder()
-
-    /**
-     * Resolve a Bukkit world name to the namespaced dimension key `/execute in` expects
-     * (e.g. world_nether -> minecraft:the_nether). Falls back to a lowercased guess when
-     * the world isn't loaded or `World.getKey()` is unavailable (Spigot).
-     */
-    fun worldKeyOf(worldName: String): String {
-        return try {
-            org.bukkit.Bukkit.getWorld(worldName)?.key?.toString()
-        } catch (e: Throwable) {
-            null  // Spigot: World.getKey() doesn't exist
-        } ?: "minecraft:${worldName.lowercase()}"
-    }
 
     /** Send a clickable component message via the Spigot API. Console gets a plain-text fallback. */
     fun CommandSender.sendChat(components: Array<BaseComponent>) {
@@ -65,20 +52,19 @@ object Chat {
         }
 
         /**
-         * Add a clickable segment that fires `/tp <x> <y> <z>` when clicked. Uses
-         * `/execute in <dimensionKey> run tp @s <x> <y> <z>` so cross-world teleports also work.
+         * Add a clickable segment that runs [command] when clicked.
          *
-         * [dimensionKey] must be the full namespaced dimension key (e.g. `minecraft:the_nether`),
-         * NOT the Bukkit world name — for the default nether/end and renamed custom worlds the
-         * two differ, and `/execute in` only accepts the key. See [worldKeyOf].
+         * Use a PLUGIN command, not a vanilla one: since MC 1.21.6 the client pops a
+         * scary "this command requires elevated permissions" confirmation dialog for
+         * click-events running elevated commands (like `/execute` or `/tp`). Plugin
+         * commands aren't elevated in the client's permission model, so they run
+         * directly with no dialog.
          */
-        fun clickToTp(
+        fun clickRunCommand(
             display: String,
-            dimensionKey: String,
-            x: Int, y: Int, z: Int,
-            hover: String = "Click to teleport here"
+            command: String,
+            hover: String = "Click to run"
         ): Builder {
-            val command = "/execute in $dimensionKey run tp @s $x $y $z"
             val parts = TextComponent.fromLegacyText(display)
             // Apply the click + hover to every part of the legacy text.
             for (part in parts) {

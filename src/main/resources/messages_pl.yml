@@ -1,0 +1,131 @@
+# AntiDupePro - Polski (pl)
+# Włącz przez `language: pl` w config.yml. Twoje zmiany w messages.yml mają
+# pierwszeństwo; brakujące klucze wracają do angielskiego.
+# Tłumaczenie wygenerowane — poprawki od społeczności mile widziane na GitHubie!
+
+alerts:
+  broadcast: "&c&l[DUPE] &e{player} &7({type}) &f{material}: &c{details}"
+  critical-suffix: " &4&l[KRYTYCZNE]"
+  balance-discrepancy: "Posiada {actual}, ale rejestr wskazuje {expected} (nadwyżka: {excess})"
+  entity-dupe: "Dupe przez chunk-load / wyścig dropu: UUID przedmiotu użyty ponownie {seconds}s po pierwszym podniesieniu"
+  drop-excess: "Podniesiono {excess} {material} ponad to, co wytworzyły pobliskie źródła ({source})"
+
+commands:
+  no-permission: "&cNie masz uprawnień do komend rejestru."
+  not-initialized: "&cChain of Custody nie został zainicjalizowany."
+  unknown-subcommand: "&cNieznana podkomenda. Lista komend: &e/adp help"
+  unknown-ledger-subcommand: "&cNieznana podkomenda. Zobacz &e/adp ledger help"
+  player-lookup: "&7Szukam gracza &e{player}&7..."
+  unknown-player: "&cNieznany gracz: {player}"
+  usage: "&cUżycie: {usage}"
+
+  help:
+    header: "&8&m-----------------------------------------"
+    title: "&6&lKomendy AntiDupePro"
+    admin-lines:
+      - "&e/adp ledger status &7- Stan systemu"
+      - "&e/adp ledger balance <gracz> &7- Salda przedmiotów"
+      - "&e/adp ledger history <gracz> &7- Ostatnie wpisy rejestru"
+      - "&e/adp ledger witness <gracz> &7- Statystyki świadków"
+      - "&e/adp ledger suspects &7- Lista podejrzanych"
+      - "&e/adp ledger stash <gracz> &7- Gdzie ukryto przedmioty (klikalne)"
+      - "&e/adp ledger reconcile <gracz> &7- Wymuś kontrolę salda"
+      - "&e/adp ledger trust <gracz> &7- Poziom zaufania"
+      - "&e/adp ledger verify &7- Sprawdź integralność łańcucha"
+    user-line: "&e/adp help &7- Pokaż tę pomoc"
+
+  ledger-help:
+    - "&6&lKomendy Chain of Custody"
+    - "&e/adp ledger status &7- Stan systemu i czubek łańcucha"
+    - "&e/adp ledger balance <gracz> &7- Salda przedmiotów gracza"
+    - "&e/adp ledger history <gracz> &7- Ostatnie wpisy rejestru"
+    - "&e/adp ledger witness <gracz> &7- Statystyki świadków"
+    - "&e/adp ledger suspects &7- Obecni podejrzani"
+    - "&e/adp ledger stash <gracz> &7- Gdzie gracz ukrył przedmioty (klikalne)"
+    - "&e/adp ledger reconcile <gracz> &7- Wymuś kontrolę salda"
+    - "&e/adp ledger trust <gracz> &7- Szczegóły poziomu zaufania"
+    - "&e/adp ledger confirm <gracz> &7- Potwierdź prawdziwego dupera (utrwala podejrzenie)"
+    - "&e/adp ledger clear <gracz> &7- Oznacz fałszywy alarm (zeruje podejrzenie)"
+    - "&e/adp ledger verify &7- Sprawdź integralność łańcucha"
+
+  status:
+    header: "&6&lStan Chain of Custody"
+    tip: "&7Czubek łańcucha: &f{tip}..."
+    hash: "&7Hash: &f{hash}..."
+    suspects: "&7Aktywni podejrzani: &c{count}"
+    suspect-names: "&7Imiona: &e{names}"
+
+  balance:
+    none: "&7Brak śledzonych przedmiotów dla &e{player}"
+    header: "&6&lSalda gracza {player}"
+    line-positive: "  &7{material}: &a{count}"
+    line-negative: "  &7{material}: &c{count}"
+
+  history:
+    none: "&7Brak wpisów rejestru dla &e{player}"
+    header: "&6&lOstatnia historia gracza {player}"
+    line: "  &7{time} &f{action} {qty} &e{material}{witness}"
+    qty-gain: "&a+{n}"
+    qty-loss: "&c{n}"
+    witness-suffix: " &8[{count}Ś]"
+
+  witness:
+    header: "&6&lStatystyki świadków gracza {player}"
+    total: "&7Łącznie akcji: &f{count}"
+    witnessed: "&7Przy świadkach: &a{count} &7({percent}%)"
+    verified: "&7Zweryfikowane (3+ świadków): &a{count}"
+    solo: "&7Samotnie (bez świadków): &e{count}"
+    trust: "&7Poziom zaufania: &f{score}/100"
+    suspicious: "&c&lPODEJRZANE: {reason}"
+    ok: "&aNie wykryto podejrzanych wzorców"
+
+  suspects:
+    none: "&aBrak podejrzanych"
+    header: "&6&lObecni podejrzani ({count})"
+    legend: "&8&o(materiał: +N = łączna nadwyżka tego materiału ze wszystkich naruszeń)"
+    entry: "  &e{player} &7- &c{violations} naruszeń"
+    entry-top-material: " &7({material}: +{excess})"
+    hint: "&8&oUżyj &e/adp ledger stash <gracz>&8&o, aby zobaczyć skrytki."
+
+  stash:
+    none: "&7Brak zarejestrowanych skrytek gracza &e{player}"
+    header: "&6&lOstatnie skrytki gracza {player} &7(najnowsze pierwsze, kliknij współrzędne, by się teleportować)"
+    line-prefix: "&7{time} &f{qty}&7x&e{material} &7-> &b{container} &7@ "
+    location: "&a&n[{world} {x}, {y}, {z}]"
+    location-unknown: "&8(miejsce nieznane)"
+    hover: "Kliknij, aby teleportować się do tej skrytki"
+
+  tp:
+    players-only: "&cTeleportować mogą się tylko gracze."
+    world-not-found: "&cNie znaleziono świata: {world}"
+    success: "&aPrzeteleportowano do {world} {x}, {y}, {z}."
+
+  verdict:
+    confirmed: "&c{player} &cpotwierdzony jako duper. Podejrzenie utrwalone."
+    cleared: "&e{player}&a oznaczony jako fałszywy alarm. Podejrzenie wyzerowane."
+    ran-command: "&7Wykonano komendę kary: &f/{command}"
+
+  reconcile:
+    must-be-online: "&cGracz musi być online, aby wykonać kontrolę"
+    running: "&7Sprawdzam salda gracza &e{player}&7..."
+    skipped: "&7Kontrolę pominięto: {reason}"
+    dupe-detected: "&c&lWYKRYTO DUPE!"
+    discrepancy: "  &c{material}: posiada {actual}, powinien mieć {expected} (nadwyżka: {excess})"
+    tmar: "  &e{material}: {acquired}/{limit} w {window} min"
+    clean: "&aBrak rozbieżności — salda gracza potwierdzone"
+
+  trust:
+    header: "&6&lPoziom zaufania gracza {player}"
+    score: "&7Wynik: {color}{score}&7/100"
+    verified: "&7Zweryfikowane akcje: &a{count}"
+    corroborated: "&7Poświadczone: &e{count}"
+    solo: "&7Samotne: &7{count}"
+    contested: "&7Sporne: &c{count}"
+
+  verify:
+    start: "&7Sprawdzam integralność łańcucha..."
+    ok: "&a[OK] Integralność potwierdzona: {count} wpisów w porządku"
+    fail-header: "&c&l[X] NARUSZONA INTEGRALNOŚĆ ŁAŃCUCHA!"
+    fail-error: "&c  Błąd: {error}"
+    fail-broken: "&c  Przerwany przy: {entry}"
+    fail-last-valid: "&c  Ostatni poprawny: {entry}"

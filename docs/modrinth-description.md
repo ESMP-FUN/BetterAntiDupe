@@ -111,6 +111,9 @@ Three YAML files in `plugins/AntiDupePro/`:
 - `materials.yml` — tracked materials, rate limits, alert thresholds
 - `messages.yml` — every in-game message; **fully translatable** (missing keys fall back to English)
 
+**Speaks your language**: English, Português do Brasil, Español, Deutsch, Русский
+and Polski are built in — one `language:` line in config.yml switches everything.
+
 Alerts can also be pushed **outside the game**: Discord, Telegram, Slack, or any
 custom JSON webhook (n8n, Zapier, your own bot) — with severity filtering and
 burst protection built in. See the `notifications` section of `config.yml`.
