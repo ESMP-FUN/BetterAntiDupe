@@ -127,6 +127,11 @@ class AdpCommand(
             "trust" -> if (args.size < 2) usage(sender, "/adp ledger trust <player>")
                        else ledgerTrust(sender, coc, args[1])
             "verify" -> ledgerVerify(sender, coc)
+            // Internal: target of the clickable stash coordinates. A plugin command avoids
+            // the client's "elevated permissions" confirmation dialog (MC 1.21.6+) that a
+            // raw /execute click-event would trigger.
+            "tp" -> if (args.size < 5) usage(sender, "/adp ledger tp <world> <x> <y> <z>")
+                    else ledgerTp(sender, args[1], args[2], args[3], args[4])
             "help" -> showLedgerHelp(sender)
             else -> sender.sendMessage(Messages.msg("commands.unknown-ledger-subcommand"))
         }
@@ -265,7 +270,7 @@ class AdpCommand(
                                 "world" to world, "x" to x, "y" to y, "z" to z)
                             val msg = Chat.line()
                                 .text(prefix)
-                                .clickToTp(display, Chat.worldKeyOf(world), x, y, z,
+                                .clickRunCommand(display, "/adp ledger tp $world $x $y $z",
                                     hover = Messages.msg("commands.stash.hover"))
                                 .build()
                             sender.sendChat(msg)
@@ -276,6 +281,27 @@ class AdpCommand(
                 })
             }
         }
+    }
+
+    private fun ledgerTp(sender: CommandSender, worldName: String, xs: String, ys: String, zs: String) {
+        val player = sender as? org.bukkit.entity.Player ?: run {
+            sender.sendMessage(Messages.msg("commands.tp.players-only")); return
+        }
+        val world = Bukkit.getWorld(worldName) ?: run {
+            sender.sendMessage(Messages.msg("commands.tp.world-not-found", "world" to worldName)); return
+        }
+        val x = xs.toDoubleOrNull(); val y = ys.toDoubleOrNull(); val z = zs.toDoubleOrNull()
+        if (x == null || y == null || z == null) {
+            usage(sender, "/adp ledger tp <world> <x> <y> <z>"); return
+        }
+        val loc = org.bukkit.Location(world, x + 0.5, y, z + 0.5, player.location.yaw, player.location.pitch)
+        try {
+            player.teleportAsync(loc)  // Paper/Folia: safe from any thread
+        } catch (e: Throwable) {
+            player.teleport(loc)       // Spigot fallback
+        }
+        sender.sendMessage(Messages.msg("commands.tp.success",
+            "world" to worldName, "x" to xs, "y" to ys, "z" to zs))
     }
 
     /** Parses "world,x,y,z" container-location strings produced by LedgerMetadata.withContainer. */

@@ -1,0 +1,131 @@
+# AntiDupePro - Русский (ru)
+# Включается строкой `language: ru` в config.yml. Ваши правки в messages.yml
+# имеют приоритет; отсутствующие ключи берутся из английского.
+# Перевод сгенерирован — исправления сообщества приветствуются на GitHub!
+
+alerts:
+  broadcast: "&c&l[DUPE] &e{player} &7({type}) &f{material}: &c{details}"
+  critical-suffix: " &4&l[КРИТИЧНО]"
+  balance-discrepancy: "В наличии {actual}, но в реестре {expected} (излишек: {excess})"
+  entity-dupe: "Дюп через chunk-load / гонку дропа: UUID предмета использован повторно через {seconds} с после первого подбора"
+  drop-excess: "Подобрано {excess} {material} сверх того, что произвели ближайшие источники ({source})"
+
+commands:
+  no-permission: "&cУ вас нет прав на команды реестра."
+  not-initialized: "&cChain of Custody не инициализирован."
+  unknown-subcommand: "&cНеизвестная подкоманда. Список команд: &e/adp help"
+  unknown-ledger-subcommand: "&cНеизвестная подкоманда. См. &e/adp ledger help"
+  player-lookup: "&7Ищем &e{player}&7..."
+  unknown-player: "&cНеизвестный игрок: {player}"
+  usage: "&cИспользование: {usage}"
+
+  help:
+    header: "&8&m-----------------------------------------"
+    title: "&6&lКоманды AntiDupePro"
+    admin-lines:
+      - "&e/adp ledger status &7- Состояние системы"
+      - "&e/adp ledger balance <игрок> &7- Балансы предметов"
+      - "&e/adp ledger history <игрок> &7- Последние записи реестра"
+      - "&e/adp ledger witness <игрок> &7- Статистика свидетелей"
+      - "&e/adp ledger suspects &7- Список подозреваемых"
+      - "&e/adp ledger stash <игрок> &7- Где спрятаны предметы (кликабельно)"
+      - "&e/adp ledger reconcile <игрок> &7- Принудительная сверка баланса"
+      - "&e/adp ledger trust <игрок> &7- Рейтинг доверия"
+      - "&e/adp ledger verify &7- Проверка целостности цепочки"
+    user-line: "&e/adp help &7- Показать эту справку"
+
+  ledger-help:
+    - "&6&lКоманды Chain of Custody"
+    - "&e/adp ledger status &7- Состояние системы и вершина цепочки"
+    - "&e/adp ledger balance <игрок> &7- Балансы предметов игрока"
+    - "&e/adp ledger history <игрок> &7- Последние записи реестра"
+    - "&e/adp ledger witness <игрок> &7- Статистика свидетелей"
+    - "&e/adp ledger suspects &7- Текущие подозреваемые"
+    - "&e/adp ledger stash <игрок> &7- Где игрок спрятал предметы (кликабельно)"
+    - "&e/adp ledger reconcile <игрок> &7- Принудительная сверка баланса"
+    - "&e/adp ledger trust <игрок> &7- Подробности рейтинга доверия"
+    - "&e/adp ledger confirm <игрок> &7- Подтвердить дюпера (фиксирует подозрение)"
+    - "&e/adp ledger clear <игрок> &7- Ложное срабатывание (сброс подозрения)"
+    - "&e/adp ledger verify &7- Проверка целостности цепочки"
+
+  status:
+    header: "&6&lСостояние Chain of Custody"
+    tip: "&7Вершина цепочки: &f{tip}..."
+    hash: "&7Хеш: &f{hash}..."
+    suspects: "&7Активных подозреваемых: &c{count}"
+    suspect-names: "&7Имена: &e{names}"
+
+  balance:
+    none: "&7Нет отслеживаемых предметов у &e{player}"
+    header: "&6&lБалансы {player}"
+    line-positive: "  &7{material}: &a{count}"
+    line-negative: "  &7{material}: &c{count}"
+
+  history:
+    none: "&7Нет записей реестра для &e{player}"
+    header: "&6&lПоследние записи {player}"
+    line: "  &7{time} &f{action} {qty} &e{material}{witness}"
+    qty-gain: "&a+{n}"
+    qty-loss: "&c{n}"
+    witness-suffix: " &8[{count}С]"
+
+  witness:
+    header: "&6&lСтатистика свидетелей {player}"
+    total: "&7Всего действий: &f{count}"
+    witnessed: "&7При свидетелях: &a{count} &7({percent}%)"
+    verified: "&7Подтверждено (3+ свидетеля): &a{count}"
+    solo: "&7Без свидетелей: &e{count}"
+    trust: "&7Рейтинг доверия: &f{score}/100"
+    suspicious: "&c&lПОДОЗРИТЕЛЬНО: {reason}"
+    ok: "&aПодозрительных закономерностей не обнаружено"
+
+  suspects:
+    none: "&aПодозреваемых сейчас нет"
+    header: "&6&lТекущие подозреваемые ({count})"
+    legend: "&8&o(материал: +N = суммарный излишек этого материала по всем нарушениям)"
+    entry: "  &e{player} &7- &c{violations} нарушений"
+    entry-top-material: " &7({material}: +{excess})"
+    hint: "&8&oКоманда &e/adp ledger stash <игрок> &8&oпокажет, где спрятаны предметы."
+
+  stash:
+    none: "&7Нет записей о тайниках у &e{player}"
+    header: "&6&lНедавние тайники {player} &7(сначала новые, клик по координатам — телепорт)"
+    line-prefix: "&7{time} &f{qty}&7x&e{material} &7-> &b{container} &7@ "
+    location: "&a&n[{world} {x}, {y}, {z}]"
+    location-unknown: "&8(место неизвестно)"
+    hover: "Нажмите, чтобы телепортироваться к тайнику"
+
+  tp:
+    players-only: "&cТелепортироваться могут только игроки."
+    world-not-found: "&cМир не найден: {world}"
+    success: "&aТелепортация: {world} {x}, {y}, {z}."
+
+  verdict:
+    confirmed: "&c{player} &cподтверждён как дюпер. Подозрение зафиксировано."
+    cleared: "&e{player}&a — ложное срабатывание. Подозрение сброшено."
+    ran-command: "&7Выполнена команда наказания: &f/{command}"
+
+  reconcile:
+    must-be-online: "&cДля сверки игрок должен быть в сети"
+    running: "&7Сверяем балансы &e{player}&7..."
+    skipped: "&7Сверка пропущена: {reason}"
+    dupe-detected: "&c&lОБНАРУЖЕН ДЮП!"
+    discrepancy: "  &c{material}: в наличии {actual}, должно быть {expected} (излишек: {excess})"
+    tmar: "  &e{material}: {acquired}/{limit} за {window} мин"
+    clean: "&aРасхождений нет — балансы игрока подтверждены"
+
+  trust:
+    header: "&6&lРейтинг доверия {player}"
+    score: "&7Рейтинг: {color}{score}&7/100"
+    verified: "&7Подтверждённые действия: &a{count}"
+    corroborated: "&7Засвидетельствованные: &e{count}"
+    solo: "&7Без свидетелей: &7{count}"
+    contested: "&7Спорные: &c{count}"
+
+  verify:
+    start: "&7Проверяем целостность цепочки..."
+    ok: "&a[OK] Целостность подтверждена: записей в порядке — {count}"
+    fail-header: "&c&l[X] НАРУШЕНА ЦЕЛОСТНОСТЬ ЦЕПОЧКИ!"
+    fail-error: "&c  Ошибка: {error}"
+    fail-broken: "&c  Разрыв на записи: {entry}"
+    fail-last-valid: "&c  Последняя корректная: {entry}"

@@ -45,7 +45,7 @@ class AntiDupePro : JavaPlugin() {
             logger.info("✓ Scheduler initialized (${if (scheduler.isFolia) "Folia" else "Bukkit"} mode)")
 
             saveDefaultConfig()
-            Messages.init(this)
+            Messages.init(this, config.getString("language", "en") ?: "en")
             materialsConfig = loadMaterialsConfig()
             applyLogLevel()
             validateConfiguration()
