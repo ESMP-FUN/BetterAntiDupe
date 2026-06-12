@@ -1,0 +1,131 @@
+# AntiDupePro - Deutsch (de)
+# Aktivieren mit `language: de` in der config.yml. Eigene Änderungen in
+# messages.yml haben Vorrang; fehlende Schlüssel fallen auf Englisch zurück.
+# Generierte Übersetzung — Korrekturen aus der Community sind auf GitHub willkommen!
+
+alerts:
+  broadcast: "&c&l[DUPE] &e{player} &7({type}) &f{material}: &c{details}"
+  critical-suffix: " &4&l[KRITISCH]"
+  balance-discrepancy: "Hat {actual}, aber das Register zeigt {expected} (Überschuss: {excess})"
+  entity-dupe: "Chunk-Load-/Drop-Race-Dupe: Entity-UUID {seconds}s nach dem ursprünglichen Aufheben erneut verwendet"
+  drop-excess: "{excess} {material} aufgehoben — mehr als die Quellen in der Nähe erzeugt haben ({source})"
+
+commands:
+  no-permission: "&cDu hast keine Berechtigung für die Register-Befehle."
+  not-initialized: "&cChain of Custody ist nicht initialisiert."
+  unknown-subcommand: "&cUnbekannter Unterbefehl. Nutze &e/adp help&c für alle Befehle."
+  unknown-ledger-subcommand: "&cUnbekannter Unterbefehl. Nutze &e/adp ledger help"
+  player-lookup: "&7Suche &e{player}&7..."
+  unknown-player: "&cUnbekannter Spieler: {player}"
+  usage: "&cVerwendung: {usage}"
+
+  help:
+    header: "&8&m-----------------------------------------"
+    title: "&6&lAntiDupePro-Befehle"
+    admin-lines:
+      - "&e/adp ledger status &7- Systemstatus"
+      - "&e/adp ledger balance <Spieler> &7- Item-Salden"
+      - "&e/adp ledger history <Spieler> &7- Letzte Register-Einträge"
+      - "&e/adp ledger witness <Spieler> &7- Zeugen-Statistiken"
+      - "&e/adp ledger suspects &7- Verdächtige auflisten"
+      - "&e/adp ledger stash <Spieler> &7- Wo Items versteckt wurden (klickbar)"
+      - "&e/adp ledger reconcile <Spieler> &7- Saldoprüfung erzwingen"
+      - "&e/adp ledger trust <Spieler> &7- Vertrauenswert"
+      - "&e/adp ledger verify &7- Ketten-Integrität prüfen"
+    user-line: "&e/adp help &7- Diese Hilfe anzeigen"
+
+  ledger-help:
+    - "&6&lChain-of-Custody-Befehle"
+    - "&e/adp ledger status &7- Systemstatus und Kettenspitze"
+    - "&e/adp ledger balance <Spieler> &7- Item-Salden des Spielers"
+    - "&e/adp ledger history <Spieler> &7- Letzte Register-Einträge"
+    - "&e/adp ledger witness <Spieler> &7- Zeugen-Statistiken"
+    - "&e/adp ledger suspects &7- Aktuelle Verdächtige auflisten"
+    - "&e/adp ledger stash <Spieler> &7- Wo der Spieler Items versteckt hat (klickbar)"
+    - "&e/adp ledger reconcile <Spieler> &7- Saldoprüfung erzwingen"
+    - "&e/adp ledger trust <Spieler> &7- Details zum Vertrauenswert"
+    - "&e/adp ledger confirm <Spieler> &7- Echten Duper bestätigen (Verdacht wird fixiert)"
+    - "&e/adp ledger clear <Spieler> &7- Fehlalarm markieren (Verdacht zurücksetzen)"
+    - "&e/adp ledger verify &7- Ketten-Integrität prüfen"
+
+  status:
+    header: "&6&lChain-of-Custody-Status"
+    tip: "&7Kettenspitze: &f{tip}..."
+    hash: "&7Hash: &f{hash}..."
+    suspects: "&7Aktive Verdächtige: &c{count}"
+    suspect-names: "&7Namen: &e{names}"
+
+  balance:
+    none: "&7Keine verfolgten Items für &e{player}"
+    header: "&6&lSalden von {player}"
+    line-positive: "  &7{material}: &a{count}"
+    line-negative: "  &7{material}: &c{count}"
+
+  history:
+    none: "&7Keine Register-Einträge für &e{player}"
+    header: "&6&lLetzte Einträge von {player}"
+    line: "  &7{time} &f{action} {qty} &e{material}{witness}"
+    qty-gain: "&a+{n}"
+    qty-loss: "&c{n}"
+    witness-suffix: " &8[{count}Z]"
+
+  witness:
+    header: "&6&lZeugen-Statistiken von {player}"
+    total: "&7Aktionen gesamt: &f{count}"
+    witnessed: "&7Mit Zeugen: &a{count} &7({percent}%)"
+    verified: "&7Verifiziert (3+ Zeugen): &a{count}"
+    solo: "&7Allein (ohne Zeugen): &e{count}"
+    trust: "&7Vertrauenswert: &f{score}/100"
+    suspicious: "&c&lVERDÄCHTIG: {reason}"
+    ok: "&aKeine verdächtigen Muster erkannt"
+
+  suspects:
+    none: "&aDerzeit keine Verdächtigen"
+    header: "&6&lAktuelle Verdächtige ({count})"
+    legend: "&8&o(Material: +N = aufsummierter Überschuss dieses Materials über alle Verstöße)"
+    entry: "  &e{player} &7- &c{violations} Verstöße"
+    entry-top-material: " &7({material}: +{excess})"
+    hint: "&8&oNutze &e/adp ledger stash <Spieler>&8&o, um die Verstecke zu sehen."
+
+  stash:
+    none: "&7Keine Verstecke für &e{player} &7aufgezeichnet"
+    header: "&6&lLetzte Verstecke von {player} &7(neueste zuerst, Koordinaten anklicken zum Teleportieren)"
+    line-prefix: "&7{time} &f{qty}&7x&e{material} &7-> &b{container} &7@ "
+    location: "&a&n[{world} {x}, {y}, {z}]"
+    location-unknown: "&8(Ort unbekannt)"
+    hover: "Klicken, um zu diesem Versteck zu teleportieren"
+
+  tp:
+    players-only: "&cNur Spieler können sich teleportieren."
+    world-not-found: "&cWelt nicht gefunden: {world}"
+    success: "&aTeleportiert nach {world} {x}, {y}, {z}."
+
+  verdict:
+    confirmed: "&c{player} &cals Duper bestätigt. Verdacht dauerhaft fixiert."
+    cleared: "&e{player}&a als Fehlalarm markiert. Verdacht zurückgesetzt."
+    ran-command: "&7Strafbefehl ausgeführt: &f/{command}"
+
+  reconcile:
+    must-be-online: "&cDer Spieler muss für die Prüfung online sein"
+    running: "&7Prüfe die Salden von &e{player}&7..."
+    skipped: "&7Prüfung übersprungen: {reason}"
+    dupe-detected: "&c&lDUPE ERKANNT!"
+    discrepancy: "  &c{material}: hat {actual}, sollte {expected} haben (Überschuss: {excess})"
+    tmar: "  &e{material}: {acquired}/{limit} in {window} Min."
+    clean: "&aKeine Abweichungen — Salden des Spielers bestätigt"
+
+  trust:
+    header: "&6&lVertrauenswert von {player}"
+    score: "&7Wert: {color}{score}&7/100"
+    verified: "&7Verifizierte Aktionen: &a{count}"
+    corroborated: "&7Bestätigte: &e{count}"
+    solo: "&7Allein: &7{count}"
+    contested: "&7Strittige: &c{count}"
+
+  verify:
+    start: "&7Prüfe die Ketten-Integrität..."
+    ok: "&a[OK] Integrität bestätigt: {count} Einträge in Ordnung"
+    fail-header: "&c&l[X] KETTEN-INTEGRITÄT VERLETZT!"
+    fail-error: "&c  Fehler: {error}"
+    fail-broken: "&c  Bruch bei: {entry}"
+    fail-last-valid: "&c  Letzter gültiger Eintrag: {entry}"

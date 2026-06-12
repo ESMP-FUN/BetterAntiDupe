@@ -22,16 +22,38 @@ import java.io.InputStreamReader
 object Messages {
 
     private var custom: FileConfiguration = YamlConfiguration()
+    private var langDefaults: FileConfiguration? = null
     private var defaults: FileConfiguration = YamlConfiguration()
 
-    fun init(plugin: JavaPlugin) {
+    /**
+     * Three-layer lookup, highest priority first:
+     *   1. the server's own messages.yml (admin edits always win),
+     *   2. the bundled translation picked by `language:` in config.yml
+     *      (messages_<code>.yml inside the jar; `en` means none),
+     *   3. the bundled English defaults.
+     * A key missing from one layer falls through to the next, so partial
+     * translations and old messages.yml files can never break anything.
+     */
+    fun init(plugin: JavaPlugin, language: String = "en") {
         val file = File(plugin.dataFolder, "messages.yml")
         if (!file.exists()) plugin.saveResource("messages.yml", false)
         custom = YamlConfiguration.loadConfiguration(file)
-        defaults = plugin.getResource("messages.yml")
-            ?.let { YamlConfiguration.loadConfiguration(InputStreamReader(it, Charsets.UTF_8)) }
-            ?: YamlConfiguration()
+        defaults = loadResource(plugin, "messages.yml") ?: YamlConfiguration()
+
+        val code = language.trim().lowercase().replace('-', '_')
+        langDefaults = if (code.isEmpty() || code == "en") null else {
+            val res = loadResource(plugin, "messages_$code.yml")
+            if (res == null) plugin.logger.warning(
+                "[Messages] No bundled translation 'messages_$code.yml' — falling back to English. " +
+                "Available: ${BUNDLED_LANGUAGES.joinToString(", ")}")
+            res
+        }
     }
+
+    private fun loadResource(plugin: JavaPlugin, name: String): FileConfiguration? =
+        plugin.getResource(name)?.let { YamlConfiguration.loadConfiguration(InputStreamReader(it, Charsets.UTF_8)) }
+
+    private val BUNDLED_LANGUAGES = listOf("en", "pt_br", "es", "de", "ru", "pl")
 
     /** Look up a message, substitute `{name}` placeholders, translate `&` colours. */
     fun msg(key: String, vararg args: Pair<String, Any?>): String =
@@ -42,12 +64,16 @@ object Messages {
 
     /** A list-valued message (multi-line help blocks). Each line is formatted independently. */
     fun list(key: String, vararg args: Pair<String, Any?>): List<String> {
-        val lines = if (custom.contains(key)) custom.getStringList(key) else defaults.getStringList(key)
+        val lines = when {
+            custom.contains(key) -> custom.getStringList(key)
+            langDefaults?.contains(key) == true -> langDefaults!!.getStringList(key)
+            else -> defaults.getStringList(key)
+        }
         return lines.map { format(it, args.asIterable()) }
     }
 
     private fun raw(key: String): String =
-        custom.getString(key) ?: defaults.getString(key) ?: key
+        custom.getString(key) ?: langDefaults?.getString(key) ?: defaults.getString(key) ?: key
 
     private fun format(template: String, args: Iterable<Pair<String, Any?>>): String {
         var out = template
