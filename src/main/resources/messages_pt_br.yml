@@ -1,0 +1,131 @@
+# AntiDupePro - Português do Brasil (pt_BR)
+# Ativado com `language: pt_BR` no config.yml. Qualquer linha que você editar
+# em messages.yml tem prioridade; chaves ausentes voltam para o inglês.
+# Tradução gerada — correções da comunidade são bem-vindas no GitHub!
+
+alerts:
+  broadcast: "&c&l[DUPE] &e{player} &7({type}) &f{material}: &c{details}"
+  critical-suffix: " &4&l[CRÍTICO]"
+  balance-discrepancy: "Tem {actual}, mas o registro mostra {expected} (excesso: {excess})"
+  entity-dupe: "Dupe de chunk-load / corrida de drop: UUID da entidade reutilizado {seconds}s após a coleta original"
+  drop-excess: "{excess} {material} coletado(s) além do que as fontes próximas produziram ({source})"
+
+commands:
+  no-permission: "&cVocê não tem permissão para usar os comandos do registro."
+  not-initialized: "&cO Chain of Custody não foi inicializado."
+  unknown-subcommand: "&cSubcomando desconhecido. Use &e/adp help&c para ver os comandos."
+  unknown-ledger-subcommand: "&cSubcomando desconhecido. Use &e/adp ledger help"
+  player-lookup: "&7Procurando &e{player}&7..."
+  unknown-player: "&cJogador desconhecido: {player}"
+  usage: "&cUso: {usage}"
+
+  help:
+    header: "&8&m-----------------------------------------"
+    title: "&6&lComandos do AntiDupePro"
+    admin-lines:
+      - "&e/adp ledger status &7- Status do sistema"
+      - "&e/adp ledger balance <jogador> &7- Saldos de itens"
+      - "&e/adp ledger history <jogador> &7- Entradas recentes do registro"
+      - "&e/adp ledger witness <jogador> &7- Estatísticas de testemunhas"
+      - "&e/adp ledger suspects &7- Lista de suspeitos"
+      - "&e/adp ledger stash <jogador> &7- Onde escondeu os itens (clicável)"
+      - "&e/adp ledger reconcile <jogador> &7- Forçar verificação de saldo"
+      - "&e/adp ledger trust <jogador> &7- Pontuação de confiança"
+      - "&e/adp ledger verify &7- Verificar a integridade da cadeia"
+    user-line: "&e/adp help &7- Mostrar esta ajuda"
+
+  ledger-help:
+    - "&6&lComandos do Chain of Custody"
+    - "&e/adp ledger status &7- Status do sistema e ponta da cadeia"
+    - "&e/adp ledger balance <jogador> &7- Saldos de itens do jogador"
+    - "&e/adp ledger history <jogador> &7- Entradas recentes do registro"
+    - "&e/adp ledger witness <jogador> &7- Estatísticas de testemunhas"
+    - "&e/adp ledger suspects &7- Lista de suspeitos atuais"
+    - "&e/adp ledger stash <jogador> &7- Onde o jogador escondeu itens (clicável)"
+    - "&e/adp ledger reconcile <jogador> &7- Forçar verificação de saldo"
+    - "&e/adp ledger trust <jogador> &7- Detalhes da pontuação de confiança"
+    - "&e/adp ledger confirm <jogador> &7- Confirmar um duper real (fixa a suspeita)"
+    - "&e/adp ledger clear <jogador> &7- Marcar falso positivo (zera a suspeita)"
+    - "&e/adp ledger verify &7- Verificar a integridade da cadeia"
+
+  status:
+    header: "&6&lStatus do Chain of Custody"
+    tip: "&7Ponta da cadeia: &f{tip}..."
+    hash: "&7Hash: &f{hash}..."
+    suspects: "&7Suspeitos ativos: &c{count}"
+    suspect-names: "&7Nomes: &e{names}"
+
+  balance:
+    none: "&7Nenhum item rastreado para &e{player}"
+    header: "&6&lSaldos de {player}"
+    line-positive: "  &7{material}: &a{count}"
+    line-negative: "  &7{material}: &c{count}"
+
+  history:
+    none: "&7Nenhuma entrada no registro para &e{player}"
+    header: "&6&lHistórico recente de {player}"
+    line: "  &7{time} &f{action} {qty} &e{material}{witness}"
+    qty-gain: "&a+{n}"
+    qty-loss: "&c{n}"
+    witness-suffix: " &8[{count}T]"
+
+  witness:
+    header: "&6&lEstatísticas de testemunhas de {player}"
+    total: "&7Total de ações: &f{count}"
+    witnessed: "&7Testemunhadas: &a{count} &7({percent}%)"
+    verified: "&7Verificadas (3+ testemunhas): &a{count}"
+    solo: "&7Sozinho (sem testemunhas): &e{count}"
+    trust: "&7Pontuação de confiança: &f{score}/100"
+    suspicious: "&c&lSUSPEITO: {reason}"
+    ok: "&aNenhum padrão suspeito detectado"
+
+  suspects:
+    none: "&aNenhum suspeito no momento"
+    header: "&6&lSuspeitos atuais ({count})"
+    legend: "&8&o(material: +N = excesso acumulado desse material em todas as violações)"
+    entry: "  &e{player} &7- &c{violations} violações"
+    entry-top-material: " &7({material}: +{excess})"
+    hint: "&8&oUse &e/adp ledger stash <jogador> &8&opara ver onde os itens foram escondidos."
+
+  stash:
+    none: "&7Nenhum esconderijo registrado para &e{player}"
+    header: "&6&lEsconderijos recentes de {player} &7(mais novos primeiro, clique para teleportar)"
+    line-prefix: "&7{time} &f{qty}&7x&e{material} &7-> &b{container} &7@ "
+    location: "&a&n[{world} {x}, {y}, {z}]"
+    location-unknown: "&8(local desconhecido)"
+    hover: "Clique para teleportar até este esconderijo"
+
+  tp:
+    players-only: "&cApenas jogadores podem se teleportar."
+    world-not-found: "&cMundo não encontrado: {world}"
+    success: "&aTeleportado para {world} {x}, {y}, {z}."
+
+  verdict:
+    confirmed: "&c{player} &cconfirmado como duper. Suspeita fixada no máximo."
+    cleared: "&e{player}&a liberado (falso positivo). Suspeita zerada."
+    ran-command: "&7Comando de punição executado: &f/{command}"
+
+  reconcile:
+    must-be-online: "&cO jogador precisa estar online para a verificação"
+    running: "&7Verificando os saldos de &e{player}&7..."
+    skipped: "&7Verificação ignorada: {reason}"
+    dupe-detected: "&c&lDUPE DETECTADO!"
+    discrepancy: "  &c{material}: tem {actual}, deveria ter {expected} (excesso: {excess})"
+    tmar: "  &e{material}: {acquired}/{limit} em {window}min"
+    clean: "&aNenhuma discrepância — saldos do jogador verificados"
+
+  trust:
+    header: "&6&lPontuação de confiança de {player}"
+    score: "&7Pontuação: {color}{score}&7/100"
+    verified: "&7Ações verificadas: &a{count}"
+    corroborated: "&7Corroboradas: &e{count}"
+    solo: "&7Sozinho: &7{count}"
+    contested: "&7Contestadas: &c{count}"
+
+  verify:
+    start: "&7Verificando a integridade da cadeia..."
+    ok: "&a[OK] Integridade verificada: {count} entradas OK"
+    fail-header: "&c&l[X] FALHA NA INTEGRIDADE DA CADEIA!"
+    fail-error: "&c  Erro: {error}"
+    fail-broken: "&c  Quebrada em: {entry}"
+    fail-last-valid: "&c  Última válida: {entry}"

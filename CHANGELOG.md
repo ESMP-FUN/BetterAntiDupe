@@ -2,6 +2,32 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [3.3.5] - 2026-06-13
+
+Speak your language — and a smoother stash teleport.
+
+### Added
+- **5 built-in translations.** Set `language:` in config.yml to switch all
+  in-game messages at once:
+  - `pt_BR` Português do Brasil
+  - `es` Español
+  - `de` Deutsch
+  - `ru` Русский
+  - `pl` Polski
+- Your own edits in `messages.yml` still win over the chosen translation,
+  and anything a translation misses falls back to English. Found a wonky
+  phrase? Corrections are very welcome on GitHub.
+- **Updating?** Add one line to your config.yml: `language: pt_BR` (or
+  whichever you want). Without it the plugin stays English.
+
+### Fixed
+- **Stash teleport no longer shows a scary popup.** Newer Minecraft
+  versions ask "this command requires elevated permissions, are you
+  sure?" when a chat click runs a vanilla command like `/execute`.
+  Clicking stash coordinates now uses the plugin's own teleport
+  (`/adp ledger tp`), which goes through without any confirmation
+  dialog — and works the same in every world.
+
 ## [3.3.4] - 2026-06-12
 
 Get dupe alerts outside the game!
@@ -44,7 +70,7 @@ The plugin is now translatable!
     updates can add new messages without breaking your translation.
 - Console logs stay English on purpose — that keeps errors searchable
   and makes it easier to get help.
-- Ready-made translations (e.g. `messages_de.yml`) are planned for 3.3.4.
+- Ready-made translations (e.g. `messages_de.yml`) are planned for 3.3.5.
 
 ## [3.3.2] - 2026-06-11
 

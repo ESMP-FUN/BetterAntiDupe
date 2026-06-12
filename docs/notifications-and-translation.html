@@ -131,6 +131,34 @@
 
 <h2 id="translation">7. Translating the plugin (messages.yml)</h2>
 
+<h3>Built-in translations (3.3.5+)</h3>
+
+<p>
+  Five translations ship with the plugin. Pick one with a single line in
+  <code>config.yml</code>:
+</p>
+
+<pre><code>language: pt_BR   # or: en, es, de, ru, pl</code></pre>
+
+<table>
+  <tr><th>Code</th><th>Language</th></tr>
+  <tr><td><code>en</code></td><td>English (default)</td></tr>
+  <tr><td><code>pt_BR</code></td><td>Português do Brasil</td></tr>
+  <tr><td><code>es</code></td><td>Español</td></tr>
+  <tr><td><code>de</code></td><td>Deutsch</td></tr>
+  <tr><td><code>ru</code></td><td>Русский</td></tr>
+  <tr><td><code>pl</code></td><td>Polski</td></tr>
+</table>
+
+<p>
+  Your own edits in <code>messages.yml</code> always win over the chosen
+  translation, and anything a translation is missing falls back to English —
+  so switching languages never breaks anything. Spotted an awkward phrase?
+  Corrections are very welcome as GitHub issues or pull requests.
+</p>
+
+<h3>Custom translation / restyling</h3>
+
 <p>
   Everything the plugin shows in-game — dupe alerts and all
   <code>/adp</code> command output — comes from
@@ -157,4 +185,4 @@
 
 <hr/>
 
-<p><em>Last updated for AntiDupePro 3.3.4 — see the <a href="user-guide.html">main user guide</a> for everything else.</em></p>
+<p><em>Last updated for AntiDupePro 3.3.5 — see the <a href="user-guide.html">main user guide</a> for everything else.</em></p>

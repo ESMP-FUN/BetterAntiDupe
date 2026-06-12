@@ -1,5 +1,12 @@
 # AntiDupePro Configuration
 
+# Language for all in-game messages. Bundled options:
+#   en (English), pt_BR (Português do Brasil), es (Español),
+#   de (Deutsch), ru (Русский), pl (Polski)
+# Your own edits in messages.yml always win over the bundled translation,
+# and anything a translation is missing falls back to English.
+language: en
+
 # =============================================================================
 # DETECTION
 # =============================================================================
