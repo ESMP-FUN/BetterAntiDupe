@@ -123,3 +123,6 @@ nul
 
 # Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
 !gradle-wrapper.jar
+
+# Personal notes (never publish)
+OPLETTEN*.txt
