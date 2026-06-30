@@ -225,6 +225,12 @@ shadow_mode: true
 # setups.
 block_collect_to_cursor: false
 
+# Hide the ownership tag from players' clients. On by default. The plugin removes
+# its own tag from items in the packets sent to players, so a client-side NBT
+# viewer can't read it. The tag stays intact server-side, so detection is
+# unchanged. Set false only if you need the tag visible client-side.
+hide_tag_from_clients: true
+
 detection:
   # Global sensitivity, 1 (very lenient) to 100 (very paranoid). 50 is balanced
   # and right for most casual servers. Higher = a smaller surplus alerts.
@@ -436,7 +442,7 @@ alert_thresholds:
 
 <p>
   Two top-level commands: <code>/adp help</code> (no permission) and
-  <code>/adp ledger ...</code> (requires <code>antidupe.admin</code>).
+  <code>/adp ledger ...</code> (requires <code>antidupe.ledger</code>).
   Everything else is a ledger subcommand.
 </p>
 
@@ -514,13 +520,17 @@ Use /adp ledger stash &lt;player&gt; to see where they stashed items.</code></pr
 
 <table>
   <tr><th>Permission</th><th>Grants</th><th>Default</th></tr>
+  <tr><td><code>antidupe.alerts</code></td><td>Receives in-game dupe alerts (no command access)</td><td>op</td></tr>
   <tr><td><code>antidupe.ledger</code></td><td>All <code>/adp ledger ...</code> commands</td><td>op</td></tr>
-  <tr><td><code>antidupe.admin</code></td><td>Includes <code>antidupe.ledger</code>, plus receives in-game dupe alerts</td><td>op</td></tr>
+  <tr><td><code>antidupe.admin</code></td><td>Includes both <code>antidupe.alerts</code> and <code>antidupe.ledger</code></td><td>op</td></tr>
+  <tr><td><code>antidupe.witness.exempt</code></td><td>Holder is never counted as a nearby witness (e.g. vanished staff)</td><td>false</td></tr>
 </table>
 
 <p>
-  If you're using a permissions plugin (LuckPerms, etc.), give your
-  moderators <code>antidupe.admin</code> so they see alerts.
+  If you're using a permissions plugin (LuckPerms, etc.), you can split duties:
+  give a moderator just <code>antidupe.alerts</code> to see dupe alerts without
+  any command access, or <code>antidupe.ledger</code> for the investigation
+  commands. <code>antidupe.admin</code> grants both at once.
 </p>
 
 <hr/>
@@ -757,4 +767,4 @@ Use /adp ledger stash &lt;player&gt; to see where they stashed items.</code></pr
 
 <hr/>
 
-<p><em>Last updated for AntiDupePro 3.3.5 — Minecraft 1.21.x (Paper, Folia, Spigot) and 26.x (Paper, on the <code>paper-26</code> branch).</em></p>
+<p><em>Last updated for AntiDupePro 3.4.0 — Minecraft 1.21.x (Paper, Folia, Spigot) and 26.x (Paper, on the <code>paper-26</code> branch).</em></p>

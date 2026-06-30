@@ -19,10 +19,17 @@ commands:
 
 permissions:
   antidupe.admin:
-    description: Full admin access (ledger commands and dupe alerts)
+    description: Full admin access (ledger commands AND dupe alerts)
     default: op
     children:
       antidupe.ledger: true
+      antidupe.alerts: true
   antidupe.ledger:
-    description: Access to Chain of Custody ledger commands
+    description: Access to Chain of Custody ledger commands (/adp ledger ...)
     default: op
+  antidupe.alerts:
+    description: Receive in-game dupe alerts, with no command access
+    default: op
+  antidupe.witness.exempt:
+    description: Never counted as a Proof-of-Witness witness (e.g. vanished staff)
+    default: false

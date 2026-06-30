@@ -120,6 +120,15 @@ shadow_mode: true
 # Off by default; only useful for the strictest paranoia mode.
 block_collect_to_cursor: false
 
+# Hide the ownership tag from players' clients.
+# On by default. ADP strips its own PersistentDataContainer keys from items in
+# CLIENT-BOUND packets, so a player using an NBT-viewer mod / OptiFine cannot read
+# the tag (e.g. cannot run a two-account "does the tag change on pickup" test).
+# The tag stays fully intact server-side — detection is unaffected. Only ADP's own
+# keys are stripped; other plugins' data and resource-pack item models are untouched.
+# Set to false if you ever need the tag visible client-side (debugging, etc.).
+hide_tag_from_clients: true
+
 # =============================================================================
 # CHAIN OF CUSTODY (Ledger + Proof of Witness)
 # =============================================================================

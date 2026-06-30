@@ -2,6 +2,38 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [3.4.0] - 2026-06-30
+
+Hide the tag, sharpen the witnesses, and split the keys.
+
+### Added
+- **Hide the ownership tag from players.** New `hide_tag_from_clients` option
+  (on by default). AntiDupePro strips its own tag from items in the
+  packets sent to players, so anyone poking at item NBT with a client mod just
+  sees nothing — they can't tell a tracked item from an untracked one, and the
+  old "swap an item between two accounts to see the tag flip" trick stops
+  working. The tag is untouched server-side, so detection is exactly as before.
+  Only AntiDupePro's own data is hidden; other plugins' data and resource-pack
+  item models are left alone.
+- **`antidupe.witness.exempt` permission.** Anyone with this node is never
+  counted as a nearby witness — handy for staff who patrol invisibly and
+  shouldn't accidentally vouch for a player's actions.
+
+### Changed
+- **Vanished staff no longer count as witnesses.** Proof of Witness now ignores
+  vanished players (via the standard `vanished` flag that EssentialsX,
+  SuperVanish and PremiumVanish all set). Previously an invisible admin standing
+  nearby could quietly raise a duper's trust and hide the solo-farming pattern.
+- **Alerts and ledger commands are now separate permissions.** Give a moderator
+  `antidupe.alerts` to receive dupe alerts without command access, or
+  `antidupe.ledger` for the `/adp ledger` commands. `antidupe.admin` still grants
+  both, so existing setups are unchanged.
+
+### Downloads
+- **Two builds.** `AntiDupePro-3.4.0.jar` is for Minecraft 1.21.x (Java 21);
+  `AntiDupePro-3.4.0-mc26.jar` is for 26.x (Java 25). Grab the one that matches
+  your server — 1.21.x servers can't load the 26.x build.
+
 ## [3.3.5] - 2026-06-13
 
 Speak your language — and a smoother stash teleport.
