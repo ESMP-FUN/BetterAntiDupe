@@ -7,10 +7,10 @@ plugins {
 group = "io.github.darkstarworks"
 
 // Two build targets from one source, selected with -Pmc=<line> (default 26):
-//   ./gradlew shadowJar -Pmc=21   ->  AntiDupePro-3.4.0.jar       (compile 1.21.x, Java 21)
-//   ./gradlew shadowJar -Pmc=26   ->  AntiDupePro-3.4.0-mc26.jar  (compile 26.x,  Java 25)
+//   ./gradlew shadowJar -Pmc=21   ->  AntiDupePro-3.4.1.jar       (compile 1.21.x, Java 21)
+//   ./gradlew shadowJar -Pmc=26   ->  AntiDupePro-3.4.1-mc26.jar  (compile 26.x,  Java 25)
 // 1.21.x servers run JDK21 and can't load Java 25 bytecode, hence the two artifacts.
-val pluginVersion = "3.4.0"
+val pluginVersion = "3.4.1"
 val mcLine = (findProperty("mc") as String?) ?: "26"
 val is26 = mcLine == "26"
 version = if (is26) "$pluginVersion-mc26" else pluginVersion

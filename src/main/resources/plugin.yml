@@ -33,3 +33,6 @@ permissions:
   antidupe.witness.exempt:
     description: Never counted as a Proof-of-Witness witness (e.g. vanished staff)
     default: false
+  antidupe.tag.view:
+    description: See the ownership tag in your own client (bypass hide_tag_from_clients)
+    default: false

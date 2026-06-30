@@ -268,15 +268,22 @@ class AntiDupePro : JavaPlugin() {
                 ?: return
             tagStripper = stripper
 
+            // Players with antidupe.tag.view keep the real tag in their own client (NBT viewers,
+            // F3) — we simply never inject the stripper for them. Evaluated at join, so a
+            // permission change applies on their next login.
+            fun injectUnlessExempt(player: org.bukkit.entity.Player) {
+                if (!player.hasPermission("antidupe.tag.view")) stripper.inject(player)
+            }
+
             server.pluginManager.registerEvents(object : org.bukkit.event.Listener {
                 @org.bukkit.event.EventHandler
-                fun onJoin(event: org.bukkit.event.player.PlayerJoinEvent) = stripper.inject(event.player)
+                fun onJoin(event: org.bukkit.event.player.PlayerJoinEvent) = injectUnlessExempt(event.player)
                 @org.bukkit.event.EventHandler
                 fun onQuit(event: org.bukkit.event.player.PlayerQuitEvent) = stripper.eject(event.player)
             }, this)
 
             // Players already online across a /reload.
-            server.onlinePlayers.forEach { stripper.inject(it) }
+            server.onlinePlayers.forEach { injectUnlessExempt(it) }
             logger.info("✓ Client-side tag concealment enabled (hide_tag_from_clients)")
         } catch (e: Throwable) {
             logger.log(Level.WARNING, "Tag stripper unavailable on this server build — feature disabled", e)

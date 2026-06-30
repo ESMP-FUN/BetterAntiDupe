@@ -2,6 +2,19 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [3.4.1] - 2026-06-30
+
+Let trusted staff peek at the tag.
+
+### Added
+- **`antidupe.tag.view` permission.** With `hide_tag_from_clients` on, the
+  ownership tag is hidden from every player's client. Grant this node to an
+  admin or group and their own client keeps the tag visible — handy for
+  eyeballing it through an NBT-viewer mod without running `/data get`. Off by
+  default, so concealment stays total until you grant it. Applies on next login.
+  (Admins could already read the tag any time with `/data get`, which reads the
+  untouched server-side data — this is purely about client-side visibility.)
+
 ## [3.4.0] - 2026-06-30
 
 Hide the tag, sharpen the witnesses, and split the keys.
