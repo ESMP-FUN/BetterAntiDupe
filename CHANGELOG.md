@@ -2,6 +2,27 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [3.4.2] - 2026-07-02
+
+Rename the tag, and optionally send clients nothing at all.
+
+### Added
+- **Rename the ownership tag.** New `ownership.namespace` / `ownership.key`
+  options change what the tag is called in item data — a leaked screenshot or
+  stream frame then shows something bland like `data:o` instead of
+  `antidupepro:adp_owner`, revealing nothing about which plugin wrote it.
+  Renaming is safe: the previous name is remembered automatically (marker file
+  plus `ownership.legacy_keys`), items tagged under the old name stay fully
+  tracked, and they re-stamp onto the new name as they change hands. The
+  client-side concealment hides old and new names alike during the transition.
+- **Strict strip mode.** `strip_all_custom_data: true` strips *every* plugin's
+  custom item data from packets sent to clients, not just AntiDupePro's tag —
+  anything reaching the client is clean. Off by default because CIT resource
+  packs and client mods that read item data (sorting helpers, price or tooltip
+  overlays) will see stripped items as blank. Pair it with `strip_whitelist`
+  to preserve the namespaces your pack or mods need — AntiDupePro's own
+  namespace is never allowed on the whitelist and is ignored if listed.
+
 ## [3.4.1] - 2026-06-30
 
 Let trusted staff peek at the tag.

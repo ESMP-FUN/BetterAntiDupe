@@ -231,6 +231,22 @@ block_collect_to_cursor: false
 # unchanged. Set false only if you need the tag visible client-side.
 hide_tag_from_clients: true
 
+# Strict mode: strip EVERY plugin's custom item data from packets, not just
+# AntiDupePro's tag. Off by default — CIT resource packs and client mods that
+# read item data will see stripped items as blank. Whitelist the namespaces
+# your pack/mods need (AntiDupePro's own namespace is never allowed).
+strip_all_custom_data: false
+strip_whitelist: []
+
+# Rename the ownership tag so leaked screenshots/streams don't reveal which
+# plugin wrote it (e.g. "data:o" instead of "antidupepro:adp_owner"). Renaming
+# is safe: the old name is remembered automatically and existing items stay
+# tracked, re-stamping onto the new name as they change hands.
+ownership:
+  namespace: "antidupepro"
+  key: "adp_owner"
+  legacy_keys: []
+
 detection:
   # Global sensitivity, 1 (very lenient) to 100 (very paranoid). 50 is balanced
   # and right for most casual servers. Higher = a smaller surplus alerts.

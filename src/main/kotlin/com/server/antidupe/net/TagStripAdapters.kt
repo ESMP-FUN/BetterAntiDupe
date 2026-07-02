@@ -17,8 +17,10 @@ object TagStripAdapters {
         logger: Logger,
         namespace: String,
         keys: Collection<String>,
+        stripAll: Boolean = false,
+        whitelistNamespaces: Collection<String> = emptyList(),
     ): TagStripAdapter? = try {
-        ReflectiveTagStripper(plugin, logger, namespace, keys)
+        ReflectiveTagStripper(plugin, logger, namespace, keys, stripAll, whitelistNamespaces)
     } catch (e: Throwable) {
         logger.warning("[TagStripper] unsupported server build (${e.message}) — feature disabled")
         null

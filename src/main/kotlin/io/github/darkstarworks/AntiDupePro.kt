@@ -33,6 +33,7 @@ class AntiDupePro : JavaPlugin() {
 
     private var chainOfCustody: ChainOfCustody? = null
     private var tagStripper: com.server.antidupe.net.TagStripAdapter? = null
+    private var ownershipKeys: com.server.antidupe.ledger.OwnershipKeys? = null
     private lateinit var adpCommand: AdpCommand
 
     override fun onEnable() {
@@ -183,6 +184,15 @@ class AntiDupePro : JavaPlugin() {
                 }
             }
 
+            // Resolve the (configurable) ownership tag key once; the detection side and the
+            // client-side stripper must agree on it. Handles rename migration via marker file.
+            val keys = com.server.antidupe.ledger.OwnershipKeys.resolve(this, logger)
+            ownershipKeys = keys
+            if (keys.primary.toString() != "${name.lowercase()}:adp_owner") {
+                logger.info("✓ Ownership tag key: ${keys.primary}" +
+                    if (keys.legacy.isNotEmpty()) " (legacy: ${keys.legacy.joinToString()})" else "")
+            }
+
             runBlocking {
                 val ledgerStorage = LedgerStorage.create(this@AntiDupePro)
                 chainOfCustody = ChainOfCustody.initialize(
@@ -199,7 +209,8 @@ class AntiDupePro : JavaPlugin() {
                     alertThresholds = alertThresholds,
                     defaultAlertThreshold = defaultAlertThreshold,
                     sensitivity = config.getInt("detection.sensitivity", 50),
-                    logger = logger
+                    logger = logger,
+                    ownershipKeys = keys
                 )
             }
 
@@ -256,16 +267,23 @@ class AntiDupePro : JavaPlugin() {
     private fun initializeTagStripper() {
         if (!config.getBoolean("hide_tag_from_clients", true)) return
         try {
-            // Namespace = lowercased plugin name (how Bukkit namespaces PDC keys); key matches
-            // OwnershipManager's "adp_owner". Sourced from config so it tracks a future
-            // customizable-tag option without code changes.
-            @Suppress("DEPRECATION")
-            val namespace = (config.getString("ownership.namespace", name) ?: name).lowercase()
-            val keys = config.getStringList("ownership.keys").ifEmpty { listOf("adp_owner") }
+            // Same key(s) the detection writes — resolved once in initializeChainOfCustody.
+            // Legacy keys (from a rename) are concealed too; un-migrated items must not leak.
+            val keys = ownershipKeys
+            val namespace = keys?.primary?.namespace ?: name.lowercase()
+            val qualified = keys?.allQualified ?: listOf("$namespace:adp_owner")
+
+            val stripAll = config.getBoolean("strip_all_custom_data", false)
+            val whitelist = config.getStringList("strip_whitelist")
+            if (stripAll) {
+                logger.info("Strict strip mode: ALL custom item data is hidden from clients" +
+                    if (whitelist.isNotEmpty()) " (except: ${whitelist.joinToString()})" else "")
+            }
 
             // Resolve the adapter for THIS server version; null = unsupported build, feature off.
-            val stripper = com.server.antidupe.net.TagStripAdapters.load(this, logger, namespace, keys)
-                ?: return
+            val stripper = com.server.antidupe.net.TagStripAdapters.load(
+                this, logger, namespace, qualified, stripAll, whitelist
+            ) ?: return
             tagStripper = stripper
 
             // Players with antidupe.tag.view keep the real tag in their own client (NBT viewers,

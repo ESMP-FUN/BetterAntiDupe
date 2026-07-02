@@ -33,6 +33,15 @@ class ReflectiveTagStripper(
     private val logger: Logger,
     namespace: String,
     keys: Collection<String>,
+    /**
+     * Strict mode: strip EVERY plugin's PDC entries from outbound items, not only ours —
+     * anything reaching the client is "clean". Costs more (nearly every custom-data item is
+     * rewritten) and can blank CIT resource packs / client mods that read item data, which is
+     * why it's opt-in and paired with [whitelistNamespaces].
+     */
+    private val stripAll: Boolean = false,
+    /** Namespaces preserved in strict mode. Our own namespaces are never honored here. */
+    whitelistNamespaces: Collection<String> = emptyList(),
 ) : TagStripAdapter {
 
     private val handlerName = "antidupe_tag_stripper"
@@ -44,6 +53,16 @@ class ReflectiveTagStripper(
             NamespacedKey(ns.lowercase(), k.lowercase())
         } else NamespacedKey(namespace.lowercase(), raw.lowercase())
     }.toSet()
+
+    private val whitelist: Set<String> = run {
+        val ours = targetKeys.map { it.namespace }.toSet()
+        val cleaned = whitelistNamespaces.map { it.lowercase().trim() }.filter { it.isNotEmpty() }.toSet()
+        val rejected = cleaned intersect ours
+        if (rejected.isNotEmpty()) {
+            logger.warning("[TagStripper] strip_whitelist may not contain our own namespace(s) $rejected — ignored")
+        }
+        cleaned - ours
+    }
 
     // --- reflection handles, resolved once at construction (throws => unsupported server) ---
     private val nmsItemClass = Class.forName("net.minecraft.world.item.ItemStack")
@@ -180,13 +199,15 @@ class ReflectiveTagStripper(
 
     // ---------------------------------------------------------------- item strip (public Bukkit API)
 
-    /** @return a fresh NMS item with our keys removed, or null if the item carries none of them. */
+    /** @return a fresh NMS item with the offending keys removed, or null if nothing to strip. */
     private fun stripItem(nmsItem: Any): Any? {
         val bukkit = asBukkitCopy.invoke(null, nmsItem) as org.bukkit.inventory.ItemStack
         if (bukkit.type.isAir) return null
         val meta = bukkit.itemMeta ?: return null
         val pdc = meta.persistentDataContainer
-        val present = targetKeys.filter { pdc.keys.contains(it) }
+        val present: List<NamespacedKey> =
+            if (stripAll) pdc.keys.filter { it.namespace !in whitelist }
+            else targetKeys.filter { pdc.keys.contains(it) }
         if (present.isEmpty()) return null
         for (key in present) pdc.remove(key)
         bukkit.itemMeta = meta

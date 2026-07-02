@@ -41,9 +41,14 @@ class ChainOfCustody private constructor(
             alertThresholds: Map<Material, Int>,
             defaultAlertThreshold: Int,
             sensitivity: Int,
-            logger: Logger
+            logger: Logger,
+            ownershipKeys: OwnershipKeys? = null
         ): ChainOfCustody {
-            val ownershipManager = OwnershipManager(plugin)
+            val ownershipManager = OwnershipManager(
+                plugin,
+                primaryKey = ownershipKeys?.primary,
+                legacyKeys = ownershipKeys?.legacy ?: emptyList()
+            )
             val witnessManager = WitnessManager(plugin, witnessRadius, verifiedThreshold, suspiciousSoloRatio)
             val suspicionManager = SuspicionManager(sensitivity)
 

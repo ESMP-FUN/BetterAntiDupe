@@ -20,21 +20,32 @@ import java.util.UUID
  *
  * Ownership changes are tracked in the Ledger, not in item NBT history.
  */
-class OwnershipManager(private val plugin: Plugin) {
+class OwnershipManager(
+    private val plugin: Plugin,
+    primaryKey: NamespacedKey? = null,
+    legacyKeys: List<NamespacedKey> = emptyList(),
+) {
 
     private companion object {
         // Bounded recursion for nested-container scans. Matches the v1 isotope scanner depth.
         private const val MAX_RECURSION_DEPTH = 10
     }
 
-    private val ownerKey = NamespacedKey(plugin, "adp_owner")
+    /** The key new/updated tags are written under. Configurable (see [OwnershipKeys]). */
+    private val ownerKey = primaryKey ?: NamespacedKey(plugin, "adp_owner")
+
+    /** Older keys still recognized on read; rewritten to [ownerKey] on the next write. */
+    private val legacyOwnerKeys = legacyKeys.filter { it != ownerKey }
 
     /**
-     * Get the current owner of an item, if tracked
+     * Get the current owner of an item, if tracked. Checks the primary key first, then any
+     * legacy keys (items tagged before a key rename stay tracked).
      */
     fun getOwner(item: ItemStack): UUID? {
         val meta = item.itemMeta ?: return null
-        val ownerStr = meta.persistentDataContainer.get(ownerKey, PersistentDataType.STRING)
+        val pdc = meta.persistentDataContainer
+        val ownerStr = pdc.get(ownerKey, PersistentDataType.STRING)
+            ?: legacyOwnerKeys.firstNotNullOfOrNull { pdc.get(it, PersistentDataType.STRING) }
         return ownerStr?.let {
             try {
                 UUID.fromString(it)
@@ -45,11 +56,14 @@ class OwnershipManager(private val plugin: Plugin) {
     }
 
     /**
-     * Set the owner of an item
+     * Set the owner of an item. Also migrates: any legacy-named tag is removed, so items
+     * re-stamp onto the current key organically as ownership changes.
      */
     fun setOwner(item: ItemStack, owner: UUID) {
         val meta = item.itemMeta ?: return
-        meta.persistentDataContainer.set(ownerKey, PersistentDataType.STRING, owner.toString())
+        val pdc = meta.persistentDataContainer
+        pdc.set(ownerKey, PersistentDataType.STRING, owner.toString())
+        for (legacy in legacyOwnerKeys) pdc.remove(legacy)
         item.itemMeta = meta
     }
 
@@ -58,7 +72,9 @@ class OwnershipManager(private val plugin: Plugin) {
      */
     fun clearOwner(item: ItemStack) {
         val meta = item.itemMeta ?: return
-        meta.persistentDataContainer.remove(ownerKey)
+        val pdc = meta.persistentDataContainer
+        pdc.remove(ownerKey)
+        for (legacy in legacyOwnerKeys) pdc.remove(legacy)
         item.itemMeta = meta
     }
 
