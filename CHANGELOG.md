@@ -2,6 +2,72 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [3.4.2] - 2026-07-02
+
+Rename the tag, and optionally send clients nothing at all.
+
+### Added
+- **Rename the ownership tag.** New `ownership.namespace` / `ownership.key`
+  options change what the tag is called in item data — a leaked screenshot or
+  stream frame then shows something bland like `data:o` instead of
+  `antidupepro:adp_owner`, revealing nothing about which plugin wrote it.
+  Renaming is safe: the previous name is remembered automatically (marker file
+  plus `ownership.legacy_keys`), items tagged under the old name stay fully
+  tracked, and they re-stamp onto the new name as they change hands. The
+  client-side concealment hides old and new names alike during the transition.
+- **Strict strip mode.** `strip_all_custom_data: true` strips *every* plugin's
+  custom item data from packets sent to clients, not just AntiDupePro's tag —
+  anything reaching the client is clean. Off by default because CIT resource
+  packs and client mods that read item data (sorting helpers, price or tooltip
+  overlays) will see stripped items as blank. Pair it with `strip_whitelist`
+  to preserve the namespaces your pack or mods need — AntiDupePro's own
+  namespace is never allowed on the whitelist and is ignored if listed.
+
+## [3.4.1] - 2026-06-30
+
+Let trusted staff peek at the tag.
+
+### Added
+- **`antidupe.tag.view` permission.** With `hide_tag_from_clients` on, the
+  ownership tag is hidden from every player's client. Grant this node to an
+  admin or group and their own client keeps the tag visible — handy for
+  eyeballing it through an NBT-viewer mod without running `/data get`. Off by
+  default, so concealment stays total until you grant it. Applies on next login.
+  (Admins could already read the tag any time with `/data get`, which reads the
+  untouched server-side data — this is purely about client-side visibility.)
+
+## [3.4.0] - 2026-06-30
+
+Hide the tag, sharpen the witnesses, and split the keys.
+
+### Added
+- **Hide the ownership tag from players.** New `hide_tag_from_clients` option
+  (on by default). AntiDupePro strips its own tag from items in the
+  packets sent to players, so anyone poking at item NBT with a client mod just
+  sees nothing — they can't tell a tracked item from an untracked one, and the
+  old "swap an item between two accounts to see the tag flip" trick stops
+  working. The tag is untouched server-side, so detection is exactly as before.
+  Only AntiDupePro's own data is hidden; other plugins' data and resource-pack
+  item models are left alone.
+- **`antidupe.witness.exempt` permission.** Anyone with this node is never
+  counted as a nearby witness — handy for staff who patrol invisibly and
+  shouldn't accidentally vouch for a player's actions.
+
+### Changed
+- **Vanished staff no longer count as witnesses.** Proof of Witness now ignores
+  vanished players (via the standard `vanished` flag that EssentialsX,
+  SuperVanish and PremiumVanish all set). Previously an invisible admin standing
+  nearby could quietly raise a duper's trust and hide the solo-farming pattern.
+- **Alerts and ledger commands are now separate permissions.** Give a moderator
+  `antidupe.alerts` to receive dupe alerts without command access, or
+  `antidupe.ledger` for the `/adp ledger` commands. `antidupe.admin` still grants
+  both, so existing setups are unchanged.
+
+### Downloads
+- **Two builds.** `AntiDupePro-3.4.0.jar` is for Minecraft 1.21.x (Java 21);
+  `AntiDupePro-3.4.0-mc26.jar` is for 26.x (Java 25). Grab the one that matches
+  your server — 1.21.x servers can't load the 26.x build.
+
 ## [3.3.5] - 2026-06-13
 
 Speak your language — and a smoother stash teleport.

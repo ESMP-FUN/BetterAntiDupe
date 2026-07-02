@@ -51,6 +51,7 @@ class WitnessManager(
     fun getNearbyWitnesses(actor: Player, location: Location): List<Player> {
         return location.world?.players?.filter { player ->
             player.uniqueId != actor.uniqueId &&
+            !isExcludedWitness(player) &&
             player.location.distanceSquared(location) <= radiusSquared &&
             player.canSee(actor)
         } ?: emptyList()
@@ -64,7 +65,29 @@ class WitnessManager(
     fun othersNearby(actor: Player): Boolean {
         val world = actor.world
         val loc = actor.location
-        return world.players.any { it.uniqueId != actor.uniqueId && it.location.distanceSquared(loc) <= radiusSquared }
+        return world.players.any {
+            it.uniqueId != actor.uniqueId &&
+            !isExcludedWitness(it) &&
+            it.location.distanceSquared(loc) <= radiusSquared
+        }
+    }
+
+    /**
+     * A nearby player who must NOT count as a witness. Two cases:
+     *  - Vanished staff: standing invisibly near a duper would otherwise inflate their trust
+     *    (SOLO -> CORROBORATED) and mask the very solo-acquisition pattern PoW exists to catch.
+     *    Honoured via the de-facto "vanished" metadata flag set by EssentialsX / SuperVanish /
+     *    PremiumVanish, so no hard dependency on any one vanish plugin.
+     *  - Explicit exemption: anyone with `antidupe.witness.exempt`, for admins who patrol
+     *    invisibly through means other than a standard vanish plugin.
+     */
+    private fun isExcludedWitness(player: Player): Boolean {
+        if (player.hasPermission("antidupe.witness.exempt")) return true
+        return try {
+            player.getMetadata("vanished").any { it.asBoolean() }
+        } catch (e: Exception) {
+            false
+        }
     }
 
     /**

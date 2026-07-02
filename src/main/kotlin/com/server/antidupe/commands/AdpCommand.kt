@@ -63,12 +63,12 @@ class AdpCommand(
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String> {
         if (args.size == 1) {
             val subs = mutableListOf<String>()
-            if (sender.hasPermission("antidupe.admin") && chainOfCustody != null) subs.add("ledger")
+            if (sender.hasPermission("antidupe.ledger") && chainOfCustody != null) subs.add("ledger")
             subs.add("help")
             return subs.filter { it.startsWith(args[0].lowercase()) }
         }
         if (args.size >= 2 && args[0].lowercase() in listOf("ledger", "coc", "chain")) {
-            if (!sender.hasPermission("antidupe.admin") || chainOfCustody == null) return emptyList()
+            if (!sender.hasPermission("antidupe.ledger") || chainOfCustody == null) return emptyList()
             return when (args.size) {
                 2 -> listOf("status", "balance", "history", "witness", "suspects", "stash",
                             "reconcile", "trust", "confirm", "clear", "verify", "help")
@@ -89,7 +89,7 @@ class AdpCommand(
         sender.sendMessage(Messages.msg("commands.help.header"))
         sender.sendMessage(Messages.msg("commands.help.title"))
         sender.sendMessage("")
-        if (sender.hasPermission("antidupe.admin") && chainOfCustody != null) {
+        if (sender.hasPermission("antidupe.ledger") && chainOfCustody != null) {
             Messages.list("commands.help.admin-lines").forEach { sender.sendMessage(it) }
         }
         sender.sendMessage(Messages.msg("commands.help.user-line"))
@@ -100,7 +100,7 @@ class AdpCommand(
         sender.sendMessage(Messages.msg("commands.usage", "usage" to usage))
 
     private fun handleLedger(sender: CommandSender, args: Array<out String>) {
-        if (!sender.hasPermission("antidupe.admin")) {
+        if (!sender.hasPermission("antidupe.ledger")) {
             sender.sendMessage(Messages.msg("commands.no-permission")); return
         }
         val coc = chainOfCustody ?: run {

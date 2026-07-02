@@ -51,8 +51,8 @@ class AlertNotifier(
     init {
         val tg = config?.getConfigurationSection("telegram")
         val tgEnabled = tg?.getBoolean("enabled", false) == true
-        telegramToken = if (tgEnabled) tg?.getString("bot_token")?.takeIf { it.isNotBlank() } else null
-        telegramChatId = if (tgEnabled) tg?.getString("chat_id")?.takeIf { it.isNotBlank() } else null
+        telegramToken = if (tgEnabled) tg.getString("bot_token")?.takeIf { it.isNotBlank() } else null
+        telegramChatId = if (tgEnabled) tg.getString("chat_id")?.takeIf { it.isNotBlank() } else null
 
         val targets = listOfNotNull(
             discordUrl?.let { "Discord" },

@@ -32,6 +32,8 @@ class AntiDupePro : JavaPlugin() {
         private set
 
     private var chainOfCustody: ChainOfCustody? = null
+    private var tagStripper: com.server.antidupe.net.TagStripAdapter? = null
+    private var ownershipKeys: com.server.antidupe.ledger.OwnershipKeys? = null
     private lateinit var adpCommand: AdpCommand
 
     override fun onEnable() {
@@ -59,6 +61,7 @@ class AntiDupePro : JavaPlugin() {
 
             initializeChainOfCustody()
             registerJoinBaseline()
+            initializeTagStripper()
 
             logger.info("=== AntiDupePro enabled successfully ===")
         } catch (e: Exception) {
@@ -70,6 +73,8 @@ class AntiDupePro : JavaPlugin() {
     override fun onDisable() {
         logger.info("=== AntiDupePro shutting down ===")
         try {
+            tagStripper?.let { s -> server.onlinePlayers.forEach { s.eject(it) } }
+            tagStripper = null
             chainOfCustody?.shutdown()
             chainOfCustody = null
             if (::pluginScope.isInitialized) pluginScope.cancel()
@@ -179,6 +184,15 @@ class AntiDupePro : JavaPlugin() {
                 }
             }
 
+            // Resolve the (configurable) ownership tag key once; the detection side and the
+            // client-side stripper must agree on it. Handles rename migration via marker file.
+            val keys = com.server.antidupe.ledger.OwnershipKeys.resolve(this, logger)
+            ownershipKeys = keys
+            if (keys.primary.toString() != "${name.lowercase()}:adp_owner") {
+                logger.info("✓ Ownership tag key: ${keys.primary}" +
+                    if (keys.legacy.isNotEmpty()) " (legacy: ${keys.legacy.joinToString()})" else "")
+            }
+
             runBlocking {
                 val ledgerStorage = LedgerStorage.create(this@AntiDupePro)
                 chainOfCustody = ChainOfCustody.initialize(
@@ -195,7 +209,8 @@ class AntiDupePro : JavaPlugin() {
                     alertThresholds = alertThresholds,
                     defaultAlertThreshold = defaultAlertThreshold,
                     sensitivity = config.getInt("detection.sensitivity", 50),
-                    logger = logger
+                    logger = logger,
+                    ownershipKeys = keys
                 )
             }
 
@@ -218,8 +233,11 @@ class AntiDupePro : JavaPlugin() {
                 // Alerts can be emitted from reconciliation coroutines — hop to the main
                 // (global region) thread before touching the online-player roster.
                 scheduler.runMain(Runnable {
+                    // Alerts go to anyone with antidupe.alerts (admins inherit it via the
+                    // antidupe.admin child tree); ledger COMMAND access is gated separately on
+                    // antidupe.ledger, so a mod can be alerts-only.
                     Bukkit.getOnlinePlayers()
-                        .filter { it.isOp || it.hasPermission("antidupe.admin") }
+                        .filter { it.hasPermission("antidupe.alerts") }
                         .forEach { it.sendMessage(message) }
                 })
 
@@ -239,6 +257,57 @@ class AntiDupePro : JavaPlugin() {
     }
 
     fun getChainOfCustody(): ChainOfCustody? = chainOfCustody
+
+    /**
+     * Optional client-side tag concealment. Strips ADP's PDC keys from outgoing item packets so
+     * players can't read the ownership tag with an NBT-viewer mod. Server-side data is untouched.
+     * Gated behind config and wrapped so a mapping mismatch on an unexpected server build disables
+     * the feature cleanly instead of breaking the plugin.
+     */
+    private fun initializeTagStripper() {
+        if (!config.getBoolean("hide_tag_from_clients", true)) return
+        try {
+            // Same key(s) the detection writes — resolved once in initializeChainOfCustody.
+            // Legacy keys (from a rename) are concealed too; un-migrated items must not leak.
+            val keys = ownershipKeys
+            val namespace = keys?.primary?.namespace ?: name.lowercase()
+            val qualified = keys?.allQualified ?: listOf("$namespace:adp_owner")
+
+            val stripAll = config.getBoolean("strip_all_custom_data", false)
+            val whitelist = config.getStringList("strip_whitelist")
+            if (stripAll) {
+                logger.info("Strict strip mode: ALL custom item data is hidden from clients" +
+                    if (whitelist.isNotEmpty()) " (except: ${whitelist.joinToString()})" else "")
+            }
+
+            // Resolve the adapter for THIS server version; null = unsupported build, feature off.
+            val stripper = com.server.antidupe.net.TagStripAdapters.load(
+                this, logger, namespace, qualified, stripAll, whitelist
+            ) ?: return
+            tagStripper = stripper
+
+            // Players with antidupe.tag.view keep the real tag in their own client (NBT viewers,
+            // F3) — we simply never inject the stripper for them. Evaluated at join, so a
+            // permission change applies on their next login.
+            fun injectUnlessExempt(player: org.bukkit.entity.Player) {
+                if (!player.hasPermission("antidupe.tag.view")) stripper.inject(player)
+            }
+
+            server.pluginManager.registerEvents(object : org.bukkit.event.Listener {
+                @org.bukkit.event.EventHandler
+                fun onJoin(event: org.bukkit.event.player.PlayerJoinEvent) = injectUnlessExempt(event.player)
+                @org.bukkit.event.EventHandler
+                fun onQuit(event: org.bukkit.event.player.PlayerQuitEvent) = stripper.eject(event.player)
+            }, this)
+
+            // Players already online across a /reload.
+            server.onlinePlayers.forEach { injectUnlessExempt(it) }
+            logger.info("✓ Client-side tag concealment enabled (hide_tag_from_clients)")
+        } catch (e: Throwable) {
+            logger.log(Level.WARNING, "Tag stripper unavailable on this server build — feature disabled", e)
+            tagStripper = null
+        }
+    }
 
     /**
      * Map the config's 5-level scheme (CRITICAL/ERROR/WARNING/INFO/DEBUG, each including those
