@@ -17,7 +17,7 @@ If something doesn't add up, you get an alert before the dupe spreads.
 | | |
 |---|---|
 | **Server software** | Paper, Folia, Spigot, and Paper-compatible forks (Purpur, Pufferfish, etc.) |
-| **Minecraft versions** | 1.21.x (main branch) · 26.x (paper-26 branch) |
+| **Minecraft versions** | 1.21.x (plain jar) · 26.x (`-mc26` jar) |
 | **Java** | 21+ for 1.21.x · 25+ for 26.x |
 | **External services** | None required (SQLite is bundled). Redis is optional for multi-server networks. |
 
@@ -38,7 +38,7 @@ A non-exhaustive list of dupe families AntiDupePro detects:
 - **Chunk-load entity respawn** — the "same item entity picked up twice" family
 - **Drop-pickup race** — same-NBT dupes via item-entity persistence
 - **Acquisition-rate abuse** — TMAR (Theoretical Max Acquisition Rate) thresholds per material
-- **Witness-less acquisitions** — Proof of Witness flags players whose actions are never seen by others
+- **Witness-less acquisitions** — Proof of Witness flags players whose actions are never seen by others (vanished staff are correctly ignored, so invisible patrols can't skew trust)
 
 Full coverage matrix and the rare edge cases are documented in the
 [user guide](https://github.com/darkstarworks/AntiDupePro/blob/main/docs/user-guide.html).
@@ -56,6 +56,17 @@ is tamper-evident: editing the database directly breaks the hash chain and
 Reconciliation walks the player's inventory recursively — including the contents
 of held shulkers and bundles — and compares the total to the ledger balance.
 A surplus is a dupe.
+
+**Invisible to players.** The ownership tag is stripped from the packets sent to
+clients (on by default), so even players running NBT-viewer mods can't see it,
+test it, or tell a tracked item from an untracked one — while the server-side
+data stays fully intact for detection. The tag's very name is configurable, so
+nothing in a leaked screenshot or stream frame reveals which plugin wrote it —
+and renaming is safe: previously tagged items stay tracked and migrate to the
+new name automatically. A strict mode can go further and strip *every* plugin's
+custom item data from outbound packets, with a whitelist for the namespaces
+your resource pack or client mods need. Staff with `antidupe.tag.view` keep
+the tag visible in their own client.
 
 Built to be **false-alarm shy**: actions are verified one tick after they happen
 (so other plugins cancelling a pickup or block place can't skew the books),
@@ -76,7 +87,7 @@ Pick one, configurable in `config.yml`:
 
 ## Installation
 
-1. Download the jar.
+1. Download the jar that matches your server: plain for Minecraft 1.21.x, `-mc26` for 26.x.
 2. Drop it into `plugins/`.
 3. Start the server. Defaults are sensible; the plugin generates `config.yml`
    and `materials.yml` on first launch.
@@ -99,7 +110,11 @@ All commands live under `/adp` (aliases: `/antidupe`, `/antidupepro`).
 | `/adp ledger trust <player>` | Show accumulated trust score |
 | `/adp ledger verify` | Verify the entire hash chain |
 
-Permission `antidupe.admin` grants all of the above and routes dupe alerts to chat.
+Permissions are split so staff roles can be scoped: `antidupe.alerts` receives
+dupe alerts in chat (no command access), `antidupe.ledger` grants the commands
+above, and `antidupe.admin` includes both. `antidupe.witness.exempt` keeps
+invisibly-monitoring staff out of the witness pool, and `antidupe.tag.view`
+lets a trusted admin see the (otherwise hidden) ownership tag in their own client.
 
 ---
 
@@ -135,5 +150,5 @@ are welcome.
 
 - **Source / issues**: [github.com/darkstarworks/AntiDupePro](https://github.com/darkstarworks/AntiDupePro)
 - **User guide**: [gitbook/user-guide](https://darkstarworks.gitbook.io/plugins/mc/antidupepro)
-- **Notifications & translation guide**: [docs/notifications-and-translation.html](https://github.com/darkstarworks/AntiDupePro/blob/main/docs/notifications-and-translation.html)
+- **Notifications & translation guide**: [gitbook/notifications-and-translation](https://darkstarworks.gitbook.io/plugins/mc/antidupepro/notifications-and-translation)
 - **Changelog**: [gitbook/changelog](https://darkstarworks.gitbook.io/plugins/mc/antidupepro/changelog)
