@@ -14,7 +14,7 @@ folia-supported: true
 commands:
   adp:
     description: AntiDupePro base command
-    usage: /<command> <ledger|help>
+    usage: /<command> <ledger|update|help>
     aliases: [antidupe, antidupepro]
 
 permissions:

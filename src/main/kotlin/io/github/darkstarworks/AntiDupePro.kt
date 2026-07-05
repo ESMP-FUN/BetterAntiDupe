@@ -63,6 +63,11 @@ class AntiDupePro : JavaPlugin() {
             registerJoinBaseline()
             initializeTagStripper()
 
+            // Update checking (PluginPulse). Spigot-safe: plain-text notices
+            // when Adventure is absent. Config in pluginpulse.yml; server owners
+            // can override mode/interval via an `update:` block in config.yml.
+            io.github.darkstarworks.pluginpulse.PluginPulse.bootstrap(this)
+
             logger.info("=== AntiDupePro enabled successfully ===")
         } catch (e: Exception) {
             logger.log(Level.SEVERE, "Failed to initialize AntiDupePro", e)
@@ -73,6 +78,7 @@ class AntiDupePro : JavaPlugin() {
     override fun onDisable() {
         logger.info("=== AntiDupePro shutting down ===")
         try {
+            io.github.darkstarworks.pluginpulse.PluginPulse.shutdown(this)
             tagStripper?.let { s -> server.onlinePlayers.forEach { s.eject(it) } }
             tagStripper = null
             chainOfCustody?.shutdown()
