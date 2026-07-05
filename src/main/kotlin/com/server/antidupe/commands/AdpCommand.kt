@@ -54,6 +54,8 @@ class AdpCommand(
         if (args.isEmpty()) { showHelp(sender); return true }
         when (args[0].lowercase()) {
             "ledger", "coc", "chain" -> handleLedger(sender, args.drop(1).toTypedArray())
+            "update" -> io.github.darkstarworks.pluginpulse.PluginPulse.handleUpdateCommand(
+                plugin, sender, args.copyOfRange(1, args.size))
             "help", "?" -> showHelp(sender)
             else -> sender.sendMessage(Messages.msg("commands.unknown-subcommand"))
         }
@@ -64,8 +66,15 @@ class AdpCommand(
         if (args.size == 1) {
             val subs = mutableListOf<String>()
             if (sender.hasPermission("antidupe.ledger") && chainOfCustody != null) subs.add("ledger")
+            if (sender.hasPermission("antidupe.admin")) subs.add("update")
             subs.add("help")
             return subs.filter { it.startsWith(args[0].lowercase()) }
+        }
+        if (args.size >= 2 && args[0].lowercase() == "update") {
+            if (!sender.hasPermission("antidupe.admin")) return emptyList()
+            if (args.size == 2) return listOf("check", "download", "restore", "status")
+                .filter { it.startsWith(args[1].lowercase()) }
+            return emptyList()
         }
         if (args.size >= 2 && args[0].lowercase() in listOf("ledger", "coc", "chain")) {
             if (!sender.hasPermission("antidupe.ledger") || chainOfCustody == null) return emptyList()

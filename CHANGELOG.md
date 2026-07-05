@@ -2,6 +2,11 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [3.5.0] - 2026-07-05
+
+### Added
+- **Built-in update checking.** AntiDupePro now checks Modrinth (with GitHub Releases as a fallback) for new versions and notifies admins. The new `/adp update` command adds `check`, `download` (fetch a new build, verify its checksum, back up the current jar, and stage it in the server's update folder to install on the next restart), `restore` (roll back), and `status`. Off by default beyond notifications — set `update.mode` to `download` or `auto-stage` in config.yml to enable installs. Works on Spigot too (notices fall back to plain text where clickable messages aren't available). Servers on the `-mc26` build follow the mc26 release line automatically.
+
 ## [3.4.2] - 2026-07-02
 
 Rename the tag, and optionally send clients nothing at all.

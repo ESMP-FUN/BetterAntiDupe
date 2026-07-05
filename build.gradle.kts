@@ -10,7 +10,7 @@ group = "io.github.darkstarworks"
 //   ./gradlew shadowJar -Pmc=21   ->  AntiDupePro-3.4.2.jar       (compile 1.21.x, Java 21)
 //   ./gradlew shadowJar -Pmc=26   ->  AntiDupePro-3.4.2-mc26.jar  (compile 26.x,  Java 25)
 // 1.21.x servers run JDK21 and can't load Java 25 bytecode, hence the two artifacts.
-val pluginVersion = "3.4.2"
+val pluginVersion = "3.5.0"
 val mcLine = (findProperty("mc") as String?) ?: "26"
 val is26 = mcLine == "26"
 version = if (is26) "$pluginVersion-mc26" else pluginVersion
@@ -20,6 +20,7 @@ repositories {
     maven("https://repo.papermc.io/repository/maven-public/") {
         name = "papermc-repo"
     }
+    maven("https://jitpack.io")
 }
 
 dependencies {
@@ -39,6 +40,10 @@ dependencies {
     implementation("io.lettuce:lettuce-core:6.3.0.RELEASE")
     implementation("org.xerial:sqlite-jdbc:3.45.3.0")
     implementation("org.json:json:20231013")
+
+    // PluginPulse — update checking + verified install staging. Spigot-safe:
+    // falls back to plain-text notices when Adventure is absent.
+    implementation("com.github.darkstarworks.PluginPulse:pluginpulse-core:v0.4.1")
 }
 
 tasks {
@@ -71,6 +76,9 @@ tasks.shadowJar {
     // No "-all" classifier, and the thin (dependency-less) jar task is disabled
     // below because it is never released or used.
     archiveClassifier.set("")
+
+    // Relocate PluginPulse so it can't clash with another plugin's shaded copy.
+    relocate("io.github.darkstarworks.pluginpulse", "io.github.darkstarworks.adp.pluginpulse")
 
     // SQLite native binaries — keep only platforms that realistically host
     // a Paper / Spigot server. Saves ~13 MB of jar.
