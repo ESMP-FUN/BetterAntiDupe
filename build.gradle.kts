@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.3.20"
+    kotlin("jvm") version "2.3.21"
     id("com.gradleup.shadow") version "9.0.0"
     id("xyz.jpenilla.run-paper") version "2.3.1"
 }
