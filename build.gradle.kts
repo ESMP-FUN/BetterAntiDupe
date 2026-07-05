@@ -43,7 +43,7 @@ dependencies {
 
     // PluginPulse — update checking + verified install staging. Spigot-safe:
     // falls back to plain-text notices when Adventure is absent.
-    implementation("com.github.darkstarworks.PluginPulse:pluginpulse-core:v0.4.1")
+    implementation("com.github.darkstarworks.PluginPulse:pluginpulse-core:v0.5.0")
 }
 
 tasks {
