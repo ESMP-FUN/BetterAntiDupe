@@ -10,7 +10,7 @@ group = "io.github.darkstarworks"
 //   ./gradlew shadowJar -Pmc=21   ->  AntiDupePro-3.4.2.jar       (compile 1.21.x, Java 21)
 //   ./gradlew shadowJar -Pmc=26   ->  AntiDupePro-3.4.2-mc26.jar  (compile 26.x,  Java 25)
 // 1.21.x servers run JDK21 and can't load Java 25 bytecode, hence the two artifacts.
-val pluginVersion = "3.5.0"
+val pluginVersion = "3.5.1"
 val mcLine = (findProperty("mc") as String?) ?: "26"
 val is26 = mcLine == "26"
 version = if (is26) "$pluginVersion-mc26" else pluginVersion
@@ -101,6 +101,18 @@ tasks.shadowJar {
     exclude("META-INF/native-image/**")        // GraalVM hints, we don't native-compile
     exclude("META-INF/versions/*/module-info.class")
     exclude("module-info.class")
+
+    // lettuce-core bundles several Netty modules, each shipping an identical
+    // META-INF/io.netty.versions.properties (plus a BlockHound service file).
+    // Shadow keeps every copy, and Paper 1.21.11's plugin remapper aborts on the
+    // duplicate archive entries (issue #1). None of these are needed at runtime —
+    // the server provides its own Netty — so drop them.
+    exclude("META-INF/io.netty.versions.properties")
+    exclude("META-INF/services/reactor.blockhound.integration.BlockHoundIntegration")
+
+    // Belt-and-braces: if any other duplicate resource slips through, keep the
+    // first and drop the rest rather than emitting a duplicate entry.
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 tasks.processResources {

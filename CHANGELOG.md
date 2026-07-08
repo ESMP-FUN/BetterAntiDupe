@@ -2,7 +2,16 @@
 
 All notable changes to AntiDupePro will be documented in this file.
 
+## [3.5.1] - 2026-07-08
+
+Load fix for Paper 1.21.11.
+
+### Fixed
+- **Plugin failed to load on Paper 1.21.11.** The shaded jar carried duplicate `META-INF` resources (Netty's `io.netty.versions.properties` and a BlockHound service file, both pulled in transitively by lettuce-core), which Paper's plugin remapper rejects with a "Duplicate entries detected" error. These redundant entries are now dropped from the jar — the server provides its own Netty at runtime — so the plugin loads normally again. Thanks to imSpartann for the report (#1).
+
 ## [3.5.0] - 2026-07-05
+
+Includes auto-updating for when the next update releases.
 
 ### Added
 - **Built-in update checking.** AntiDupePro now checks Modrinth (with GitHub Releases as a fallback) for new versions and notifies admins. The new `/adp update` command adds `check`, `download` (fetch a new build, verify its checksum, back up the current jar, and stage it in the server's update folder to install on the next restart), `restore` (roll back), and `status`. Off by default beyond notifications — set `update.mode` to `download` or `auto-stage` in config.yml to enable installs. Works on Spigot too (notices fall back to plain text where clickable messages aren't available). Servers on the `-mc26` build follow the mc26 release line automatically.
