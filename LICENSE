@@ -1,0 +1,39 @@
+Copyright (c) 2026 Bolt Service B.V. (hereafter known and referred to as "ESMP")
+
+PREAMBLE
+This license grants you the right to view, download, and study the source code 
+for personal, educational, and learning purposes only. It is strictly a 
+"source-available" license and is not an open-source license.
+
+TERMS AND CONDITIONS
+
+1. PERMITTED USE
+You are permitted to view, download, and execute this software solely for 
+personal study, learning, and educational purposes.
+
+2. COMMERCIAL RESTRICTIONS
+You may not use this software, its source code, or any derivatives for 
+commercial purposes, financial gain, or business operations.
+
+3. REDISTRIBUTION AND RE-RELEASE RESTRICTIONS
+Except as provided in Section 4 (Contributions), you are strictly prohibited 
+from redistributing, publishing, or re-releasing this software, its source 
+code, or any modified versions of it to any third party or public platform. 
+This prohibition applies regardless of whether the software is distributed 
+under the original name, a new name, or as part of another project.
+
+4. CONTRIBUTIONS AND PULL REQUESTS
+You are permitted to fork this repository and modify the source code solely 
+for the purpose of submitting contributions, bug fixes, or enhancements back 
+to the original project via Pull Requests. By submitting a Pull Request, you 
+agree to grant ESMP a perpetual, irrevocable, worldwide, royalty-free 
+license to use, modify, and distribute your contribution under these same 
+license terms. 
+
+5. NO WARRANTY
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL ESMP
+OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR 
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
