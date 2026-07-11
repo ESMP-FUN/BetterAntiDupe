@@ -1,11 +1,11 @@
-package io.github.darkstarworks
+package com.esmpfun.antidupe
 
-import com.server.antidupe.commands.AdpCommand
-import com.server.antidupe.ledger.ChainOfCustody
-import com.server.antidupe.ledger.LedgerStorage
-import com.server.antidupe.notify.AlertNotifier
-import com.server.antidupe.platform.PlatformScheduler
-import com.server.antidupe.util.Messages
+import com.esmpfun.antidupe.commands.AdpCommand
+import com.esmpfun.antidupe.ledger.ChainOfCustody
+import com.esmpfun.antidupe.ledger.LedgerStorage
+import com.esmpfun.antidupe.notify.AlertNotifier
+import com.esmpfun.antidupe.platform.PlatformScheduler
+import com.esmpfun.antidupe.util.Messages
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -20,7 +20,7 @@ import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
 import java.util.logging.Level
 
-class AntiDupePro : JavaPlugin() {
+class BetterAntiDupe : JavaPlugin() {
 
     lateinit var pluginScope: CoroutineScope
         private set
@@ -32,13 +32,14 @@ class AntiDupePro : JavaPlugin() {
         private set
 
     private var chainOfCustody: ChainOfCustody? = null
-    private var tagStripper: com.server.antidupe.net.TagStripAdapter? = null
-    private var ownershipKeys: com.server.antidupe.ledger.OwnershipKeys? = null
+    private var tagStripper: com.esmpfun.antidupe.net.TagStripAdapter? = null
+    private var ownershipKeys: com.esmpfun.antidupe.ledger.OwnershipKeys? = null
     private lateinit var adpCommand: AdpCommand
 
     override fun onEnable() {
+        migrateLegacyDataFolder()
         @Suppress("DEPRECATION")
-        logger.info("=== AntiDupePro v${description.version} ===")
+        logger.info("=== BetterAntiDupe v${description.version} ===")
         logger.info("Initializing Chain of Custody...")
 
         try {
@@ -54,7 +55,7 @@ class AntiDupePro : JavaPlugin() {
             logger.info("✓ Configuration loaded")
 
             adpCommand = AdpCommand(this, pluginScope, scheduler)
-            getCommand("adp")?.let { cmd ->
+            getCommand("antidupe")?.let { cmd ->
                 cmd.setExecutor(adpCommand)
                 cmd.tabCompleter = adpCommand
             }
@@ -68,15 +69,15 @@ class AntiDupePro : JavaPlugin() {
             // can override mode/interval via an `update:` block in config.yml.
             io.github.darkstarworks.pluginpulse.PluginPulse.bootstrap(this)
 
-            logger.info("=== AntiDupePro enabled successfully ===")
+            logger.info("=== BetterAntiDupe enabled successfully ===")
         } catch (e: Exception) {
-            logger.log(Level.SEVERE, "Failed to initialize AntiDupePro", e)
+            logger.log(Level.SEVERE, "Failed to initialize BetterAntiDupe", e)
             server.pluginManager.disablePlugin(this)
         }
     }
 
     override fun onDisable() {
-        logger.info("=== AntiDupePro shutting down ===")
+        logger.info("=== BetterAntiDupe shutting down ===")
         try {
             io.github.darkstarworks.pluginpulse.PluginPulse.shutdown(this)
             tagStripper?.let { s -> server.onlinePlayers.forEach { s.eject(it) } }
@@ -87,7 +88,7 @@ class AntiDupePro : JavaPlugin() {
         } catch (e: Exception) {
             logger.warning("Error during shutdown: ${e.message}")
         }
-        logger.info("=== AntiDupePro disabled ===")
+        logger.info("=== BetterAntiDupe disabled ===")
     }
 
     private fun loadMaterialsConfig(): FileConfiguration {
@@ -192,7 +193,7 @@ class AntiDupePro : JavaPlugin() {
 
             // Resolve the (configurable) ownership tag key once; the detection side and the
             // client-side stripper must agree on it. Handles rename migration via marker file.
-            val keys = com.server.antidupe.ledger.OwnershipKeys.resolve(this, logger)
+            val keys = com.esmpfun.antidupe.ledger.OwnershipKeys.resolve(this, logger)
             ownershipKeys = keys
             if (keys.primary.toString() != "${name.lowercase()}:adp_owner") {
                 logger.info("✓ Ownership tag key: ${keys.primary}" +
@@ -200,9 +201,9 @@ class AntiDupePro : JavaPlugin() {
             }
 
             runBlocking {
-                val ledgerStorage = LedgerStorage.create(this@AntiDupePro)
+                val ledgerStorage = LedgerStorage.create(this@BetterAntiDupe)
                 chainOfCustody = ChainOfCustody.initialize(
-                    plugin = this@AntiDupePro,
+                    plugin = this@BetterAntiDupe,
                     scope = pluginScope,
                     scheduler = scheduler,
                     ledgerStorage = ledgerStorage,
@@ -233,7 +234,7 @@ class AntiDupePro : JavaPlugin() {
                     "type" to alert.type.name,
                     "material" to alert.material.name,
                     "details" to details
-                ) + if (alert.severity == com.server.antidupe.ledger.Severity.CRITICAL)
+                ) + if (alert.severity == com.esmpfun.antidupe.ledger.Severity.CRITICAL)
                     Messages.msg("alerts.critical-suffix") else ""
 
                 // Alerts can be emitted from reconciliation coroutines — hop to the main
@@ -287,7 +288,7 @@ class AntiDupePro : JavaPlugin() {
             }
 
             // Resolve the adapter for THIS server version; null = unsupported build, feature off.
-            val stripper = com.server.antidupe.net.TagStripAdapters.load(
+            val stripper = com.esmpfun.antidupe.net.TagStripAdapters.load(
                 this, logger, namespace, qualified, stripAll, whitelist
             ) ?: return
             tagStripper = stripper
@@ -351,5 +352,22 @@ class AntiDupePro : JavaPlugin() {
                 }
             }
         }, this)
+    }
+
+    /** One-time migration from the pre-4.0 plugin name (plugins/AntiDupePro/). */
+    private fun migrateLegacyDataFolder() {
+        try {
+            if (dataFolder.exists()) return
+            val legacy = java.io.File(dataFolder.parentFile, "AntiDupePro")
+            if (!legacy.isDirectory) return
+            logger.info("Migrating data from plugins/AntiDupePro/ to plugins/${dataFolder.name}/ ...")
+            legacy.walkTopDown().forEach { src ->
+                val dest = java.io.File(dataFolder, src.relativeTo(legacy).path)
+                if (src.isDirectory) dest.mkdirs() else src.copyTo(dest, overwrite = false)
+            }
+            logger.info("Migration complete — the old folder was kept as a backup.")
+        } catch (e: Exception) {
+            logger.severe("Legacy data-folder migration failed: ${e.message} — migrate manually and restart.")
+        }
     }
 }

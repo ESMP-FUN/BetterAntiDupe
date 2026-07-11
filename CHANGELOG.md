@@ -1,6 +1,15 @@
 # Changelog
 
-All notable changes to AntiDupePro will be documented in this file.
+All notable changes to BetterAntiDupe will be documented in this file.
+
+## [4.0.0] - 2026-07-11
+### Changed
+- **The plugin is now Better Anti Dupe.** Same free plugin, new name — part of the ESMP rebrand. The project now lives at https://github.com/ESMP-FUN/BetterAntiDupe.
+- Main command is `/antidupe` (aliases `/adp`, `/betterantidupe`). Permissions are unchanged (`antidupe.*`).
+- Internal packages moved to `com.esmpfun.antidupe`.
+
+### Added
+- Automatic data-folder migration from `plugins/AntiDupePro/` on first start (old folder kept as backup).
 
 ## [3.5.1] - 2026-07-08
 
@@ -14,7 +23,7 @@ Load fix for Paper 1.21.11.
 Includes auto-updating for when the next update releases.
 
 ### Added
-- **Built-in update checking.** AntiDupePro now checks Modrinth (with GitHub Releases as a fallback) for new versions and notifies admins. The new `/adp update` command adds `check`, `download` (fetch a new build, verify its checksum, back up the current jar, and stage it in the server's update folder to install on the next restart), `restore` (roll back), and `status`. Off by default beyond notifications — set `update.mode` to `download` or `auto-stage` in config.yml to enable installs. Works on Spigot too (notices fall back to plain text where clickable messages aren't available). Servers on the `-mc26` build follow the mc26 release line automatically.
+- **Built-in update checking.** BetterAntiDupe now checks Modrinth (with GitHub Releases as a fallback) for new versions and notifies admins. The new `/adp update` command adds `check`, `download` (fetch a new build, verify its checksum, back up the current jar, and stage it in the server's update folder to install on the next restart), `restore` (roll back), and `status`. Off by default beyond notifications — set `update.mode` to `download` or `auto-stage` in config.yml to enable installs. Works on Spigot too (notices fall back to plain text where clickable messages aren't available). Servers on the `-mc26` build follow the mc26 release line automatically.
 
 ## [3.4.2] - 2026-07-02
 
@@ -30,11 +39,11 @@ Rename the tag, and optionally send clients nothing at all.
   tracked, and they re-stamp onto the new name as they change hands. The
   client-side concealment hides old and new names alike during the transition.
 - **Strict strip mode.** `strip_all_custom_data: true` strips *every* plugin's
-  custom item data from packets sent to clients, not just AntiDupePro's tag —
+  custom item data from packets sent to clients, not just BetterAntiDupe's tag —
   anything reaching the client is clean. Off by default because CIT resource
   packs and client mods that read item data (sorting helpers, price or tooltip
   overlays) will see stripped items as blank. Pair it with `strip_whitelist`
-  to preserve the namespaces your pack or mods need — AntiDupePro's own
+  to preserve the namespaces your pack or mods need — BetterAntiDupe's own
   namespace is never allowed on the whitelist and is ignored if listed.
 
 ## [3.4.1] - 2026-06-30
@@ -56,12 +65,12 @@ Hide the tag, sharpen the witnesses, and split the keys.
 
 ### Added
 - **Hide the ownership tag from players.** New `hide_tag_from_clients` option
-  (on by default). AntiDupePro strips its own tag from items in the
+  (on by default). BetterAntiDupe strips its own tag from items in the
   packets sent to players, so anyone poking at item NBT with a client mod just
   sees nothing — they can't tell a tracked item from an untracked one, and the
   old "swap an item between two accounts to see the tag flip" trick stops
   working. The tag is untouched server-side, so detection is exactly as before.
-  Only AntiDupePro's own data is hidden; other plugins' data and resource-pack
+  Only BetterAntiDupe's own data is hidden; other plugins' data and resource-pack
   item models are left alone.
 - **`antidupe.witness.exempt` permission.** Anyone with this node is never
   counted as a nearby witness — handy for staff who patrol invisibly and
@@ -78,8 +87,8 @@ Hide the tag, sharpen the witnesses, and split the keys.
   both, so existing setups are unchanged.
 
 ### Downloads
-- **Two builds.** `AntiDupePro-3.4.0.jar` is for Minecraft 1.21.x (Java 21);
-  `AntiDupePro-3.4.0-mc26.jar` is for 26.x (Java 25). Grab the one that matches
+- **Two builds.** `BetterAntiDupe-3.4.0.jar` is for Minecraft 1.21.x (Java 21);
+  `BetterAntiDupe-3.4.0-mc26.jar` is for 26.x (Java 25). Grab the one that matches
   your server — 1.21.x servers can't load the 26.x build.
 
 ## [3.3.5] - 2026-06-13
@@ -113,7 +122,7 @@ Speak your language — and a smoother stash teleport.
 Get dupe alerts outside the game!
 
 ### Added
-- **Webhook notifications** — AntiDupePro can now push dupe alerts to:
+- **Webhook notifications** — BetterAntiDupe can now push dupe alerts to:
   - **Discord** (paste a channel webhook URL)
   - **Telegram** (bot token + chat id)
   - **Slack** (incoming webhook URL)
@@ -141,7 +150,7 @@ The plugin is now translatable!
 
 ### Added
 - **messages.yml** — every message shown in-game (alerts, all `/adp`
-  command output) now lives in `plugins/AntiDupePro/messages.yml`.
+  command output) now lives in `plugins/BetterAntiDupe/messages.yml`.
   Translate or restyle anything you like:
   - Colors use `&` codes (`&c` = red, `&l` = bold).
   - `{placeholders}` are filled in by the plugin — keep them, but you
@@ -159,7 +168,7 @@ A false-alarm crackdown. If your console ever filled up with repeated
 
 ### Fixed
 - **Alert flood stopped.** When another plugin blocked an item pickup
-  (vault, claim and loot-protection plugins do this), AntiDupePro could
+  (vault, claim and loot-protection plugins do this), BetterAntiDupe could
   spam hundreds of CRITICAL dupe alerts per second for a single item.
   It now waits one tick and only reacts to pickups that really happened —
   and a given item can only trigger that alert once.
@@ -194,7 +203,7 @@ A false-alarm crackdown. If your console ever filled up with repeated
 - If players were wrongly flagged before this update, run
   `/adp ledger clear <player>` once to reset them.
 - Plugins that hand out items directly (shops, kits, vault plugins like
-  ElytraVaults) are invisible to any event-based tracker. AntiDupePro is
+  ElytraVaults) are invisible to any event-based tracker. BetterAntiDupe is
   built to not punish players for that — but if a specific item still
   alerts too eagerly, raise its number in `alert_thresholds`
   (materials.yml), or ask the plugin's author to call the

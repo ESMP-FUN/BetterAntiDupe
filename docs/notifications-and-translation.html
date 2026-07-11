@@ -1,9 +1,9 @@
 <!--
-  AntiDupePro — Notifications & Translation Guide
+  BetterAntiDupe — Notifications & Translation Guide
   Plain HTML, GitBook-friendly. No external assets, no scripts.
 -->
 
-<h1>AntiDupePro — Notifications &amp; Translation</h1>
+<h1>BetterAntiDupe — Notifications &amp; Translation</h1>
 
 <p>
   This short guide covers the two "make it yours" features:
@@ -33,7 +33,7 @@
 <h2 id="notifications">1. Alerts outside the game (webhooks)</h2>
 
 <p>
-  AntiDupePro can ping you when a dupe is detected, even when no admin is
+  BetterAntiDupe can ping you when a dupe is detected, even when no admin is
   online. Everything lives in the <code>notifications</code> section of
   <code>config.yml</code>, and everything is <strong>off by default</strong>:
 </p>
@@ -102,12 +102,12 @@
 
 <p>
   For anything not listed above — n8n, Zapier, Make, a home-grown bot —
-  enable <code>generic</code> and set <code>url</code>. AntiDupePro sends an
+  enable <code>generic</code> and set <code>url</code>. BetterAntiDupe sends an
   HTTP POST with this JSON body for every alert:
 </p>
 
 <pre><code>{
-  "plugin": "AntiDupePro",
+  "plugin": "BetterAntiDupe",
   "type": "BALANCE_DISCREPANCY",
   "severity": "CRITICAL",
   "player": "Steve",
@@ -162,7 +162,7 @@
 <p>
   Everything the plugin shows in-game — dupe alerts and all
   <code>/adp</code> command output — comes from
-  <code>plugins/AntiDupePro/messages.yml</code>. The file is created on
+  <code>plugins/BetterAntiDupe/messages.yml</code>. The file is created on
   first start with the English defaults.
 </p>
 
@@ -185,4 +185,4 @@
 
 <hr/>
 
-<p><em>Last updated for AntiDupePro 3.3.5 — see the <a href="user-guide.html">main user guide</a> for everything else.</em></p>
+<p><em>Last updated for BetterAntiDupe 3.3.5 — see the <a href="user-guide.html">main user guide</a> for everything else.</em></p>

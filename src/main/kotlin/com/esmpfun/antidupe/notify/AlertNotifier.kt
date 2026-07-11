@@ -1,8 +1,8 @@
-package com.server.antidupe.notify
+package com.esmpfun.antidupe.notify
 
-import com.server.antidupe.ledger.DupeAlert
-import com.server.antidupe.ledger.Severity
-import com.server.antidupe.util.Messages
+import com.esmpfun.antidupe.ledger.DupeAlert
+import com.esmpfun.antidupe.ledger.Severity
+import com.esmpfun.antidupe.util.Messages
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -128,7 +128,7 @@ class AlertNotifier(
             Severity.LOW -> 0x95A5A6
         }
         val embed = JSONObject()
-            .put("title", "AntiDupePro alert")
+            .put("title", "BetterAntiDupe alert")
             .put("description", text)
             .put("color", color)
         return JSONObject().put("embeds", JSONArray().put(embed)).toString()
@@ -136,7 +136,7 @@ class AlertNotifier(
 
     /** Full machine-readable alert for custom integrations (n8n, Zapier, home-grown bots). */
     private fun genericPayload(alert: DupeAlert): String = JSONObject()
-        .put("plugin", "AntiDupePro")
+        .put("plugin", "BetterAntiDupe")
         .put("type", alert.type.name)
         .put("severity", alert.severity.name)
         .put("player", alert.playerName)

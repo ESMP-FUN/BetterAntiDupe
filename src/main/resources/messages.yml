@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------
-# AntiDupePro - messages.yml
+# BetterAntiDupe - messages.yml
 #
 # Every player-facing message lives here. Translate or restyle freely.
 #   - Colour codes use & (e.g. &c = red, &l = bold, &r = reset).
@@ -32,7 +32,7 @@ commands:
 
   help:
     header: "&8&m-----------------------------------------"
-    title: "&6&lAntiDupePro Commands"
+    title: "&6&lBetter Anti Dupe Commands"
     admin-lines:
       - "&e/adp ledger status &7- System status"
       - "&e/adp ledger balance <player> &7- Item balances"

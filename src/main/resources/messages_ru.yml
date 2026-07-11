@@ -1,4 +1,4 @@
-# AntiDupePro - Русский (ru)
+# BetterAntiDupe - Русский (ru)
 # Включается строкой `language: ru` в config.yml. Ваши правки в messages.yml
 # имеют приоритет; отсутствующие ключи берутся из английского.
 # Перевод сгенерирован — исправления сообщества приветствуются на GitHub!
@@ -21,7 +21,7 @@ commands:
 
   help:
     header: "&8&m-----------------------------------------"
-    title: "&6&lКоманды AntiDupePro"
+    title: "&6&lКоманды BetterAntiDupe"
     admin-lines:
       - "&e/adp ledger status &7- Состояние системы"
       - "&e/adp ledger balance <игрок> &7- Балансы предметов"

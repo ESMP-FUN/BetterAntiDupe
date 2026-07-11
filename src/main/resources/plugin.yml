@@ -1,21 +1,21 @@
-name: AntiDupePro
+name: BetterAntiDupe
 version: '${version}'
-main: io.github.darkstarworks.AntiDupePro
+main: com.esmpfun.antidupe.BetterAntiDupe
 api-version: '1.21'
 prefix: DUPE »
 load: STARTUP
 authors: [ darkstarworks ]
-description: Anti-Dupe Pro - Chain of Custody item-flow auditor
+description: Better Anti Dupe - Chain of Custody item-flow auditor
 website: https://github.com/darkstarworks
 
 # Folia compatibility (PaperMC's regionised threading fork).
 folia-supported: true
 
 commands:
-  adp:
-    description: AntiDupePro base command
+  antidupe:
+    description: Better Anti Dupe base command
     usage: /<command> <ledger|update|help>
-    aliases: [antidupe, antidupepro]
+    aliases: [adp, betterantidupe]
 
 permissions:
   antidupe.admin:

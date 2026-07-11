@@ -1,4 +1,4 @@
-# AntiDupePro - Português do Brasil (pt_BR)
+# BetterAntiDupe - Português do Brasil (pt_BR)
 # Ativado com `language: pt_BR` no config.yml. Qualquer linha que você editar
 # em messages.yml tem prioridade; chaves ausentes voltam para o inglês.
 # Tradução gerada — correções da comunidade são bem-vindas no GitHub!
@@ -21,7 +21,7 @@ commands:
 
   help:
     header: "&8&m-----------------------------------------"
-    title: "&6&lComandos do AntiDupePro"
+    title: "&6&lComandos do BetterAntiDupe"
     admin-lines:
       - "&e/adp ledger status &7- Status do sistema"
       - "&e/adp ledger balance <jogador> &7- Saldos de itens"

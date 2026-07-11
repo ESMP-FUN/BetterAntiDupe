@@ -1,12 +1,12 @@
 <!--
-  AntiDupePro — User Guide
+  BetterAntiDupe — User Guide
   Plain HTML, GitBook-friendly. No external assets, no scripts.
 -->
 
-<h1>AntiDupePro — User Guide</h1>
+<h1>BetterAntiDupe — User Guide</h1>
 
 <p>
-  AntiDupePro is a Paper, Folia and Spigot plugin that stops item duplication
+  BetterAntiDupe is a Paper, Folia and Spigot plugin that stops item duplication
   on Minecraft servers running <strong>1.21.x</strong> (tested through 1.21.11)
   and <strong>26.x</strong> — one codebase, two downloads (plain jar for 1.21.x,
   <code>-mc26</code> jar for 26.x). It tags
@@ -45,7 +45,7 @@
 
 <p>
   Whenever a player mines, crafts, picks up, or otherwise obtains a tracked
-  item (diamonds, netherite, shulkers, elytras, etc.), AntiDupePro tags
+  item (diamonds, netherite, shulkers, elytras, etc.), BetterAntiDupe tags
   the item with the player's UUID and records the event in an append-only
   ledger. Every loss event — placing a block, dropping an item, putting
   something into a chest or frame — is recorded too. If the player's
@@ -74,9 +74,9 @@
 <h2 id="quick-start">2. Quick start (5 minutes)</h2>
 
 <ol>
-  <li>Download the latest <code>AntiDupePro-X.Y.Z.jar (1.21.x) or AntiDupePro-X.Y.Z-mc26.jar (26.x)</code>.</li>
+  <li>Download the latest <code>BetterAntiDupe-X.Y.Z.jar (1.21.x) or BetterAntiDupe-X.Y.Z-mc26.jar (26.x)</code>.</li>
   <li>Drop it into your server's <code>plugins/</code> folder.</li>
-  <li>Start the server once. The plugin generates <code>plugins/AntiDupePro/config.yml</code> and a SQLite database file, then loads itself.</li>
+  <li>Start the server once. The plugin generates <code>plugins/BetterAntiDupe/config.yml</code> and a SQLite database file, then loads itself.</li>
   <li>That's it. Your server now tracks the default set of valuable items.</li>
 </ol>
 
@@ -104,18 +104,18 @@
 
 <ol>
   <li>Stop your server.</li>
-  <li>Place <code>AntiDupePro-X.Y.Z.jar (1.21.x) or AntiDupePro-X.Y.Z-mc26.jar (26.x)</code> in <code>plugins/</code>.</li>
+  <li>Place <code>BetterAntiDupe-X.Y.Z.jar (1.21.x) or BetterAntiDupe-X.Y.Z-mc26.jar (26.x)</code> in <code>plugins/</code>.</li>
   <li>Start the server. On first boot you will see something like this in the console:
-    <pre><code>[AntiDupePro] === AntiDupePro v3.3.2 ===
-[AntiDupePro] Initializing Chain of Custody...
-[AntiDupePro] ✓ Scheduler initialized (Bukkit mode)
-[AntiDupePro] ✓ Configuration loaded
-[AntiDupePro] [Ledger] Connected to SQLite at ledger.db
-[AntiDupePro] ✓ Chain of Custody initialized
-[AntiDupePro]   Tracking 7 materials, 5 TMAR limits
-[AntiDupePro] === AntiDupePro enabled successfully ===</code></pre>
+    <pre><code>[BetterAntiDupe] === BetterAntiDupe v3.3.2 ===
+[BetterAntiDupe] Initializing Chain of Custody...
+[BetterAntiDupe] ✓ Scheduler initialized (Bukkit mode)
+[BetterAntiDupe] ✓ Configuration loaded
+[BetterAntiDupe] [Ledger] Connected to SQLite at ledger.db
+[BetterAntiDupe] ✓ Chain of Custody initialized
+[BetterAntiDupe]   Tracking 7 materials, 5 TMAR limits
+[BetterAntiDupe] === BetterAntiDupe enabled successfully ===</code></pre>
   </li>
-  <li>Open <code>plugins/AntiDupePro/config.yml</code> and adjust anything you want (see the <a href="#config">configuration reference</a>).</li>
+  <li>Open <code>plugins/BetterAntiDupe/config.yml</code> and adjust anything you want (see the <a href="#config">configuration reference</a>).</li>
   <li>Reload the plugin with <code>/reload confirm</code> or restart the server.</li>
 </ol>
 
@@ -133,7 +133,7 @@
 <h2 id="storage">4. Choosing a storage backend</h2>
 
 <p>
-  AntiDupePro can store its tracking data in one of three places. Choose
+  BetterAntiDupe can store its tracking data in one of three places. Choose
   the one that fits your setup:
 </p>
 
@@ -178,7 +178,7 @@
 <h2 id="config">5. Configuration reference</h2>
 
 <p>
-  Configuration is split across two files in <code>plugins/AntiDupePro/</code>:
+  Configuration is split across two files in <code>plugins/BetterAntiDupe/</code>:
 </p>
 
 <ul>
@@ -200,7 +200,7 @@
 <pre><code>storage:
   # Where to keep tracking data. SQLITE, REDIS, or MEMORY.
   backend: SQLITE
-  # SQLite filename for the ledger database, inside plugins/AntiDupePro/.
+  # SQLite filename for the ledger database, inside plugins/BetterAntiDupe/.
   sqlite_ledger_file: "ledger.db"
 
 redis:
@@ -233,9 +233,9 @@ block_collect_to_cursor: false
 hide_tag_from_clients: true
 
 # Strict mode: strip EVERY plugin's custom item data from packets, not just
-# AntiDupePro's tag. Off by default — CIT resource packs and client mods that
+# BetterAntiDupe's tag. Off by default — CIT resource packs and client mods that
 # read item data will see stripped items as blank. Whitelist the namespaces
-# your pack/mods need (AntiDupePro's own namespace is never allowed).
+# your pack/mods need (BetterAntiDupe's own namespace is never allowed).
 strip_all_custom_data: false
 strip_whitelist: []
 
@@ -610,7 +610,7 @@ Use /adp ledger stash &lt;player&gt; to see where they stashed items.</code></pr
 
 <p>
   Check the console for the line beginning with
-  <code>Failed to initialize AntiDupePro:</code>. Common causes:
+  <code>Failed to initialize BetterAntiDupe:</code>. Common causes:
 </p>
 
 <ul>
@@ -756,7 +756,7 @@ Use /adp ledger stash &lt;player&gt; to see where they stashed items.</code></pr
 <h3>I used an older version. What changed?</h3>
 
 <p>
-  AntiDupePro originally shipped two detection systems side by side: a
+  BetterAntiDupe originally shipped two detection systems side by side: a
   "Digital Isotope" system that wrote a unique signature into every
   tracked item's NBT, and the Chain of Custody ledger. As of 3.0.0 the
   isotope system is removed entirely. The reason is straightforward:
@@ -779,10 +779,10 @@ Use /adp ledger stash &lt;player&gt; to see where they stashed items.</code></pr
 <p>
   Open an issue on the project's GitHub repository. Include your server
   version, plugin version, the <code>storage.backend</code> you're using,
-  and the relevant console log lines (search for <code>AntiDupePro</code>
+  and the relevant console log lines (search for <code>BetterAntiDupe</code>
   or <code>[DUPE]</code>).
 </p>
 
 <hr/>
 
-<p><em>Last updated for AntiDupePro 3.4.1 — Minecraft 1.21.x (Paper, Folia, Spigot) and 26.x (Paper, on the <code>paper-26</code> branch).</em></p>
+<p><em>Last updated for BetterAntiDupe 3.4.1 — Minecraft 1.21.x (Paper, Folia, Spigot) and 26.x (Paper, on the <code>paper-26</code> branch).</em></p>

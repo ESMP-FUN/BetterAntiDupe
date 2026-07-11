@@ -1,4 +1,4 @@
-package com.server.antidupe.net
+package com.esmpfun.antidupe.net
 
 import io.netty.channel.Channel
 import io.netty.channel.ChannelDuplexHandler

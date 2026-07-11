@@ -3,19 +3,19 @@
 #
 # Modrinth is the primary source; GitHub Releases is the fallback.
 modrinth: antidupepro
-github: darkstarworks/AntiDupePro
+github: ESMP-FUN/BetterAntiDupe
 
 permission: antidupe.admin
-command-root: /adp
-user-agent-contact: https://github.com/darkstarworks/AntiDupePro
-prefix: "<gold>[AntiDupePro]</gold>"
+command-root: /antidupe
+user-agent-contact: https://github.com/ESMP-FUN/BetterAntiDupe
+prefix: "<gold>[AntiDupe]</gold>"
 
 # off | check-only | notify | download | auto-stage
 # Server owners can override this (and check-interval-hours) from an
-# `update:` section in AntiDupePro's own config.yml.
+# `update:` section in BetterAntiDupe's own config.yml.
 mode: notify
 check-interval-hours: 6
 
-# AntiDupePro ships a separate "-mc26" build for Minecraft 26.x; servers on
+# BetterAntiDupe ships a separate "-mc26" build for Minecraft 26.x; servers on
 # 26.x follow that release line automatically.
 track: mc26

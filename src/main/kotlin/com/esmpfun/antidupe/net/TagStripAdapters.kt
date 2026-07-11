@@ -1,4 +1,4 @@
-package com.server.antidupe.net
+package com.esmpfun.antidupe.net
 
 import org.bukkit.plugin.Plugin
 import java.util.logging.Logger

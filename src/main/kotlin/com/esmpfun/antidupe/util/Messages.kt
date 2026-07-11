@@ -1,4 +1,4 @@
-package com.server.antidupe.util
+package com.esmpfun.antidupe.util
 
 import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.configuration.file.YamlConfiguration
@@ -7,7 +7,7 @@ import java.io.File
 import java.io.InputStreamReader
 
 /**
- * Translatable display strings, loaded from `plugins/AntiDupePro/messages.yml`.
+ * Translatable display strings, loaded from `plugins/BetterAntiDupe/messages.yml`.
  *
  * Design rules:
  *  - Every key missing from the server's file falls back to the built-in English

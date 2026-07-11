@@ -2,7 +2,7 @@
 
 **A forensic-grade item-duplication detector for Paper, Folia and Spigot servers.**
 
-Most anti-cheat plugins focus on movement, reach and combat exploits. AntiDupePro
+Most anti-cheat plugins focus on movement, reach and combat exploits. BetterAntiDupe
 focuses on a category they usually ignore: the steady drip of duped items that
 silently inflates your server's economy. It does this by writing an append-only,
 tamper-evident ledger of every item movement and reconciling each player's
@@ -25,7 +25,7 @@ If something doesn't add up, you get an alert before the dupe spreads.
 
 ## What it catches
 
-A non-exhaustive list of dupe families AntiDupePro detects:
+A non-exhaustive list of dupe families BetterAntiDupe detects:
 
 - **Stack-clone exploits** — click-timing, cursor desync, drag-and-place tricks
 - **Shulker / bundle laundering** — recursive content scan at any nesting depth
@@ -41,7 +41,7 @@ A non-exhaustive list of dupe families AntiDupePro detects:
 - **Witness-less acquisitions** — Proof of Witness flags players whose actions are never seen by others (vanished staff are correctly ignored, so invisible patrols can't skew trust)
 
 Full coverage matrix and the rare edge cases are documented in the
-[user guide](https://github.com/darkstarworks/AntiDupePro/blob/main/docs/user-guide.html).
+[user guide](https://github.com/ESMP-FUN/BetterAntiDupe/blob/main/docs/user-guide.html).
 
 ---
 
@@ -120,7 +120,7 @@ lets a trusted admin see the (otherwise hidden) ownership tag in their own clien
 
 ## Configuration
 
-Three YAML files in `plugins/AntiDupePro/`:
+Three YAML files in `plugins/BetterAntiDupe/`:
 
 - `config.yml` — storage backend, modes (shadow / auto-delete), ledger settings
 - `materials.yml` — tracked materials, rate limits, alert thresholds
@@ -141,14 +141,14 @@ the list at any time and restart.
 ## Free and open source
 
 No license key, no telemetry, no "premium" gating. The source is on
-[GitHub](https://github.com/darkstarworks/AntiDupePro). Issues and pull requests
+[GitHub](https://github.com/ESMP-FUN/BetterAntiDupe). Issues and pull requests
 are welcome.
 
 ---
 
 ## Links
 
-- **Source / issues**: [github.com/darkstarworks/AntiDupePro](https://github.com/darkstarworks/AntiDupePro)
+- **Source / issues**: [github.com/ESMP-FUN/BetterAntiDupe](https://github.com/ESMP-FUN/BetterAntiDupe)
 - **User guide**: [gitbook/user-guide](https://darkstarworks.gitbook.io/plugins/mc/antidupepro)
 - **Notifications & translation guide**: [gitbook/notifications-and-translation](https://darkstarworks.gitbook.io/plugins/mc/antidupepro/notifications-and-translation)
 - **Changelog**: [gitbook/changelog](https://darkstarworks.gitbook.io/plugins/mc/antidupepro/changelog)

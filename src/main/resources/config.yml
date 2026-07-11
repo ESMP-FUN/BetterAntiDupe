@@ -1,4 +1,4 @@
-# AntiDupePro Configuration
+# BetterAntiDupe Configuration
 
 # Language for all in-game messages. Bundled options:
 #   en (English), pt_BR (Português do Brasil), es (Español),
@@ -130,12 +130,12 @@ block_collect_to_cursor: false
 hide_tag_from_clients: true
 
 # Strict mode: strip EVERY plugin's custom item data from packets sent to clients,
-# not just AntiDupePro's own tag — anything the client receives is "clean".
+# not just BetterAntiDupe's own tag — anything the client receives is "clean".
 # Off by default: CIT resource packs and client mods that read item data (sorting
 # helpers, price/tooltip overlays) will see stripped items as blank.
 strip_all_custom_data: false
 # Namespaces that survive strict mode, e.g. "itemsadder" or "mmoitems", so those
-# plugins' items keep working client-side. AntiDupePro's own namespace is never
+# plugins' items keep working client-side. BetterAntiDupe's own namespace is never
 # allowed here (it would defeat the concealment) and is ignored if listed.
 strip_whitelist: []
 

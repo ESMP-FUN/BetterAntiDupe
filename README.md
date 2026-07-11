@@ -1,5 +1,5 @@
 <!--
-  AntiDupePro — User Guide
+  BetterAntiDupe — User Guide
   Plain HTML, GitBook-friendly. No external assets, no scripts.
 -->
 <img width="1024" height="256" alt="adp_banner_1024_black-bg" src="https://github.com/user-attachments/assets/0124c9ec-c6b4-48b3-8259-eb1748053a88" />
@@ -8,7 +8,7 @@
 <h1>User Guide</h1>
 
 <p>
-  AntiDupePro is a Paper / Spigot plugin that stops item duplication on
+  BetterAntiDupe is a Paper / Spigot plugin that stops item duplication on
   Minecraft servers running <strong>1.21.x</strong> (tested through 1.21.11).
   It works by giving valuable items a hidden security signature and tracking
   every movement through a tamper-evident ledger, so when a dupe exploit
@@ -46,7 +46,7 @@
 
 <p>
   Whenever a player mines, crafts, picks up, or otherwise obtains a tracked
-  item (diamonds, netherite, shulkers, elytras, etc.), AntiDupePro tags
+  item (diamonds, netherite, shulkers, elytras, etc.), BetterAntiDupe tags
   that item with a unique signature and records the event. If the item
   later appears somewhere it shouldn't — say, the player has two of it but
   the ledger only shows one — the plugin flags the suspicious copy.
@@ -90,9 +90,9 @@
 <h2 id="quick-start">2. Quick start (5 minutes)</h2>
 
 <ol>
-  <li>Download the latest <code>AntiDupePro-X.Y.Z-all.jar</code>.</li>
+  <li>Download the latest <code>BetterAntiDupe-X.Y.Z-all.jar</code>.</li>
   <li>Drop it into your server's <code>plugins/</code> folder.</li>
-  <li>Start the server once. The plugin generates <code>plugins/AntiDupePro/config.yml</code> and a SQLite database file, then loads itself.</li>
+  <li>Start the server once. The plugin generates <code>plugins/BetterAntiDupe/config.yml</code> and a SQLite database file, then loads itself.</li>
   <li>That's it. Your server now tracks the default set of valuable items.</li>
 </ol>
 
@@ -120,17 +120,17 @@
 
 <ol>
   <li>Stop your server.</li>
-  <li>Place <code>AntiDupePro-X.Y.Z-all.jar</code> in <code>plugins/</code>.</li>
+  <li>Place <code>BetterAntiDupe-X.Y.Z-all.jar</code> in <code>plugins/</code>.</li>
   <li>Start the server. On first boot you will see something like this in the console:
-    <pre><code>[AntiDupePro] === AntiDupePro v2.0.0 ===
-[AntiDupePro] Initializing Protection Engine...
-[AntiDupePro] Configuration loaded and validated
-[AntiDupePro] Connected to SQLite Security Backend at storage.db
-[AntiDupePro] Core initialized
-[AntiDupePro] Event listeners registered
-[AntiDupePro] === AntiDupePro enabled successfully ===</code></pre>
+    <pre><code>[BetterAntiDupe] === BetterAntiDupe v2.0.0 ===
+[BetterAntiDupe] Initializing Protection Engine...
+[BetterAntiDupe] Configuration loaded and validated
+[BetterAntiDupe] Connected to SQLite Security Backend at storage.db
+[BetterAntiDupe] Core initialized
+[BetterAntiDupe] Event listeners registered
+[BetterAntiDupe] === BetterAntiDupe enabled successfully ===</code></pre>
   </li>
-  <li>Open <code>plugins/AntiDupePro/config.yml</code> and adjust anything you want (see the <a href="#config">configuration reference</a>).</li>
+  <li>Open <code>plugins/BetterAntiDupe/config.yml</code> and adjust anything you want (see the <a href="#config">configuration reference</a>).</li>
   <li>Reload the plugin with <code>/reload confirm</code> or restart the server.</li>
 </ol>
 
@@ -148,7 +148,7 @@
 <h2 id="storage">4. Choosing a storage backend</h2>
 
 <p>
-  AntiDupePro can store its tracking data in one of three places. Choose
+  BetterAntiDupe can store its tracking data in one of three places. Choose
   the one that fits your setup:
 </p>
 
@@ -193,7 +193,7 @@
 <h2 id="config">5. Configuration reference</h2>
 
 <p>
-  Configuration is split across two files in <code>plugins/AntiDupePro/</code>:
+  Configuration is split across two files in <code>plugins/BetterAntiDupe/</code>:
 </p>
 
 <ul>
@@ -214,7 +214,7 @@
 <pre><code>storage:
   # Where to keep tracking data. SQLITE, REDIS, or MEMORY.
   backend: SQLITE
-  # SQLite filename for the v1 system, inside plugins/AntiDupePro/.
+  # SQLite filename for the v1 system, inside plugins/BetterAntiDupe/.
   sqlite_file: "storage.db"
   # SQLite filename for the v2 ledger (kept separate so you can wipe
   # one without touching the other).
@@ -558,7 +558,7 @@ alert_thresholds:
 
 <p>
   Check the console for the line beginning with
-  <code>Failed to initialize AntiDupePro:</code>. Common causes:
+  <code>Failed to initialize BetterAntiDupe:</code>. Common causes:
 </p>
 
 <ul>
@@ -595,7 +595,7 @@ alert_thresholds:
   <li>
     <strong>Custom plugins giving items.</strong> If another plugin grants
     items via <code>player.getInventory().addItem(...)</code> without
-    firing a Bukkit event, AntiDupePro can't see the legitimate source
+    firing a Bukkit event, BetterAntiDupe can't see the legitimate source
     and may flag the resulting balance. Either fire a proper event from
     the other plugin, or whitelist the material.
   </li>
@@ -716,10 +716,10 @@ alert_thresholds:
 <p>
   Open an issue on the project's GitHub repository. Include your server
   version, plugin version, the <code>storage.backend</code> you're using,
-  and the relevant console log lines (search for <code>AntiDupePro</code>
+  and the relevant console log lines (search for <code>BetterAntiDupe</code>
   or <code>[DUPE]</code>).
 </p>
 
 <hr/>
 
-<p><em>Last updated for AntiDupePro 2.7.0 — Minecraft 1.21.x.</em></p>
+<p><em>Last updated for BetterAntiDupe 2.7.0 — Minecraft 1.21.x.</em></p>

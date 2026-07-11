@@ -1,4 +1,4 @@
-package com.server.antidupe.ledger
+package com.esmpfun.antidupe.ledger
 
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
@@ -32,7 +32,7 @@ class OwnershipManager(
     }
 
     /** The key new/updated tags are written under. Configurable (see [OwnershipKeys]). */
-    private val ownerKey = primaryKey ?: NamespacedKey(plugin, "adp_owner")
+    private val ownerKey = primaryKey ?: NamespacedKey("antidupepro", "adp_owner")
 
     /** Older keys still recognized on read; rewritten to [ownerKey] on the next write. */
     private val legacyOwnerKeys = legacyKeys.filter { it != ownerKey }

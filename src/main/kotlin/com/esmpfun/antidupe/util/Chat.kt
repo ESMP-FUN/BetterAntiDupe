@@ -3,7 +3,7 @@
 // in favour of Adventure, but Adventure isn't available on Spigot and we want one code
 // path that works on all three platforms (Spigot, Paper, Folia). The BungeeCord API
 // remains functional everywhere and the deprecation is documentation-only on Paper.
-package com.server.antidupe.util
+package com.esmpfun.antidupe.util
 
 import net.md_5.bungee.api.chat.BaseComponent
 import net.md_5.bungee.api.chat.ClickEvent

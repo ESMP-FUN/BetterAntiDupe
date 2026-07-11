@@ -1,1 +1,1 @@
-rootProject.name = "AntiDupePro"
+rootProject.name = "BetterAntiDupe"

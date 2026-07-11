@@ -1,6 +1,6 @@
-package com.server.antidupe.ledger
+package com.esmpfun.antidupe.ledger
 
-import com.server.antidupe.platform.PlatformScheduler
+import com.esmpfun.antidupe.platform.PlatformScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine

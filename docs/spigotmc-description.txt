@@ -2,15 +2,15 @@
  
 Forensic-grade item-duplication detector[/COLOR][/SIZE]
 [SIZE=3]Paper · Folia · Spigot — 1.21.x and 26.x[/SIZE][/CENTER]
-[CENTER][SIZE=4][I]Most anti-cheat plugins watch movement and combat. AntiDupePro
+[CENTER][SIZE=4][I]Most anti-cheat plugins watch movement and combat. BetterAntiDupe
 watches the items themselves — and catches the dupes that quietly inflate your
 economy until your spawn is full of free elytras.[/I][/SIZE][/CENTER]
 [CENTER][SIZE=3][COLOR=#808080]
 ——————————————————————————————
 [/COLOR][/SIZE][/CENTER]
-[SIZE=6][COLOR=#0000ff][B]Why AntiDupePro?[/B][/COLOR][/SIZE]
+[SIZE=6][COLOR=#0000ff][B]Why BetterAntiDupe?[/B][/COLOR][/SIZE]
 Other anti-dupe plugins use per-item NBT tags — every diamond gets a unique ID,
-which breaks vanilla stacking and irritates your players. AntiDupePro takes
+which breaks vanilla stacking and irritates your players. BetterAntiDupe takes
 a different approach: items keep their owner UUID and stack normally, but every
 gain and loss is recorded in a tamper-evident ledger. When a player's actual
 inventory diverges from what the ledger says, you get an alert.
@@ -19,7 +19,7 @@ The result: comprehensive detection without the UX friction.
 ——————————————————————————————
 [/COLOR][/SIZE][/CENTER]
 [SIZE=6][COLOR=#0000ff][B]What it catches[/B][/COLOR][/SIZE]
-A partial list of dupe families AntiDupePro detects out of the box:
+A partial list of dupe families BetterAntiDupe detects out of the box:
 [LIST]
 [*][B]Stack-clone exploits[/B] — click-timing, drag, cursor desync
 [*][B]Shulker / bundle laundering[/B] — recursive content scan up to depth 10
@@ -89,7 +89,7 @@ Permission [I]antidupe.admin[/I] grants all of the above and routes dupe alerts 
 ——————————————————————————————
 [/COLOR][/SIZE][/CENTER]
 [SIZE=6][COLOR=#0000ff][B]Configuration[/B][/COLOR][/SIZE]
-Two files in [I]plugins/AntiDupePro/[/I]:
+Two files in [I]plugins/BetterAntiDupe/[/I]:
 [LIST]
 [*][B]config.yml[/B] — storage backend, modes (shadow / auto-delete), ledger settings
 [*][B]materials.yml[/B] — tracked materials, rate limits, alert thresholds
@@ -116,10 +116,10 @@ any time without restarting the dependency stack — just edit the file and relo
 [/COLOR][/SIZE][/CENTER]
 [SIZE=6][COLOR=#0000ff][B]Links[/B][/COLOR][/SIZE]
 [LIST]
-[*][URL=https://github.com/darkstarworks/AntiDupePro]Source code and issue tracker[/URL]
+[*][URL=https://github.com/ESMP-FUN/BetterAntiDupe]Source code and issue tracker[/URL]
 [*][URL=https://darkstarworks.gitbook.io/plugins/mc/antidupepro]User guide (HTML)[/URL]
 [*][URL=https://darkstarworks.gitbook.io/plugins/mc/antidupepro/notifications-and-translation]Notifications & translation guide[/URL]
 [*][URL=https://darkstarworks.gitbook.io/plugins/mc/antidupepro/changelog]Changelog[/URL]
 [/LIST]
-[CENTER][SIZE=3][I]If AntiDupePro saved you from cleaning up a dupe wave, a positive review
+[CENTER][SIZE=3][I]If BetterAntiDupe saved you from cleaning up a dupe wave, a positive review
 on this page is the best way to support development.[/I][/SIZE][/CENTER]

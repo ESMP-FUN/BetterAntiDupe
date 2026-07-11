@@ -1,4 +1,4 @@
-package com.server.antidupe.net
+package com.esmpfun.antidupe.net
 
 import org.bukkit.entity.Player
 

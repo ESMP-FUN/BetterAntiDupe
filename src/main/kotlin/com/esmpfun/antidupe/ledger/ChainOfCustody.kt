@@ -1,6 +1,6 @@
-package com.server.antidupe.ledger
+package com.esmpfun.antidupe.ledger
 
-import com.server.antidupe.platform.PlatformScheduler
+import com.esmpfun.antidupe.platform.PlatformScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -185,7 +185,7 @@ class ChainOfCustody private constructor(
     /**
      * Public API for other plugins to declare a legitimate grant of items to a player.
      * Use this whenever your plugin uses `player.getInventory().addItem(...)` or similar
-     * outside of normal Bukkit events — otherwise AntiDupePro's reconciliation will see
+     * outside of normal Bukkit events — otherwise BetterAntiDupe's reconciliation will see
      * the extra inventory and may flag the player as a duper.
      *
      * Example:

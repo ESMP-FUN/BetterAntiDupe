@@ -1,4 +1,4 @@
-package com.server.antidupe.ledger
+package com.esmpfun.antidupe.ledger
 
 import org.bukkit.Material
 import java.util.Collections

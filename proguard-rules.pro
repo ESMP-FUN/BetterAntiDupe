@@ -1,5 +1,5 @@
 # ==============================================================================
-# AntiDupePro - Optimized ProGuard Configuration
+# BetterAntiDupe - Optimized ProGuard Configuration
 # ==============================================================================
 # This configuration aggressively obfuscates code while preserving functionality.
 # The mapping.txt file in build/proguard/ can decode stack traces.
@@ -55,7 +55,7 @@
 # ------------------------------------------------------------------------------
 
 # Main Plugin Class (referenced in plugin.yml - MUST keep name and constructor)
--keep class io.github.darkstarworks.AntiDupePro {
+-keep class com.esmpfun.antidupe.BetterAntiDupe {
     <init>();
 }
 
@@ -86,10 +86,10 @@
 # ------------------------------------------------------------------------------
 
 # Support for our custom @Keep annotation
--keep @com.server.antidupe.annotations.Keep class * { *; }
+-keep @com.esmpfun.antidupe.annotations.Keep class * { *; }
 -keepclassmembers class * {
-    @com.server.antidupe.annotations.Keep <fields>;
-    @com.server.antidupe.annotations.Keep <methods>;
+    @com.esmpfun.antidupe.annotations.Keep <fields>;
+    @com.esmpfun.antidupe.annotations.Keep <methods>;
 }
 
 # Also support standard annotations if present

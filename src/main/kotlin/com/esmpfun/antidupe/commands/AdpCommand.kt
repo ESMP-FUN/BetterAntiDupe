@@ -1,10 +1,10 @@
-package com.server.antidupe.commands
+package com.esmpfun.antidupe.commands
 
-import com.server.antidupe.ledger.ChainOfCustody
-import com.server.antidupe.platform.PlatformScheduler
-import com.server.antidupe.util.Chat
-import com.server.antidupe.util.Chat.sendChat
-import com.server.antidupe.util.Messages
+import com.esmpfun.antidupe.ledger.ChainOfCustody
+import com.esmpfun.antidupe.platform.PlatformScheduler
+import com.esmpfun.antidupe.util.Chat
+import com.esmpfun.antidupe.util.Chat.sendChat
+import com.esmpfun.antidupe.util.Messages
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.bukkit.Bukkit
@@ -324,7 +324,7 @@ class AdpCommand(
     }
 
     /** Falls back to the entry's own world/x/y/z if there's no containerLocation. */
-    private fun parseEntryCoords(entry: com.server.antidupe.ledger.LedgerEntry): Coords? {
+    private fun parseEntryCoords(entry: com.esmpfun.antidupe.ledger.LedgerEntry): Coords? {
         val w = entry.metadata.worldName ?: return null
         val x = entry.metadata.x ?: return null
         val y = entry.metadata.y ?: return null

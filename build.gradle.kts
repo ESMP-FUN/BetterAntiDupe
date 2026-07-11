@@ -4,13 +4,13 @@ plugins {
     id("xyz.jpenilla.run-paper") version "2.3.1"
 }
 
-group = "io.github.darkstarworks"
+group = "com.esmpfun"
 
 // Two build targets from one source, selected with -Pmc=<line> (default 26):
-//   ./gradlew shadowJar -Pmc=21   ->  AntiDupePro-3.4.2.jar       (compile 1.21.x, Java 21)
-//   ./gradlew shadowJar -Pmc=26   ->  AntiDupePro-3.4.2-mc26.jar  (compile 26.x,  Java 25)
+//   ./gradlew shadowJar -Pmc=21   ->  BetterAntiDupe-3.4.2.jar       (compile 1.21.x, Java 21)
+//   ./gradlew shadowJar -Pmc=26   ->  BetterAntiDupe-3.4.2-mc26.jar  (compile 26.x,  Java 25)
 // 1.21.x servers run JDK21 and can't load Java 25 bytecode, hence the two artifacts.
-val pluginVersion = "3.5.1"
+val pluginVersion = "4.0.0"
 val mcLine = (findProperty("mc") as String?) ?: "26"
 val is26 = mcLine == "26"
 version = if (is26) "$pluginVersion-mc26" else pluginVersion
@@ -72,7 +72,7 @@ tasks.jar {
 // a Minecraft server only ever runs on a small subset. Everything in here is
 // excluded because we cannot reach a state where it gets loaded.
 tasks.shadowJar {
-    // Final artifact is the shaded jar itself: AntiDupePro-<version>.jar.
+    // Final artifact is the shaded jar itself: BetterAntiDupe-<version>.jar.
     // No "-all" classifier, and the thin (dependency-less) jar task is disabled
     // below because it is never released or used.
     archiveClassifier.set("")

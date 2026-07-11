@@ -1,4 +1,4 @@
-package com.server.antidupe.ledger
+package com.esmpfun.antidupe.ledger
 
 import org.bukkit.NamespacedKey
 import org.bukkit.plugin.java.JavaPlugin
