@@ -63,6 +63,7 @@ class BetterAntiDupe : JavaPlugin() {
             initializeChainOfCustody()
             registerJoinBaseline()
             initializeTagStripper()
+            registerDuperPrevention()
 
             // Update checking (PluginPulse). Spigot-safe: plain-text notices
             // when Adventure is absent. Config in pluginpulse.yml; server owners
@@ -152,13 +153,20 @@ class BetterAntiDupe : JavaPlugin() {
 
     private fun initializeChainOfCustody() {
         try {
-            val trackedMaterials = materialsConfig.getStringList("tracked_materials")
+            val configuredMaterials = materialsConfig.getStringList("tracked_materials")
                 .mapNotNull { name ->
                     try { Material.valueOf(name.uppercase()) }
                     catch (e: IllegalArgumentException) {
                         logger.warning("Invalid material in tracked_materials: $name"); null
                     }
-                }.toSet()
+                }
+            // Shulker boxes of every colour are always tracked (as materials.yml documents) —
+            // they're the primary laundering vector, and listing only SHULKER_BOX would leave
+            // the 16 dyed variants invisible to the ledger.
+            val allShulkerBoxes = Material.values().filter {
+                it.name.endsWith("SHULKER_BOX") && !it.name.startsWith("LEGACY_")
+            }
+            val trackedMaterials = (configuredMaterials + allShulkerBoxes).toSet()
 
             val tmarLimits = mutableMapOf<Material, Int>()
             materialsConfig.getConfigurationSection("tmar_limits")?.let { section ->
@@ -264,6 +272,32 @@ class BetterAntiDupe : JavaPlugin() {
     }
 
     fun getChainOfCustody(): ChainOfCustody? = chainOfCustody
+
+    /**
+     * Mechanic-level blocking of the classic block dupers (rail / carpet / TNT / gravity).
+     * These duplicate blocks in the world before any inventory event exists, so the ledger
+     * alone can only catch the aftermath — this stops the contraption itself.
+     */
+    private fun registerDuperPrevention() {
+        val rail = config.getBoolean("prevent-rail-dupers", true)
+        val carpet = config.getBoolean("prevent-carpet-dupers", true)
+        val gravity = config.getBoolean("prevent-gravity-dupers", true)
+        val tnt = config.getBoolean("prevent-tnt-dupers", true)
+        val desync = config.getBoolean("prevent-container-desync-dupers", true)
+        if (!rail && !carpet && !gravity && !tnt && !desync) {
+            logger.info("Duper prevention fully disabled in config")
+            return
+        }
+        server.pluginManager.registerEvents(
+            DuperPreventionListener(rail, carpet, gravity, tnt, desync, logger), this
+        )
+        val active = listOfNotNull(
+            "rail".takeIf { rail }, "carpet".takeIf { carpet },
+            "gravity".takeIf { gravity }, "tnt".takeIf { tnt },
+            "container-desync".takeIf { desync }
+        )
+        logger.info("✓ Duper prevention active: ${active.joinToString(", ")}")
+    }
 
     /**
      * Optional client-side tag concealment. Strips ADP's PDC keys from outgoing item packets so

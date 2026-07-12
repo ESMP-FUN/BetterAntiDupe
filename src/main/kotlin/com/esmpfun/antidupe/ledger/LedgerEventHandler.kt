@@ -40,6 +40,8 @@ import org.bukkit.event.player.PlayerTakeLecternBookEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryHolder
+import org.bukkit.inventory.meta.BlockStateMeta
+import org.bukkit.inventory.meta.BundleMeta
 import org.bukkit.plugin.Plugin
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -87,6 +89,45 @@ class LedgerEventHandler(
                 logger.warning("[Ledger] append failed: ${e.message}")
             }
         }
+    }
+
+    // ========== CONTAINER-ITEM CONTENTS (filled shulker boxes, bundles) ==========
+
+    /** Cheap pre-filter so we only pay BlockStateMeta deserialization for items that can hold others. */
+    private fun mightHoldItems(type: Material): Boolean =
+        type.name.endsWith("SHULKER_BOX") || type.name.endsWith("BUNDLE")
+
+    /**
+     * Tracked materials stored INSIDE an item (shulker box / bundle contents), recursively.
+     *
+     * The deep inventory scan counts these as the holder's possessions, so every ledger
+     * movement of the outer item must move the contents with it. Without this, breaking and
+     * picking up your own filled shulker reads as a dupe (contents present but never
+     * credited — false CRITICAL alert), while storing / dropping / placing one silently
+     * inflates the ledger, granting real dupers headroom.
+     */
+    private fun containedTracked(stack: ItemStack, depth: Int = 0): Map<Material, Int> {
+        if (depth >= 8 || !mightHoldItems(stack.type)) return emptyMap()
+        val meta = stack.itemMeta ?: return emptyMap()
+        val counts = HashMap<Material, Int>()
+        fun addInner(inner: ItemStack?) {
+            if (inner == null || inner.type == Material.AIR) return
+            if (isTracked(inner.type)) counts.merge(inner.type, inner.amount, Int::plus)
+            for ((m, c) in containedTracked(inner, depth + 1)) counts.merge(m, c, Int::plus)
+        }
+        if (meta is BlockStateMeta && meta.hasBlockState()) {
+            (meta.blockState as? Container)?.inventory?.contents?.forEach { addInner(it) }
+        }
+        if (meta is BundleMeta) meta.items.forEach { addInner(it) }
+        return counts
+    }
+
+    /** Append one ledger entry per contained material; [sign] is +1 (acquire) or -1 (dispose). */
+    private fun appendContents(
+        player: UUID, action: LedgerAction,
+        contents: Map<Material, Int>, sign: Int, meta: LedgerMetadata
+    ) {
+        for ((material, count) in contents) appendAsync(player, action, material, sign * count, meta)
     }
 
     // ========== ACQUISITION ==========
@@ -176,6 +217,9 @@ class LedgerEventHandler(
         }
 
         ownershipManager.setOwner(item, player.uniqueId)
+        // Write the tagged stack back to the entity — getItemStack can be a detached copy
+        // on some API versions (same reason onBlockDropItem writes back explicitly).
+        event.item.itemStack = item
 
         // Defer the source-matching, credit and entity-uuid dupe check by one tick so we only
         // act on pickups that actually COMPLETED. Another plugin can cancel the pickup at a
@@ -188,6 +232,7 @@ class LedgerEventHandler(
         val capturedPlayerId = player.uniqueId
         val capturedMaterial = item.type
         val capturedAmount = item.amount
+        val capturedContents = containedTracked(item)
         val itemEntity = event.item
         val entityUuid = itemEntity.uniqueId
         val pickupLoc = itemEntity.location.clone()
@@ -253,6 +298,12 @@ class LedgerEventHandler(
                     } catch (e: Exception) {
                         logger.warning("[Ledger] PICKUP append failed: ${e.message}")
                     }
+                }
+                // Filled shulker/bundle: its contents just entered the player's possession
+                // (the deep scan counts them), so credit them alongside the outer item.
+                if (capturedContents.isNotEmpty()) {
+                    appendContents(capturedPlayerId, LedgerAction.PICKUP, capturedContents, +1,
+                        finalMeta.copy(notes = listOfNotNull(finalMeta.notes, "CONTENTS_OF:$capturedMaterial").joinToString("|")))
                 }
             }
         })
@@ -334,12 +385,17 @@ class LedgerEventHandler(
         val placedType = block.type
         val material = item.type
         val playerId = player.uniqueId
+        val contents = containedTracked(item)
         scheduler.runForEntityLater(player, 1, Runnable {
             if (block.type != placedType) return@Runnable
-            appendAsync(
-                playerId, LedgerAction.PLACE, material, -1,
-                LedgerMetadata.fromLocation(block.location)
-            )
+            val meta = LedgerMetadata.fromLocation(block.location)
+            appendAsync(playerId, LedgerAction.PLACE, material, -1, meta)
+            // Placing a filled shulker moves its contents out of the player's possession
+            // (into a world block the deep scan doesn't see) — debit them with it.
+            if (contents.isNotEmpty()) {
+                appendContents(playerId, LedgerAction.PLACE, contents, -1,
+                    meta.copy(notes = "CONTENTS_OF:$material"))
+            }
         })
     }
 
@@ -358,13 +414,43 @@ class LedgerEventHandler(
         val material = item.type
         val amount = item.amount
         val playerId = player.uniqueId
+        val contents = containedTracked(item)
         scheduler.runForEntityLater(dropEntity, 1, Runnable {
             if (!dropEntity.isValid) return@Runnable
-            appendAsync(
-                playerId, LedgerAction.DROP, material, -amount,
-                LedgerMetadata.fromLocation(dropEntity.location)
-            )
+            val meta = LedgerMetadata.fromLocation(dropEntity.location)
+            appendAsync(playerId, LedgerAction.DROP, material, -amount, meta)
+            // Dropping a filled shulker also drops its contents from possession; a later
+            // pickup (by anyone) credits them back via the PICKUP contents path.
+            if (contents.isNotEmpty()) {
+                appendContents(playerId, LedgerAction.DROP, contents, -1,
+                    meta.copy(notes = "CONTENTS_OF:$material"))
+            }
         })
+    }
+
+    /**
+     * Death drops. Without this debit, dying and re-collecting your items credits PICKUP a
+     * second time with no matching disposal — every death inflates the ledger by the whole
+     * inventory, permanent headroom a duper can farm by dying on purpose. The drops are
+     * already authorized as expected drops by [onEntityDeath] (PlayerDeathEvent extends
+     * EntityDeathEvent), so re-collection or looting matches cleanly at pickup. With
+     * keepInventory on, the drops list is empty and this is a no-op.
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    fun onPlayerDeath(event: org.bukkit.event.entity.PlayerDeathEvent) {
+        val player = event.entity
+        if (shouldSkip(player)) return
+        val meta = LedgerMetadata.fromLocation(player.location).copy(notes = "DEATH_DROP")
+        for (drop in event.drops) {
+            if (isTracked(drop.type)) {
+                appendAsync(player.uniqueId, LedgerAction.DROP, drop.type, -drop.amount, meta)
+            }
+            val contents = containedTracked(drop)
+            if (contents.isNotEmpty()) {
+                appendContents(player.uniqueId, LedgerAction.DROP, contents, -1,
+                    meta.copy(notes = "DEATH_DROP|CONTENTS_OF:${drop.type}"))
+            }
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -415,19 +501,22 @@ class LedgerEventHandler(
         val target = classifyTopInventory(topInv) ?: return
 
         // Materials that could plausibly move in this interaction: the clicked slot, the
-        // cursor, and the hotbar/offhand stack for number-key and F swaps.
+        // cursor, and the hotbar/offhand stack for number-key and F swaps. A container item
+        // (filled shulker/bundle) also contributes its contents' materials, so the diff
+        // records the contents moving with it.
         val materials = HashSet<Material>()
-        event.currentItem?.let { if (it.type != Material.AIR && isTracked(it.type)) materials.add(it.type) }
-        event.cursor.let { if (it.type != Material.AIR && isTracked(it.type)) materials.add(it.type) }
+        fun consider(stack: ItemStack?) {
+            if (stack == null || stack.type == Material.AIR) return
+            if (isTracked(stack.type)) materials.add(stack.type)
+            materials.addAll(containedTracked(stack).keys)
+        }
+        consider(event.currentItem)
+        consider(event.cursor)
         if (event.click == ClickType.NUMBER_KEY && event.hotbarButton >= 0) {
-            player.inventory.getItem(event.hotbarButton)?.let {
-                if (it.type != Material.AIR && isTracked(it.type)) materials.add(it.type)
-            }
+            consider(player.inventory.getItem(event.hotbarButton))
         }
         if (event.click == ClickType.SWAP_OFFHAND) {
-            player.inventory.itemInOffHand.let {
-                if (it.type != Material.AIR && isTracked(it.type)) materials.add(it.type)
-            }
+            consider(player.inventory.itemInOffHand)
         }
         if (materials.isEmpty()) return
 
@@ -445,8 +534,12 @@ class LedgerEventHandler(
         if (event.rawSlots.none { it < topInv.size }) return  // drag stayed in player inventory
 
         val mat = event.oldCursor.type
-        if (mat == Material.AIR || !isTracked(mat)) return
-        scheduleContainerDiff(player, topInv, target, hashSetOf(mat))
+        if (mat == Material.AIR) return
+        val materials = HashSet<Material>()
+        if (isTracked(mat)) materials.add(mat)
+        materials.addAll(containedTracked(event.oldCursor).keys)
+        if (materials.isEmpty()) return
+        scheduleContainerDiff(player, topInv, target, materials)
     }
 
     private class PendingContainerDiff(
@@ -458,10 +551,17 @@ class LedgerEventHandler(
     /** One pending diff per player (a player has at most one open top inventory). Main-thread only. */
     private val pendingDiffs = ConcurrentHashMap<UUID, PendingContainerDiff>()
 
+    /**
+     * Deep count: includes items stored inside shulker/bundle items lying in the inventory,
+     * so a filled shulker moving in or out of a chest moves its contents on the ledger too
+     * (otherwise a friend taking your diamond-filled shulker gets the diamonds credit-free).
+     */
     private fun countInInventory(inv: Inventory, material: Material): Int {
         var total = 0
         for (stack in inv.contents) {
-            if (stack != null && stack.type == material) total += stack.amount
+            if (stack == null) continue
+            if (stack.type == material) total += stack.amount
+            if (mightHoldItems(stack.type)) total += containedTracked(stack)[material] ?: 0
         }
         return total
     }
@@ -666,6 +766,11 @@ class LedgerEventHandler(
         // deferred pot-content comparison; the same applies to onFrameRightClick below.
         val meta = LedgerMetadata.fromLocation(block.location).copy(containerType = "DECORATED_POT")
         appendAsync(player.uniqueId, LedgerAction.CONTAINER_PUT, held.type, -1, meta)
+        val contents = containedTracked(held)
+        if (contents.isNotEmpty()) {
+            appendContents(player.uniqueId, LedgerAction.CONTAINER_PUT, contents, -1,
+                meta.copy(notes = "CONTENTS_OF:${held.type}"))
+        }
     }
 
     // Crafter block automation (1.21+) is intentionally not handled here — CrafterCraftEvent
@@ -867,6 +972,11 @@ class LedgerEventHandler(
         val meta = LedgerMetadata.fromLocation(frame.location)
             .copy(containerType = "ITEM_FRAME", containerLocation = "${frame.location.world?.name},${frame.location.blockX},${frame.location.blockY},${frame.location.blockZ}")
         appendAsync(player.uniqueId, LedgerAction.FRAME_PUT, held.type, -1, meta)
+        val contents = containedTracked(held)
+        if (contents.isNotEmpty()) {
+            appendContents(player.uniqueId, LedgerAction.FRAME_PUT, contents, -1,
+                meta.copy(notes = "CONTENTS_OF:${held.type}"))
+        }
 
         frameContents[frame.uniqueId] = FrameContent(held.type, 1, player.uniqueId)
     }

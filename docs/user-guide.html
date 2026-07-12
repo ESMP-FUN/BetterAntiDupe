@@ -213,6 +213,19 @@ redis:
 
 # Tracked items, rate limits and alert thresholds live in materials.yml.
 
+# ---------- Duper prevention (block-duplication contraptions) ----------
+# Blocks the classic dupe machines at the mechanic level, before any item
+# exists to track: rail/carpet dupers (piston movement under an attached
+# rail/carpet is cancelled), TNT dupers (pistons can't move TNT), gravity
+# dupers (falling blocks can't travel through portals), and "phantom GUI"
+# container dupes (open GUIs are closed when their shulker/chest is
+# destroyed or their donkey/chest-boat unloads). All on by default.
+prevent-rail-dupers: true
+prevent-carpet-dupers: true
+prevent-gravity-dupers: true
+prevent-tnt-dupers: true
+prevent-container-desync-dupers: true
+
 # If true, the plugin silently removes detected duplicates from inventories.
 # If false (default), it only alerts admins and logs the event.
 auto_delete_dupes: false

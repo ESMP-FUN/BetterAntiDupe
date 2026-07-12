@@ -13,6 +13,12 @@
 # Items that the protection engine watches. Shulker boxes of every colour are
 # always tracked regardless of this list — they're the primary laundering
 # vector and stay hardcoded.
+#
+# You do NOT need to add rails, carpets, TNT, sand/gravel/concrete powder here
+# to stop the classic block dupers — those contraptions are blocked directly by
+# the prevent-*-dupers toggles in config.yml. Only list items whose quantity
+# you want audited by the ledger (tracking very common blocks is noisy and
+# grows the database quickly).
 # -----------------------------------------------------------------------------
 tracked_materials:
   - DIAMOND_BLOCK

@@ -2,14 +2,25 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
-## [4.0.0] - 2026-07-11
+## [4.0.0] - 2026-07-13
 ### Changed
 - **The plugin is now Better Anti Dupe.** Same free plugin, new name — part of the ESMP rebrand. The project now lives at https://github.com/ESMP-FUN/BetterAntiDupe.
 - Main command is `/antidupe` (aliases `/adp`, `/betterantidupe`). Permissions are unchanged (`antidupe.*`).
 - Internal packages moved to `com.esmpfun.antidupe`.
 
 ### Added
+- **Duper prevention.** The classic block-duplication contraptions are now blocked at the mechanic level, before any item exists to track. Five new config toggles, all on by default:
+  - `prevent-rail-dupers` / `prevent-carpet-dupers` — cancels piston movement that would dislodge a rail or carpet mid-move (including the carpet-on-piston-arm variant), the trick every rail/carpet duper relies on.
+  - `prevent-tnt-dupers` — pistons can no longer move TNT blocks. Turn off if your server allows TNT-duper world eaters.
+  - `prevent-gravity-dupers` — falling blocks (sand, gravel, concrete powder, dragon egg...) can no longer travel through portals (the end-portal sand duper family). Pistons pushing sand are unaffected.
+  - `prevent-container-desync-dupers` — open container GUIs are force-closed when the container goes away (shulker/chest broken or blown up, donkey/chest-boat chunk unloading), killing the "phantom GUI" dupes that would otherwise launder items through legitimate-looking ledger entries.
+- **Death drops are now debited from the ledger.** Previously, dying and re-collecting your items credited them a second time, permanently inflating the ledger — headroom a duper could farm by dying on purpose. Drops (including shulker contents) are debited at death and credited back on pickup, by whoever collects them.
 - Automatic data-folder migration from `plugins/AntiDupePro/` on first start (old folder kept as backup).
+
+### Fixed
+- **All 17 shulker box colors are tracked.** The dyed variants were silently untracked despite the materials.yml comment claiming otherwise — only the undyed (purple) `SHULKER_BOX` was watched. Every color is now always tracked, as documented.
+- **Breaking your own filled shulker box no longer fires a false CRITICAL alert.** The ledger treated items placed into a shulker as disposed, but the inventory scan counts items inside a held shulker as yours — so break-and-carry read as a huge surplus. Shulker/bundle contents now move on the ledger together with the container item, across pickups, drops, block placement, chest transfers, item frames, and decorated pots. Handing a friend a filled shulker via a chest also credits them the contents correctly.
+- Ownership tags applied on pickup are now written back to the item entity explicitly, closing a potential gap on API versions where the stack getter returns a copy.
 
 ## [3.5.1] - 2026-07-08
 

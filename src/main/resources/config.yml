@@ -107,6 +107,41 @@ redis:
 # That keeps config.yml short even when many items are tracked. Edit the
 # tracked items list, rate limits and alert thresholds there.
 
+# =============================================================================
+# DUPER PREVENTION (block-duplication contraptions)
+# =============================================================================
+# Rail / carpet / TNT / gravity dupers duplicate BLOCKS in the world through
+# piston update-order exploits — no inventory event fires, so ledger tracking
+# alone only catches the aftermath. These toggles cancel the contraption
+# mechanic itself. All on by default.
+#
+# prevent-rail-dupers / prevent-carpet-dupers:
+#   Cancels piston movement of any block that has a rail or carpet resting on
+#   top of it (the detach-mid-move trick every rail/carpet duper relies on).
+#   Side effect: contraptions that pop carpets/rails off with pistons stop
+#   working — vanilla-legal but rarely used outside dupers.
+prevent-rail-dupers: true
+prevent-carpet-dupers: true
+
+# prevent-gravity-dupers:
+#   Cancels falling blocks (sand, gravel, concrete powder, dragon egg, ...)
+#   travelling through portals — the end-portal sand duper family. Pistons
+#   pushing sand (flying machines, legit farms) are deliberately unaffected.
+prevent-gravity-dupers: true
+
+# prevent-tnt-dupers:
+#   Cancels piston movement of TNT blocks. Turn this off if your players run
+#   TNT-duper world eaters on purpose (some anarchy/tech servers allow it).
+prevent-tnt-dupers: true
+
+# prevent-container-desync-dupers:
+#   Closes open container GUIs when the container goes away (shulker box or
+#   chest broken / blown up, donkey or chest-boat chunk unloading). Stops the
+#   "phantom GUI" dupes where items are taken from a GUI whose container no
+#   longer exists while the dropped container keeps them too. No gameplay
+#   cost — a legitimately open GUI simply closes.
+prevent-container-desync-dupers: true
+
 # Auto-delete detected dupes
 # If true, automatically removes duped items from the game
 # If false, only logs and alerts admins
