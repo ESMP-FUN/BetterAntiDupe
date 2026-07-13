@@ -2,6 +2,11 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
+## [4.0.1] - 2026-07-13
+
+### Fixed
+- **Recoloring a filled shulker box in a crafting table no longer empties it.** With every shulker color now tracked (4.0.0), the craft handler began overwriting the recolor recipe's real output — which vanilla fills with the input shulker's contents — with a clone of the generic empty recipe result, deleting the contents. The handler now tags the actual crafted item, so contents are preserved. Only affected 4.0.0.
+
 ## [4.0.0] - 2026-07-13
 ### Changed
 - **The plugin is now Better Anti Dupe.** Same free plugin, new name — part of the ESMP rebrand. The project now lives at https://github.com/ESMP-FUN/BetterAntiDupe.
