@@ -173,26 +173,32 @@ class LedgerEventHandler(
         val player = event.whoClicked as? Player ?: return
         if (shouldSkip(player)) return
 
-        val result = event.recipe.result
-        if (!isTracked(result.type)) return
+        // Tag the ACTUAL computed result, not a clone of event.recipe.result. Some vanilla
+        // recipes compute the result dynamically and copy data onto it that the static
+        // recipe result lacks — the shulker-box recolor recipe copies the input shulker's
+        // CONTENTS into the output. Cloning recipe.result (a generic EMPTY shulker) and
+        // overwriting currentItem with it discards those contents, emptying the shulker.
+        val actual = event.currentItem ?: event.recipe.result
+        if (!isTracked(actual.type)) return
 
-        val amount = if (event.isShiftClick) calculateShiftCraftAmount(event) else result.amount
+        val amount = if (event.isShiftClick) calculateShiftCraftAmount(event) else actual.amount
 
-        val taggedResult = result.clone()
+        val taggedResult = actual.clone()
         ownershipManager.setOwner(taggedResult, player.uniqueId)
         event.currentItem = taggedResult
 
         val meta = witnessedMetadata(
             player, LedgerAction.CRAFT,
             LedgerMetadata.fromLocation(player.location),
-            "${amount}x${result.type.name}"
+            "${amount}x${actual.type.name}"
         )
-        appendAsync(player.uniqueId, LedgerAction.CRAFT, result.type, amount, meta)
+        appendAsync(player.uniqueId, LedgerAction.CRAFT, actual.type, amount, meta)
 
+        val craftedType = actual.type
         scope.launch {
-            val tmar = reconciliationEngine.checkTmar(player, result.type, amount)
+            val tmar = reconciliationEngine.checkTmar(player, craftedType, amount)
             if (!tmar.allowed) {
-                logger.warning("[TMAR] ${player.name} exceeded ${result.type}: ${tmar.projectedRate}/${tmar.limit}")
+                logger.warning("[TMAR] ${player.name} exceeded $craftedType: ${tmar.projectedRate}/${tmar.limit}")
             }
         }
     }
