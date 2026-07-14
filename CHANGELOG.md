@@ -2,6 +2,11 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
+## [4.0.2] - 2026-07-15
+
+### Fixed
+- **Carpet and rail dupers using a slime block to pull the block out sideways are now blocked.** Duper prevention only checked for a rail or carpet resting directly on *top* of a block the piston moved. A newer contraption — an observer, a slime-block column, and a sticky piston with the carpet beside/under the top slime block — dislodges the carpet without it ever sitting on a pushed block, so the piston fired and the dupe went through even with `prevent-carpet-dupers` on. A moving slime or honey block can now dislodge a rail or carpet from any of its side or bottom faces, not just the top, closing the variant. Both `prevent-rail-dupers` and `prevent-carpet-dupers` are honored as before. Only affected block-duper prevention added in 4.0.0.
+
 ## [4.0.1] - 2026-07-13
 
 ### Fixed

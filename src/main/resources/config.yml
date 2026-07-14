@@ -118,8 +118,12 @@ redis:
 # prevent-rail-dupers / prevent-carpet-dupers:
 #   Cancels piston movement of any block that has a rail or carpet resting on
 #   top of it (the detach-mid-move trick every rail/carpet duper relies on).
+#   Also cancels a moving slime/honey block dragging a rail or carpet off one of
+#   its side or bottom faces (the observer + slime-block variant that pulls the
+#   carpet out from beside/under the slime instead of a pushed block's top).
 #   Side effect: contraptions that pop carpets/rails off with pistons stop
-#   working — vanilla-legal but rarely used outside dupers.
+#   working, and a slime/honey flying machine won't move while flush against a
+#   rail/carpet — vanilla-legal but rarely used outside dupers.
 prevent-rail-dupers: true
 prevent-carpet-dupers: true
 
