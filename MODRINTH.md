@@ -99,7 +99,7 @@ Pick one, configurable in `config.yml`:
 
 ## Commands
 
-All commands live under `/adp` (aliases: `/antidupe`, `/antidupepro`).
+All commands live under `/antidupe` (aliases: `/adp`, `/betterantidupe`).
 
 | Command | What it does |
 |---|---|

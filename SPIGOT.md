@@ -1,14 +1,14 @@
-[CENTER][SIZE=4][COLOR=#7f8c8d][ATTACH=full]963183[/ATTACH]
+[CENTER][IMG]https://github.com/ESMP-FUN/BetterAntiDupe/blob/master/images/betterantidupebanner.png?raw=true[/IMG]
  
-Forensic-grade item-duplication detector[/COLOR][/SIZE]
-[SIZE=3]Paper · Folia · Spigot — 1.21.x and 26.x[/SIZE][/CENTER]
-[CENTER][SIZE=4][I]Most anti-cheat plugins watch movement and combat. BetterAntiDupe
-watches the items themselves — and catches the dupes that quietly inflate your
-economy until your spawn is full of free elytras.[/I][/SIZE][/CENTER]
-[CENTER][SIZE=3][COLOR=#808080]
+[SIZE=4][COLOR=#7f8c8d]Forensic-grade item-duplication detector[/COLOR][/SIZE]
+[SIZE=3]Paper · Folia · Spigot — 1.21.x and 26.x[/SIZE]
+[SIZE=4][I]Most anti-cheat plugins watch movement and combat. BetterAntiDupe[/I]
+[I]watches the items themselves — and catches the dupes that quietly inflate your[/I]
+[I]economy until your spawn is full of free elytras.[/I][/SIZE]
+[SIZE=3][COLOR=#808080]
 ——————————————————————————————
 [/COLOR][/SIZE][/CENTER]
-[SIZE=6][COLOR=#0000ff][B]Why BetterAntiDupe?[/B][/COLOR][/SIZE]
+[SIZE=6][COLOR=#0000ff][B]Why Better Anti Dupe?[/B][/COLOR][/SIZE]
 Other anti-dupe plugins use per-item NBT tags — every diamond gets a unique ID,
 which breaks vanilla stacking and irritates your players. BetterAntiDupe takes
 a different approach: items keep their owner UUID and stack normally, but every
@@ -37,7 +37,7 @@ A partial list of dupe families BetterAntiDupe detects out of the box:
 [*][B]Acquisition-rate abuse[/B] — TMAR thresholds per material
 [*][B]Witness-less acquisitions[/B] — Proof of Witness flags suspicious solo patterns
 [/LIST]
-The full coverage matrix is in the [URL=https://esmp-fun.gitbook.io/plugins/better-anti-dupe]user guide[/URL].
+The full coverage matrix is in the [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe']user guide[/URL].
 [CENTER][SIZE=3][COLOR=#808080]
 ——————————————————————————————
 [/COLOR][/SIZE][/CENTER]
@@ -54,7 +54,7 @@ dispatches scheduler calls to the regional schedulers automatically.
 ——————————————————————————————
 [/COLOR][/SIZE][/CENTER]
 [SIZE=6][COLOR=#0000ff][B]Storage backends[/B][/COLOR][/SIZE]
-Pick one in [I]config.yml[/I]:
+Pick one in [I][ICODE]config.yml[/ICODE][/I]:
 [LIST]
 [*][B]SQLite[/B] — file-based, persistent, zero ops. Default and recommended for single servers.
 [*][B]Redis[/B] — fast and shareable across multiple servers behind Velocity / BungeeCord.
@@ -66,41 +66,41 @@ Pick one in [I]config.yml[/I]:
 [SIZE=6][COLOR=#0000ff][B]Installation[/B][/COLOR][/SIZE]
 [LIST=1]
 [*]Download the jar
-[*]Drop it into [I]plugins/[/I]
+[*]Drop it into [I][ICODE]plugins/[/ICODE][/I]
 [*]Start the server
-[*]Done — the plugin generates [I]config.yml[/I] and [I]materials.yml[/I] with sensible defaults
+[*]Done — the plugin generates [I][ICODE]config.yml[/ICODE][/I] and [I][ICODE]materials.yml[/ICODE][/I] with sensible defaults
 [/LIST]
-Run [I]/adp help[/I] in-game to see the admin commands.
+Run [I][ICODE]/adp help[/ICODE][/I] in-game to see the admin commands.
 [CENTER][SIZE=3][COLOR=#808080]
 ——————————————————————————————
 [/COLOR][/SIZE][/CENTER]
 [SIZE=6][COLOR=#0000ff][B]Commands[/B][/COLOR][/SIZE]
-All commands live under [I]/adp[/I] (aliases: [I]/antidupe[/I], [I]/antidupepro[/I]).
+All commands live under [I][ICODE]/antidupe[/ICODE][/I] (aliases: [I][ICODE]/adp[/ICODE][/I], [I][ICODE]/betterantidupe[/ICODE][/I]).
 [LIST]
-[*][I]/adp ledger status[/I] — chain tip, current suspects, system health
-[*][I]/adp ledger balance <player>[/I] — expected balances for each material
-[*][I]/adp ledger history <player>[/I] — recent ledger entries
-[*][I]/adp ledger witness <player>[/I] — witness statistics and suspicion analysis
-[*][I]/adp ledger suspects[/I] — list all currently flagged players
-[*][I]/adp ledger reconcile <player>[/I] — force a balance check on an online player
-[*][I]/adp ledger trust <player>[/I] — accumulated trust score
-[*][I]/adp ledger verify[/I] — verify the entire hash chain
+[*][I][ICODE]/adp ledger status[/ICODE][/I] — chain tip, current suspects, system health
+[*][I][ICODE]/adp ledger balance <player>[/ICODE][/I] — expected balances for each material
+[*][I][ICODE]/adp ledger history <player>[/ICODE][/I] — recent ledger entries
+[*][I][ICODE]/adp ledger witness <player>[/ICODE][/I] — witness statistics and suspicion analysis
+[*][I][ICODE]/adp ledger suspects[/ICODE][/I] — list all currently flagged players
+[*][I][ICODE]/adp ledger reconcile <player>[/ICODE][/I] — force a balance check on an online player
+[*][I][ICODE]/adp ledger trust <player>[/ICODE][/I] — accumulated trust score
+[*][I][ICODE]/adp ledger verify[/ICODE][/I] — verify the entire hash chain
 [/LIST]
-Permission [I]antidupe.admin[/I] grants all of the above and routes dupe alerts to chat.
+Permission [I][ICODE]antidupe.admin[/ICODE][/I] grants all of the above and routes dupe alerts to chat.
 [CENTER][SIZE=3][COLOR=#808080]
 ——————————————————————————————
 [/COLOR][/SIZE][/CENTER]
 [SIZE=6][COLOR=#0000ff][B]Configuration[/B][/COLOR][/SIZE]
-Two files in [I]plugins/BetterAntiDupe/[/I]:
+Two files in [I][ICODE]plugins/BetterAntiDupe/[/ICODE][/I]:
 [LIST]
-[*][B]config.yml[/B] — storage backend, modes (shadow / auto-delete), ledger settings
-[*][B]materials.yml[/B] — tracked materials, rate limits, alert thresholds
-[*][B]messages.yml[/B] — every in-game message, fully translatable (deleted keys fall back to English)
+[*][B][ICODE]config.yml[/ICODE][/B] — storage backend, modes (shadow / auto-delete), ledger settings
+[*][B][ICODE]materials.yml[/ICODE][/B] — tracked materials, rate limits, alert thresholds
+[*][B][ICODE]messages.yml[/ICODE][/B] — every in-game message, fully translatable (deleted keys fall back to English)
 [/LIST]
 
 [B]Speaks your language[/B]: English, Português do Brasil, Español, Deutsch, Русский and Polski are built in — one [I]language:[/I] line in config.yml switches everything.
 
-Dupe alerts can also be pushed [B]outside the game[/B]: Discord, Telegram, Slack, or any custom JSON webhook — with severity filtering and burst protection. See the [I]notifications[/I] section of config.yml.
+Dupe alerts can also be pushed [B]outside the game[/B]: Discord, Telegram, Slack, or any custom JSON webhook — with severity filtering and burst protection. See the [I]notifications[/I] section of [ICODE]config.yml[/ICODE].
 Both files are extensively commented. You can add or remove tracked materials at
 any time without restarting the dependency stack — just edit the file and reload.
 [CENTER][SIZE=3][COLOR=#808080]
@@ -118,10 +118,10 @@ any time without restarting the dependency stack — just edit the file and relo
 [/COLOR][/SIZE][/CENTER]
 [SIZE=6][COLOR=#0000ff][B]Links[/B][/COLOR][/SIZE]
 [LIST]
-[*][URL=https://github.com/ESMP-FUN/BetterAntiDupe]Source code and issue tracker[/URL]
-[*][URL=https://esmp-fun.gitbook.io/plugins/better-anti-dupe]User guide (HTML)[/URL]
-[*][URL=https://esmp-fun.gitbook.io/plugins/better-anti-dupe/notifications-and-translation]Notifications & translation guide[/URL]
-[*][URL=https://github.com/ESMP-FUN/BetterAntiDupe/blob/master/CHANGELOG.md]Changelog[/URL]
+[*][URL='https://github.com/ESMP-FUN/BetterAntiDupe']Source code and issue tracker[/URL]
+[*][URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe']User guide (HTML)[/URL]
+[*][URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/notifications-and-translation']Notifications & translation guide[/URL]
+[*][URL='https://github.com/ESMP-FUN/BetterAntiDupe/blob/master/CHANGELOG.md']Changelog[/URL]
 [/LIST]
-[CENTER][SIZE=3][I]If BetterAntiDupe saved you from cleaning up a dupe wave, a positive review
-on this page is the best way to support development.[/I][/SIZE][/CENTER]
+[CENTER][SIZE=3][I]If BetterAntiDupe saved you from cleaning up a dupe wave, a positive review[/I]
+[I]on this page is the best way to support development.[/I][/SIZE][/CENTER]
