@@ -1,4 +1,4 @@
-<img width="1024" height="256" alt="adp_banner_1024_black-bg" src="https://github.com/user-attachments/assets/0124c9ec-c6b4-48b3-8259-eb1748053a88" />
+<img width="1000" alt="betterantidupebanner" src="https://github.com/user-attachments/assets/fe09ded7-0db9-44cb-90ad-eff69e9b6b64" />
 
 **A forensic-grade item-duplication detector for Paper, Folia and Spigot servers.**
 
