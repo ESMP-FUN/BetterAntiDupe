@@ -140,7 +140,7 @@ the list at any time and restart.
 
 ---
 
-## Free and open source
+## 100% Free & Source Available
 
 No license key, no telemetry, no "premium" gating. The source is on
 [GitHub](https://github.com/ESMP-FUN/BetterAntiDupe). Issues and pull requests
