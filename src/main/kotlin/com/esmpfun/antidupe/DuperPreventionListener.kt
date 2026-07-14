@@ -58,6 +58,8 @@ class DuperPreventionListener(
 
     private fun isCarpet(m: Material) = m.name.endsWith("_CARPET")
 
+    private fun isSlimeLike(m: Material) = m == Material.SLIME_BLOCK || m == Material.HONEY_BLOCK
+
     /** Non-null reason when [type] is a fragile attached block covered by an enabled toggle. */
     private fun railCarpetVector(type: Material): String? = when {
         preventRail && Tag.RAILS.isTagged(type) -> "rail duper"
@@ -65,10 +67,21 @@ class DuperPreventionListener(
         else -> null
     }
 
+    // Cells a moving slime/honey block can dislodge a fragile block from, beyond the "on top"
+    // case handled for every block. Down + the 4 sides cover the observer-driven slime-drag
+    // variant where the carpet sits beside or beneath the slime column, not on a pushed block.
+    private val slimeDragFaces = arrayOf(
+        BlockFace.DOWN, BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST
+    )
+
     /**
      * Returns a short reason string when this piston movement matches a duper signature,
-     * else null. Checks each moved block itself (TNT) and the block resting on top of it
-     * (rails and carpets attach on top; dislodging them mid-move is the dupe).
+     * else null. For each moved block:
+     *   - TNT itself is the dupe (TNT duper).
+     *   - A rail/carpet resting directly on TOP of it is the classic detach-mid-move dupe.
+     *   - If the moved block is slime/honey it can drag a rail/carpet off ANY adjacent face,
+     *     so also scan the sides and the block below (the observer + slime-block carpet duper
+     *     pulls the carpet out from beside/under the slime, never from a pushed block's top).
      */
     private fun dupeVector(moved: List<Block>): Pair<String, Block>? {
         for (block in moved) {
@@ -76,6 +89,12 @@ class DuperPreventionListener(
             if (preventTnt && type == Material.TNT) return "TNT duper" to block
             val above = block.getRelative(BlockFace.UP)
             railCarpetVector(above.type)?.let { return it to above }
+            if ((preventRail || preventCarpet) && isSlimeLike(type)) {
+                for (face in slimeDragFaces) {
+                    val neighbor = block.getRelative(face)
+                    railCarpetVector(neighbor.type)?.let { return it to neighbor }
+                }
+            }
         }
         return null
     }
