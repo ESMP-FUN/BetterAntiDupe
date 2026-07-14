@@ -232,8 +232,10 @@ redis:
 
 # ---------- Duper prevention (block-duplication contraptions) ----------
 # Blocks the classic dupe machines at the mechanic level, before any item
-# exists to track: rail/carpet dupers (piston movement under an attached
-# rail/carpet is cancelled), TNT dupers (pistons can't move TNT), gravity
+# exists to track: rail/carpet dupers (piston movement that would dislodge an
+# attached rail/carpet is cancelled — including the slime-block variant that
+# drags the rail/carpet off the side or underside of a moving slime block),
+# TNT dupers (pistons can't move TNT), gravity
 # dupers (falling blocks can't travel through portals), and "phantom GUI"
 # container dupes (open GUIs are closed when their shulker/chest is
 # destroyed or their donkey/chest-boat unloads). All on by default.
