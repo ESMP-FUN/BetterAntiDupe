@@ -37,7 +37,7 @@ A partial list of dupe families BetterAntiDupe detects out of the box:
 [*][B]Acquisition-rate abuse[/B] — TMAR thresholds per material
 [*][B]Witness-less acquisitions[/B] — Proof of Witness flags suspicious solo patterns
 [/LIST]
-The full coverage matrix is in the [URL=https://darkstarworks.gitbook.io/plugins/mc/antidupepro]user guide[/URL].
+The full coverage matrix is in the [URL=https://github.com/ESMP-FUN/BetterAntiDupe/blob/master/docs/user-guide.html]user guide[/URL].
 [CENTER][SIZE=3][COLOR=#808080]
 ——————————————————————————————
 [/COLOR][/SIZE][/CENTER]
@@ -119,9 +119,9 @@ any time without restarting the dependency stack — just edit the file and relo
 [SIZE=6][COLOR=#0000ff][B]Links[/B][/COLOR][/SIZE]
 [LIST]
 [*][URL=https://github.com/ESMP-FUN/BetterAntiDupe]Source code and issue tracker[/URL]
-[*][URL=https://darkstarworks.gitbook.io/plugins/mc/antidupepro]User guide (HTML)[/URL]
-[*][URL=https://darkstarworks.gitbook.io/plugins/mc/antidupepro/notifications-and-translation]Notifications & translation guide[/URL]
-[*][URL=https://darkstarworks.gitbook.io/plugins/mc/antidupepro/changelog]Changelog[/URL]
+[*][URL=https://github.com/ESMP-FUN/BetterAntiDupe/blob/master/docs/user-guide.html]User guide (HTML)[/URL]
+[*][URL=https://github.com/ESMP-FUN/BetterAntiDupe/blob/master/docs/notifications-and-translation.html]Notifications & translation guide[/URL]
+[*][URL=https://github.com/ESMP-FUN/BetterAntiDupe/blob/master/CHANGELOG.md]Changelog[/URL]
 [/LIST]
 [CENTER][SIZE=3][I]If BetterAntiDupe saved you from cleaning up a dupe wave, a positive review
 on this page is the best way to support development.[/I][/SIZE][/CENTER]
