@@ -161,5 +161,5 @@ Changes take effect on the next server restart.
 
 ---
 
-_Last updated for BetterAntiDupe 3.3.5 — see the [main user guide](README.md)
+_Last updated for BetterAntiDupe 4.0.1 — see the [main user guide](README.md)
 for everything else._
