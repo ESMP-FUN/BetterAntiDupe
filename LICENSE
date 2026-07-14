@@ -1,39 +1,71 @@
+ESMP Source-Available License
 Copyright (c) 2026 Bolt Service B.V. (hereafter known and referred to as "ESMP")
 
 PREAMBLE
-This license grants you the right to view, download, and study the source code 
-for personal, educational, and learning purposes only. It is strictly a 
-"source-available" license and is not an open-source license.
+This license grants you the right to view, download, study, and run this
+project. It is a "source-available" license and is not an open-source
+license: you may use the Software, but you may not redistribute it, modify
+it for distribution, or exploit it commercially.
+
+DEFINITIONS
+"The Software" means all source code, compiled artifacts, datapacks,
+resource files, and documentation in this repository, in source and
+compiled form.
 
 TERMS AND CONDITIONS
 
 1. PERMITTED USE
-You are permitted to view, download, and execute this software solely for 
-personal study, learning, and educational purposes.
+You are permitted to view, download, study, and execute the Software,
+including running it on Minecraft servers in production. Ordinary use of
+the Software on a server that is itself monetized (donations, ranks, a
+webstore, and similar) is expressly permitted and is not a commercial use
+of the Software within the meaning of Section 2.
 
 2. COMMERCIAL RESTRICTIONS
-You may not use this software, its source code, or any derivatives for 
-commercial purposes, financial gain, or business operations.
+You may not sell, resell, rent, or license the Software, charge for access
+to it, include it in a product or bundle that is sold, or offer it (or a
+derivative of it) as a product or service. You may not use the Software's
+source code, in whole or in part, in another project, whether or not that
+project is commercial.
 
 3. REDISTRIBUTION AND RE-RELEASE RESTRICTIONS
-Except as provided in Section 4 (Contributions), you are strictly prohibited 
-from redistributing, publishing, or re-releasing this software, its source 
-code, or any modified versions of it to any third party or public platform. 
-This prohibition applies regardless of whether the software is distributed 
-under the original name, a new name, or as part of another project.
+Except as provided in Section 4 (Contributions), you may not redistribute,
+publish, or re-release the Software, its source code, or modified versions
+of it to any third party or public platform, under the original name, a new
+name, or as part of another project. Distribution of the Software through
+channels designated by ESMP — including GitHub Releases, Modrinth, Hangar,
+CurseForge, and SpigotMC — remains the exclusive right of ESMP.
 
 4. CONTRIBUTIONS AND PULL REQUESTS
-You are permitted to fork this repository and modify the source code solely 
-for the purpose of submitting contributions, bug fixes, or enhancements back 
-to the original project via Pull Requests. By submitting a Pull Request, you 
-agree to grant ESMP a perpetual, irrevocable, worldwide, royalty-free 
-license to use, modify, and distribute your contribution under these same 
-license terms. 
+You are permitted to fork this repository on the hosting platform (as its
+terms of service provide) and to modify the source code for the purpose of
+study or of submitting contributions, bug fixes, or enhancements back to
+the original project via Pull Requests. Use or distribution of a fork
+outside those purposes remains subject to Sections 2 and 3. By submitting a
+Pull Request, you agree to grant ESMP a perpetual, irrevocable, worldwide,
+royalty-free license to use, modify, and distribute your contribution under
+these same license terms.
 
-5. NO WARRANTY
+5. THIRD-PARTY COMPONENTS
+Third-party components bundled with or referenced by the Software remain
+under their own licenses, which govern those components.
+
+6. TERMINATION
+This license terminates automatically if you breach its terms. Upon
+termination you must cease use and distribution of the Software. ESMP may
+grant additional permissions or exceptions in writing; such grants apply
+only to the party they are issued to.
+
+7. NO WARRANTY
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL ESMP
-OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR 
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ESMP OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+8. GOVERNING LAW
+This license is governed by the laws of the Netherlands. Disputes arising
+from it shall be submitted to the competent court in the district where
+ESMP has its registered office.
