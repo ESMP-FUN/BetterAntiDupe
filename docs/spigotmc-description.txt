@@ -106,7 +106,7 @@ any time without restarting the dependency stack — just edit the file and relo
 [CENTER][SIZE=3][COLOR=#808080]
 ——————————————————————————————
 [/COLOR][/SIZE][/CENTER]
-[SIZE=6][COLOR=#0000ff][B]Free and open source[/B][/COLOR][/SIZE]
+[SIZE=6][COLOR=#0000ff][B]100% Free & Source Available[/B][/COLOR][/SIZE]
 [LIST]
 [*]No license key
 [*]No telemetry
