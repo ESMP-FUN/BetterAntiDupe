@@ -151,6 +151,5 @@ are welcome.
 ## Links
 
 - **Source / issues**: [github.com/ESMP-FUN/BetterAntiDupe](https://github.com/ESMP-FUN/BetterAntiDupe)
-- **User guide**: [gitbook/user-guide](https://darkstarworks.gitbook.io/plugins/mc/antidupepro)
-- **Notifications & translation guide**: [gitbook/notifications-and-translation](https://darkstarworks.gitbook.io/plugins/mc/antidupepro/notifications-and-translation)
-- **Changelog**: [gitbook/changelog](https://darkstarworks.gitbook.io/plugins/mc/antidupepro/changelog)
+- **User guide**: [gitbook/user-guide](https://github.com/ESMP-FUN/BetterAntiDupe)
+- **Notifications & translation guide**: [gitbook/notifications-and-translation](https://github.com/ESMP-FUN/BetterAntiDupe/blob/master/docs/notifications-and-translation.html)
