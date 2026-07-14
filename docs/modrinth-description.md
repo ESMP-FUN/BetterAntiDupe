@@ -150,6 +150,6 @@ are welcome.
 
 ## Links
 
-- **Source / issues**: [github.com/ESMP-FUN/BetterAntiDupe](https://github.com/ESMP-FUN/BetterAntiDupe)
-- **User guide**: [gitbook/user-guide](https://github.com/ESMP-FUN/BetterAntiDupe)
-- **Notifications & translation guide**: [gitbook/notifications-and-translation](https://github.com/ESMP-FUN/BetterAntiDupe/blob/master/docs/notifications-and-translation.html)
+- **Source / issues**: [github.com/ESMP-FUN/BetterAntiDupe](https://esmp-fun.gitbook.io/plugins/better-anti-dupe)
+- **User guide**: [gitbook/user-guide](https://esmp-fun.gitbook.io/plugins/better-anti-dupe)
+- **Notifications & translation guide**: [gitbook/notifications-and-translation](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/notifications-and-translation)
