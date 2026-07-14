@@ -352,7 +352,7 @@ plugin will silently remove detected duplicates from inventories.
 
 ## 7. Commands
 
-All commands live under `/adp` (aliases: `/antidupe`, `/antidupepro`).
+All commands live under `/antidupe` (aliases: `/adp`, `/betterantidupe`).
 
 Two top-level commands: `/adp help` (no permission) and `/adp ledger ...`
 (requires `antidupe.ledger`). Everything else is a ledger subcommand.
