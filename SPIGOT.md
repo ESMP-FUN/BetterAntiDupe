@@ -120,7 +120,7 @@ any time without restarting the dependency stack — just edit the file and relo
 [SIZE=6][COLOR=#0000ff][B]Links[/B][/COLOR][/SIZE]
 [LIST]
 [*][URL='https://github.com/ESMP-FUN/BetterAntiDupe']Source code and issue tracker[/URL]
-[*][URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe']User guide (HTML)[/URL]
+[*][URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe']User guide[/URL]
 [*][URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/notifications-and-translation']Notifications & translation guide[/URL]
 [*][URL='https://github.com/ESMP-FUN/BetterAntiDupe/blob/master/CHANGELOG.md']Changelog[/URL]
 [/LIST]

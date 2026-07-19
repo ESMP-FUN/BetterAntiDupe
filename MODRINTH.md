@@ -44,7 +44,7 @@ A non-exhaustive list of dupe families BetterAntiDupe detects:
 - **Witness-less acquisitions** — Proof of Witness flags players whose actions are never seen by others (vanished staff are correctly ignored, so invisible patrols can't skew trust)
 
 Full coverage matrix and the rare edge cases are documented in the
-[user guide](https://github.com/ESMP-FUN/BetterAntiDupe/blob/main/docs/user-guide.html).
+[user guide](https://esmp-fun.gitbook.io/plugins/better-anti-dupe).
 
 ---
 
@@ -151,6 +151,6 @@ are welcome.
 
 ## Links
 
-- **Source / issues**: [github.com/ESMP-FUN/BetterAntiDupe](https://esmp-fun.gitbook.io/plugins/better-anti-dupe)
+- **Source / issues**: [github.com/ESMP-FUN/BetterAntiDupe](https://github.com/ESMP-FUN/BetterAntiDupe)
 - **User guide**: [gitbook/user-guide](https://esmp-fun.gitbook.io/plugins/better-anti-dupe)
 - **Notifications & translation guide**: [gitbook/notifications-and-translation](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/notifications-and-translation)
