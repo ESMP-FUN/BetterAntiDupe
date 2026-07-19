@@ -632,4 +632,5 @@ the relevant console log lines (search for `BetterAntiDupe` or `[DUPE]`).
 ---
 
 _Last updated for BetterAntiDupe 4.1.0 — Minecraft 1.21.x (Paper, Folia,
-Spigot) and 26.x (Paper, on the `paper-26` branch)._
+Spigot) and 26.x (Paper). One codebase, two downloads: the plain jar for
+1.21.x, the `-mc26` jar for 26.x._
