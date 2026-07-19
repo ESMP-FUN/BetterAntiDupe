@@ -80,6 +80,7 @@ class BetterAntiDupe : JavaPlugin() {
     override fun onDisable() {
         logger.info("=== BetterAntiDupe shutting down ===")
         try {
+            closeOpenInventories()
             io.github.darkstarworks.pluginpulse.PluginPulse.shutdown(this)
             tagStripper?.let { s -> server.onlinePlayers.forEach { s.eject(it) } }
             tagStripper = null
@@ -90,6 +91,34 @@ class BetterAntiDupe : JavaPlugin() {
             logger.warning("Error during shutdown: ${e.message}")
         }
         logger.info("=== BetterAntiDupe disabled ===")
+    }
+
+    /**
+     * Restart duper: the shutdown sequence writes player data and world data as separate
+     * steps, so a stack moved between an inventory and a container in the window between
+     * them is saved on one side and not the other — on next boot it exists twice. Plugins
+     * are disabled before the player-data write, so closing every view here means there is
+     * no in-flight transfer left to race.
+     *
+     * The ordering this relies on was read off MinecraftServer.stopServer() — disablePlugins()
+     * runs before ServerConnectionListener.stop(), PlayerList.saveAll()/removeAll() and
+     * saveAllChunks(), i.e. ahead of BOTH writes and while players are still connected.
+     * Confirmed identical on Paper 1.21.1, 1.21.7, 1.21.11, 26.1.2 and 26.2.
+     *
+     * Only covers a clean stop; a crash runs no plugin code and reconciliation catches that
+     * case instead (a restart dupe leaves two items carrying the same ownership UUID).
+     */
+    private fun closeOpenInventories() {
+        if (!config.getBoolean("prevent-shutdown-dupers", true)) return
+        // Copy — closeInventory mutates the roster's open views while we iterate.
+        val closed = server.onlinePlayers.toList().count { player ->
+            // A player with nothing open still reports their own crafting view; closing it
+            // is harmless, but don't count it as a duper-relevant close in the log line.
+            val wasOpen = player.openInventory.type != org.bukkit.event.inventory.InventoryType.CRAFTING
+            player.closeInventory()
+            wasOpen
+        }
+        if (closed > 0) logger.info("[DuperPrevention] Closed $closed open inventory view(s) for shutdown")
     }
 
     private fun loadMaterialsConfig(): FileConfiguration {

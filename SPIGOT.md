@@ -23,6 +23,7 @@ A partial list of dupe families BetterAntiDupe detects out of the box:
 [LIST]
 [*][B]Rail / carpet / TNT / gravity dupers[/B] — the classic piston and end-portal contraptions are [I]blocked outright[/I], not just detected (each toggleable)
 [*][B]Phantom-GUI container dupes[/B] — open GUIs force-closed when their shulker/chest is destroyed or their donkey/chest-boat unloads
+[*][B]Restart dupers[/B] — items moved during a shutdown can be saved twice; all inventories are closed before the save, so nothing is in flight
 [*][B]Stack-clone exploits[/B] — click-timing, drag, cursor desync
 [*][B]Shulker / bundle laundering[/B] — recursive content scan up to depth 10
 [*][B]Item frame dupes[/B] — piston-into-frame, chunk-race, end-crystal variants
