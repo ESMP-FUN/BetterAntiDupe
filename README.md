@@ -741,4 +741,4 @@ alert_thresholds:
 
 <hr/>
 
-<p><em>Last updated for BetterAntiDupe 2.7.0 — Minecraft 1.21.x.</em></p>
+<p><em>Last updated for BetterAntiDupe 4.1.0 — Minecraft 1.21.x (Paper, Folia, Spigot) and 26.x.</em></p>
