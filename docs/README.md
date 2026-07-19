@@ -296,6 +296,32 @@ ledger sum. A surplus is a dupe.
 
 ### 6.2 What it catches
 
+Most of what follows is _detection_ — the ledger notices a discrepancy after the
+fact. The first entry is different: those exploits are **blocked outright**, so
+no duped item is ever created.
+
+- **Duper prevention (blocked, not detected).** The classic contraptions are
+  stopped at the mechanic level, each with its own config toggle, all on by
+  default:
+  - _Rail and carpet dupers_ — piston movement that would dislodge an attached
+    rail or carpet is cancelled, including the carpet-on-piston-arm variant and
+    the slime-block variant that drags the rail or carpet off the side or
+    underside of a moving slime block.
+  - _TNT dupers_ — pistons can't move TNT blocks. Turn this off if your server
+    allows TNT-duper world eaters.
+  - _Gravity dupers_ — falling blocks (sand, gravel, concrete powder, dragon
+    egg...) can't travel through portals, closing the end-portal sand duper
+    family. Pistons pushing sand are deliberately unaffected.
+  - _Phantom-GUI container dupes_ — an open container GUI is force-closed when
+    its container goes away (shulker or chest broken or blown up, donkey or
+    chest-boat chunk unloading). Without this the phantom takes are recorded as
+    legitimate ledger credits, so the dupe would be invisible to reconciliation.
+  - _Restart dupers_ — every open inventory is closed when the server begins
+    shutting down. Player data and world data are written as separate steps, so
+    an item moved in the window between them is saved on one side but not the
+    other and exists twice on the next boot. This needs no contraption, just a
+    well-timed click during a restart. Covers a clean stop; after a crash
+    nothing plugin-side runs, and balance reconciliation is the backstop.
 - **Balance reconciliation.** The plugin periodically counts how many of each
   tracked material the player has in their inventory and compares it to the
   ledger total. If a player has 20 diamond blocks but the ledger only shows
