@@ -238,12 +238,16 @@ redis:
 # TNT dupers (pistons can't move TNT), gravity
 # dupers (falling blocks can't travel through portals), and "phantom GUI"
 # container dupes (open GUIs are closed when their shulker/chest is
-# destroyed or their donkey/chest-boat unloads). All on by default.
+# destroyed or their donkey/chest-boat unloads). Restart dupers are covered
+# too: every open inventory is closed when the server starts shutting down,
+# so a transfer can't land between the player-data and world-data writes and
+# get saved on one side only. All on by default.
 prevent-rail-dupers: true
 prevent-carpet-dupers: true
 prevent-gravity-dupers: true
 prevent-tnt-dupers: true
 prevent-container-desync-dupers: true
+prevent-shutdown-dupers: true
 
 # If true, the plugin silently removes detected duplicates from inventories.
 # If false (default), it only alerts admins and logs the event.

@@ -2,6 +2,11 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
+## [4.1.0] - 2026-07-19
+
+### Added
+- **Restart dupers are now blocked.** New `prevent-shutdown-dupers` toggle (on by default) closes every open inventory when the server begins shutting down. The shutdown sequence writes player data and world data as separate steps; a stack moved between an inventory and a container in the window between them is saved on one side but not the other, so it exists twice on the next boot — no contraption needed, just a well-timed click during a restart. Closing all views before the writes leaves no in-flight transfer to race. Plugin shutdown runs ahead of both writes on every Paper version checked (1.21.1 through 26.2), and players are still connected at that point, so the close lands properly. Note this covers a clean stop (`/stop`, restart plugins) — a crash or `kill -9` runs no plugin code, and ledger reconciliation remains the backstop there (a restart dupe leaves two items carrying the same ownership UUID).
+
 ## [4.0.2] - 2026-07-15
 
 ### Fixed

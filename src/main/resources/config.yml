@@ -146,6 +146,16 @@ prevent-tnt-dupers: true
 #   cost — a legitimately open GUI simply closes.
 prevent-container-desync-dupers: true
 
+# prevent-shutdown-dupers:
+#   Closes every open inventory when the server begins shutting down. On
+#   restart the server writes player data and world data as separate steps;
+#   a transfer that lands between the two is saved on one side and not the
+#   other, so the item exists twice on next boot. No open GUI means no
+#   in-flight transfer to race. No gameplay cost — the server is stopping.
+#   Note this only covers a clean shutdown (/stop, restart plugins). A crash
+#   or `kill -9` runs no plugin code; ledger reconciliation is the backstop.
+prevent-shutdown-dupers: true
+
 # Auto-delete detected dupes
 # If true, automatically removes duped items from the game
 # If false, only logs and alerts admins
