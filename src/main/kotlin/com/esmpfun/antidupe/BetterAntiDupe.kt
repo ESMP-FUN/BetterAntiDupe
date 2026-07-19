@@ -32,6 +32,8 @@ class BetterAntiDupe : JavaPlugin() {
         private set
 
     private var chainOfCustody: ChainOfCustody? = null
+    private var metrics: com.esmpfun.antidupe.metrics.MetricsService? = null
+    private var trackedMaterialCount = 0
     private var tagStripper: com.esmpfun.antidupe.net.TagStripAdapter? = null
     private var ownershipKeys: com.esmpfun.antidupe.ledger.OwnershipKeys? = null
     private lateinit var adpCommand: AdpCommand
@@ -70,6 +72,10 @@ class BetterAntiDupe : JavaPlugin() {
             // can override mode/interval via an `update:` block in config.yml.
             io.github.darkstarworks.pluginpulse.PluginPulse.bootstrap(this)
 
+            // Anonymous usage metrics. Started last so a telemetry problem can never delay or
+            // break the parts of startup that actually protect the server.
+            metrics = com.esmpfun.antidupe.metrics.MetricsService.start(this, trackedMaterialCount)
+
             logger.info("=== BetterAntiDupe enabled successfully ===")
         } catch (e: Exception) {
             logger.log(Level.SEVERE, "Failed to initialize BetterAntiDupe", e)
@@ -81,6 +87,8 @@ class BetterAntiDupe : JavaPlugin() {
         logger.info("=== BetterAntiDupe shutting down ===")
         try {
             closeOpenInventories()
+            metrics?.shutdown()
+            metrics = null
             io.github.darkstarworks.pluginpulse.PluginPulse.shutdown(this)
             tagStripper?.let { s -> server.onlinePlayers.forEach { s.eject(it) } }
             tagStripper = null
@@ -196,6 +204,7 @@ class BetterAntiDupe : JavaPlugin() {
                 it.name.endsWith("SHULKER_BOX") && !it.name.startsWith("LEGACY_")
             }
             val trackedMaterials = (configuredMaterials + allShulkerBoxes).toSet()
+            trackedMaterialCount = trackedMaterials.size
 
             val tmarLimits = mutableMapOf<Material, Int>()
             materialsConfig.getConfigurationSection("tmar_limits")?.let { section ->

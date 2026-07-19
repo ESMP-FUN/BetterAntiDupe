@@ -51,6 +51,17 @@ directly breaks the chain and `/adp ledger verify` reports exactly where.
 The full coverage list, with the reasoning behind each detection, is in the
 [user guide](docs/README.md#62-what-it-catches).
 
+## Privacy
+
+BetterAntiDupe reports anonymous usage statistics (which storage backend and
+prevention toggles you use, how many materials you track) so development effort
+goes where servers actually need it. It never sends IP addresses, server names,
+player names or UUIDs, item data, or ledger contents. Turn it off entirely with
+`metrics.enabled: false`.
+
+Error reporting is separate and **off by default** — opt in with
+`metrics.error_reporting: true` if you'd like stack traces sent automatically.
+
 ## Documentation
 
 The complete guide — configuration reference, commands, permissions, common

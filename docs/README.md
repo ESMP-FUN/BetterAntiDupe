@@ -162,6 +162,19 @@ prevent-tnt-dupers: true
 prevent-container-desync-dupers: true
 prevent-shutdown-dupers: true
 
+# ---------- Anonymous metrics ----------
+# Reports anonymous usage statistics through FastStats: storage backend,
+# which prevention toggles are on, tracked-material count, language, and
+# whether shadow mode, auto-delete and tag hiding are enabled. Never sends
+# IPs, server names, player names or UUIDs, item data or ledger contents.
+# Set enabled to false to send nothing.
+metrics:
+  enabled: true
+  # Stack traces when the plugin throws. Off by default — opt in if you'd
+  # like crashes reported automatically. UUIDs, home directories and
+  # anything resembling a password or token are stripped first.
+  error_reporting: false
+
 # If true, the plugin silently removes detected duplicates from inventories.
 # If false (default), it only alerts admins and logs the event.
 auto_delete_dupes: false
@@ -631,6 +644,6 @@ the relevant console log lines (search for `BetterAntiDupe` or `[DUPE]`).
 
 ---
 
-_Last updated for BetterAntiDupe 4.1.0 — Minecraft 1.21.x (Paper, Folia,
+_Last updated for BetterAntiDupe 4.2.0 — Minecraft 1.21.x (Paper, Folia,
 Spigot) and 26.x (Paper). One codebase, two downloads: the plain jar for
 1.21.x, the `-mc26` jar for 26.x._
