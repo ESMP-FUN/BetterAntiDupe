@@ -11,16 +11,19 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: |
             25
             21
 
-      - uses: gradle/actions/setup-gradle@v4
+      # Deliberately v5, not v6: v6 moves caching into `gradle-actions-caching`,
+      # a proprietary component whose use means accepting Gradle's Terms of Use.
+      # v5 is the last MIT-licensed release and already runs on Node 24.
+      - uses: gradle/actions/setup-gradle@v5
 
       - name: Build 1.21.x jar
         run: ./gradlew build -Pmc=21
