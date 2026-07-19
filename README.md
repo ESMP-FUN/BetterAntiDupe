@@ -53,11 +53,20 @@ The full coverage list, with the reasoning behind each detection, is in the
 
 ## Privacy
 
-BetterAntiDupe reports anonymous usage statistics (which storage backend and
-prevention toggles you use, how many materials you track) so development effort
-goes where servers actually need it. It never sends IP addresses, server names,
-player names or UUIDs, item data, or ledger contents. Turn it off entirely with
-`metrics.enabled: false`.
+BetterAntiDupe reports anonymous usage statistics. The reason is practical: the
+plugin works quietly and the docs are thorough, so almost nobody opens a ticket —
+which leaves no way to know which Minecraft versions are actually running it.
+Knowing that is what makes it possible to fight duplication exploits for those
+versions first, instead of guessing.
+
+Sent: storage backend, which prevention toggles are on, tracked-material count,
+language, and whether shadow mode, auto-delete and tag hiding are enabled. Never
+sent: IP addresses, server names, player names or UUIDs, item data, or ledger
+contents. The statistics are kept private rather than published on a public page —
+while the install base is small, public numbers would tell dupers how likely any
+given server is to be protected.
+
+Turn it off entirely with `metrics.enabled: false`.
 
 Error reporting is separate and **off by default** — opt in with
 `metrics.error_reporting: true` if you'd like stack traces sent automatically.
