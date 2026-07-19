@@ -156,6 +156,29 @@ prevent-container-desync-dupers: true
 #   or `kill -9` runs no plugin code; ledger reconciliation is the backstop.
 prevent-shutdown-dupers: true
 
+# ---------- Anonymous metrics ----------
+# BetterAntiDupe reports anonymous usage statistics through FastStats, so we
+# can see which features servers actually use and where to spend effort.
+#
+# What is sent: which storage backend you use, which prevention toggles are
+# on, how many materials you track, your language, and whether shadow mode,
+# auto-delete and tag hiding are enabled — plus the server software, Minecraft
+# version, Java version and plugin version that FastStats collects itself.
+#
+# What is never sent: IP addresses, server names, player names or UUIDs, item
+# data, ledger contents, or anything else that could identify you or a player.
+#
+# Set enabled to false to send nothing at all.
+metrics:
+  enabled: true
+
+  # Error reporting sends stack traces when the plugin throws, which helps fix
+  # bugs you'd otherwise have to report by hand. Off by default: a stack trace
+  # can carry incidental detail (a file path, an id) that plain counters can't,
+  # so this is yours to opt into. UUIDs, home directories and anything that
+  # looks like a password or token are stripped before a report is sent.
+  error_reporting: false
+
 # Auto-delete detected dupes
 # If true, automatically removes duped items from the game
 # If false, only logs and alerts admins

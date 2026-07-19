@@ -10,7 +10,7 @@ group = "com.esmpfun"
 //   ./gradlew shadowJar -Pmc=21   ->  BetterAntiDupe-3.4.2.jar       (compile 1.21.x, Java 21)
 //   ./gradlew shadowJar -Pmc=26   ->  BetterAntiDupe-3.4.2-mc26.jar  (compile 26.x,  Java 25)
 // 1.21.x servers run JDK21 and can't load Java 25 bytecode, hence the two artifacts.
-val pluginVersion = "4.1.0"
+val pluginVersion = "4.2.0"
 val mcLine = (findProperty("mc") as String?) ?: "26"
 val is26 = mcLine == "26"
 version = if (is26) "$pluginVersion-mc26" else pluginVersion
@@ -21,6 +21,9 @@ repositories {
         name = "papermc-repo"
     }
     maven("https://jitpack.io")
+    maven("https://repo.faststats.dev/releases") {
+        name = "faststatsReleases"
+    }
 }
 
 dependencies {
@@ -43,7 +46,12 @@ dependencies {
 
     // PluginPulse — update checking + verified install staging. Spigot-safe:
     // falls back to plain-text notices when Adventure is absent.
-    implementation("com.github.darkstarworks.PluginPulse:pluginpulse-core:v0.5.0")
+    implementation("com.github.darkstarworks.PluginPulse:pluginpulse-core:v0.8.0")
+
+    // FastStats — anonymous usage metrics and (opt-in) error reporting.
+    // Server owners can disable either in config.yml; the SDK itself only
+    // offers a -Dfaststats.enabled=false JVM flag, which few admins would find.
+    implementation("dev.faststats.metrics:bukkit:0.28.0")
 }
 
 tasks {
@@ -79,6 +87,10 @@ tasks.shadowJar {
 
     // Relocate PluginPulse so it can't clash with another plugin's shaded copy.
     relocate("io.github.darkstarworks.pluginpulse", "io.github.darkstarworks.adp.pluginpulse")
+
+    // Same for the FastStats SDK — several plugins on one server will each
+    // shade their own copy, and unrelocated they'd fight over the class names.
+    relocate("dev.faststats", "com.esmpfun.antidupe.libs.faststats")
 
     // SQLite native binaries — keep only platforms that realistically host
     // a Paper / Spigot server. Saves ~13 MB of jar.

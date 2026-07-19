@@ -122,3 +122,6 @@ nul
 
 # Personal notes (never publish)
 OPLETTEN*.txt
+
+# Scraped web content (firecrawl working dir)
+.firecrawl/
