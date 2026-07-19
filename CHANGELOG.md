@@ -4,8 +4,13 @@ All notable changes to BetterAntiDupe will be documented in this file.
 
 ## [4.2.0] - 2026-07-20
 
+> **Note:** this release adds anonymous (private) metrics, on by default — they
+> are **not** publicly viewable, for your server's security. Earlier descriptions
+> said the plugin had no telemetry; that is no longer accurate. Set
+> `metrics.enabled: false` in config.yml to send nothing at all.
+
 ### Added
-- **Anonymous usage metrics.** BetterAntiDupe now reports anonymous statistics through FastStats, so development effort can go where servers actually use it. Sent: storage backend, which prevention toggles are on, tracked-material count, language, and whether shadow mode, auto-delete and tag hiding are enabled — plus the server software, Minecraft version, Java version and plugin version FastStats collects itself. Never sent: IP addresses, server names, player names or UUIDs, item data, or ledger contents. Set `metrics.enabled: false` in config.yml to send nothing.
+- **Anonymous usage metrics.** BetterAntiDupe now reports anonymous statistics through FastStats. The plugin works quietly and the docs are thorough, so almost nobody opens a ticket — which leaves no way to know which Minecraft versions are actually running it. Knowing that is what makes it possible to fight duplication exploits for those versions first, instead of guessing. The statistics are kept private, never published on a public page: while the install base is small, public numbers would tell dupers how likely any given server is to be protected. Sent: storage backend, which prevention toggles are on, tracked-material count, language, and whether shadow mode, auto-delete and tag hiding are enabled — plus the server software, Minecraft version, Java version and plugin version FastStats collects itself. Never sent: IP addresses, server names, player names or UUIDs, item data, or ledger contents. Set `metrics.enabled: false` in config.yml to send nothing.
 - **Opt-in error reporting.** `metrics.error_reporting` (default **false**) sends stack traces when the plugin throws, so bugs can be fixed without waiting for a manual report. Off by default because a stack trace can carry incidental detail that plain counters can't; UUIDs, home directories and anything resembling a password or token are stripped before a report leaves the server.
 
 ### Changed
