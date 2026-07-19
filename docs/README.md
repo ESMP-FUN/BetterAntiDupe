@@ -163,6 +163,9 @@ prevent-container-desync-dupers: true
 prevent-shutdown-dupers: true
 
 # ---------- Anonymous metrics ----------
+# Why: almost nobody opens a ticket, so usage data is the only way to know
+# which Minecraft versions run the plugin — which is what lets duplication
+# exploits be fixed for those versions first. Kept private, not published.
 # Reports anonymous usage statistics through FastStats: storage backend,
 # which prevention toggles are on, tracked-material count, language, and
 # whether shadow mode, auto-delete and tag hiding are enabled. Never sends

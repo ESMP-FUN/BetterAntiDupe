@@ -157,8 +157,15 @@ prevent-container-desync-dupers: true
 prevent-shutdown-dupers: true
 
 # ---------- Anonymous metrics ----------
-# BetterAntiDupe reports anonymous usage statistics through FastStats, so we
-# can see which features servers actually use and where to spend effort.
+# BetterAntiDupe reports anonymous usage statistics through FastStats.
+#
+# Why: the plugin works quietly and the docs are thorough, so almost nobody
+# opens a ticket — which leaves no way to know which Minecraft versions are
+# actually running it. Knowing that is what makes it possible to fight
+# duplication exploits for those versions first, instead of guessing. The
+# statistics are kept private, not published on a public page: while the
+# install base is small, public numbers would tell dupers how likely any
+# given server is to be protected.
 #
 # What is sent: which storage backend you use, which prevention toggles are
 # on, how many materials you track, your language, and whether shadow mode,

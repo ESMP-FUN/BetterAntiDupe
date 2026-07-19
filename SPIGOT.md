@@ -110,9 +110,21 @@ any time without restarting the dependency stack — just edit the file and relo
 [SIZE=6][COLOR=#0000ff][B]100% Free & Source Available[/B][/COLOR][/SIZE]
 [LIST]
 [*]No license key
-[*]No telemetry
 [*]No "premium" feature gating
 [*]Full source on GitHub, issues and PRs welcome
+[/LIST]
+[SIZE=5][COLOR=#0000ff][B]Anonymous metrics[/B][/COLOR][/SIZE]
+Since 4.2.0 the plugin reports anonymous usage statistics. Here's why, plainly:
+BetterAntiDupe works quietly and the docs are thorough, so almost nobody opens a
+ticket — which leaves no way to know which Minecraft versions are actually running
+it. Knowing that is what makes it possible to fight duplication exploits for those
+versions [I]first[/I], instead of guessing.
+[LIST]
+[*][B]Sent[/B] — storage backend, which prevention toggles are on, tracked-material count, language, shadow mode / auto-delete / tag hiding state, plus server software, Minecraft version, Java version and plugin version
+[*][B]Never sent[/B] — IP addresses, server names, player names or UUIDs, item data, ledger contents
+[*][B]Kept private[/B] — not published on a public page. While the install base is small, public numbers would tell dupers how likely any given server is to be protected
+[*][B]Off with one line[/B] — [ICODE]metrics.enabled: false[/ICODE] in config.yml sends nothing at all
+[*][B]Error reporting[/B] — separate toggle, off by default
 [/LIST]
 [CENTER][SIZE=3][COLOR=#808080]
 ——————————————————————————————

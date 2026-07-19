@@ -143,9 +143,30 @@ the list at any time and restart.
 
 ## 100% Free & Source Available
 
-No license key, no telemetry, no "premium" gating. The source is on
+No license key, no "premium" gating. The source is on
 [GitHub](https://github.com/ESMP-FUN/BetterAntiDupe). Issues and pull requests
 are welcome.
+
+### Anonymous metrics
+
+Since 4.2.0 the plugin reports anonymous usage statistics. Here's why, plainly:
+BetterAntiDupe works quietly and the docs are thorough, so almost nobody opens a
+ticket — which leaves no way to know which Minecraft versions are actually
+running it. Knowing that is what makes it possible to fight duplication exploits
+for those versions **first**, instead of guessing.
+
+What's sent: storage backend, which prevention toggles are on, how many
+materials you track, your language, and whether shadow mode, auto-delete and tag
+hiding are enabled — plus server software, Minecraft version, Java version and
+plugin version.
+
+What's never sent: IP addresses, server names, player names or UUIDs, item data,
+or anything from your ledger. The statistics are kept **private**, not published
+on a public page — while the install base is small, public numbers would tell
+dupers how likely any given server is to be protected.
+
+Set `metrics.enabled: false` in config.yml to send nothing at all. Error
+reporting (stack traces) is separate and **off by default**.
 
 ---
 
