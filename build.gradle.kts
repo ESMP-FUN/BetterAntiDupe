@@ -1,7 +1,9 @@
 plugins {
     kotlin("jvm") version "2.3.21"
     id("com.gradleup.shadow") version "9.0.0"
-    id("xyz.jpenilla.run-paper") version "2.3.1"
+    // 3.x talks to Paper's fill/v3 downloads API. 2.3.1 used api.papermc.io/v2,
+    // which Paper sunset — every version lookup fails with "Unknown Paper Version".
+    id("xyz.jpenilla.run-paper") version "3.0.2"
 }
 
 group = "com.esmpfun"
@@ -56,7 +58,10 @@ dependencies {
 
 tasks {
     runServer {
-        minecraftVersion(if (is26) "26.1.2" else "1.21.8")
+        // Overridable so the same jar can be smoke-tested across the line it claims to
+        // support: ./gradlew runServer -PrunMc=26.2 (and 26.3 once it lands). The compile
+        // target stays at the oldest supported release; only the runtime moves.
+        minecraftVersion((findProperty("runMc") as String?) ?: if (is26) "26.2" else "1.21.8")
     }
 }
 
