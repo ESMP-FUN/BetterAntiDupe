@@ -164,8 +164,16 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
                     val host = plugin.config.getString("redis.host", "localhost") ?: "localhost"
                     val port = plugin.config.getInt("redis.port", 6379)
                     val pw = plugin.config.getString("redis.password", "")
-                    val db = plugin.config.getInt("ledger.redis_database", 1)
-                    RedisLedgerStorage.create(host, port, pw, db, logger)
+                    // redis.database is where anyone would look for this, and is what new
+                    // configs use. Older configs carry BOTH: a live ledger.redis_database and
+                    // a redis.database that nothing ever read. Reading the new key first would
+                    // silently move those servers to whatever that dead key happened to say,
+                    // so the old key still wins wherever it is present.
+                    val db = if (plugin.config.contains("ledger.redis_database"))
+                        plugin.config.getInt("ledger.redis_database", 1)
+                    else plugin.config.getInt("redis.database", 1)
+                    val timeout = plugin.config.getLong("redis.timeout", 10L)
+                    RedisLedgerStorage.create(host, port, pw, db, timeout, logger)
                 }
                 "MEMORY" -> MemoryLedgerStorage(logger)
                 "SQLITE" -> SqliteLedgerStorage.create(plugin, logger)

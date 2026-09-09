@@ -5,8 +5,10 @@
 # without cluttering the main configuration. Edit freely; restart or reload
 # the plugin to apply changes.
 #
-# All keys here use vanilla Minecraft Material names. Anything unrecognised
-# is logged as a warning and skipped.
+# Items are written with their vanilla Minecraft names, in capitals with
+# underscores, exactly as they appear in game commands: DIAMOND_BLOCK,
+# ENCHANTED_GOLDEN_APPLE. Anything the server does not recognise is skipped
+# with a warning in your console.
 
 # -----------------------------------------------------------------------------
 # tracked_materials
@@ -30,10 +32,15 @@ tracked_materials:
   - NETHER_STAR
 
 # -----------------------------------------------------------------------------
-# tmar_limits  (Theoretical Max Acquisition Rate)
-# Maximum number of items of a given material a player can legitimately
-# acquire per minute. Players exceeding this are flagged as suspicious.
-# Omit a material to disable rate limiting for it.
+# How many a player could honestly gain in one minute
+#
+# Set the most of an item anyone could realistically come by in a minute of
+# normal play. Going past it does not accuse anyone on its own; it is one more
+# reason to look, on top of everything else. Leave an item out to stop
+# counting its rate at all.
+#
+# Only items listed under tracked_materials above are counted, so an entry
+# here for anything else does nothing.
 # -----------------------------------------------------------------------------
 tmar_limits:
   ANCIENT_DEBRIS: 20
@@ -43,10 +50,11 @@ tmar_limits:
   BEACON: 5
 
 # -----------------------------------------------------------------------------
-# alert_thresholds   (v2 ledger only)
-# How many extra items above the ledger balance trigger an alert. Higher-value
-# materials get stricter thresholds. The 'default' key applies to any tracked
-# material not listed explicitly.
+# How many unexplained extras are worth an alert
+#
+# How many more of an item a player can be carrying than the plugin can
+# account for before you hear about it. Valuable things deserve a smaller
+# number. 'default' covers any watched item not named here.
 # -----------------------------------------------------------------------------
 alert_thresholds:
   ENCHANTED_GOLDEN_APPLE: 1

@@ -54,6 +54,7 @@ class ChainOfCustody private constructor(
             reconcileOnInventoryClose: Boolean = false,
             flagSuspiciousPatterns: Boolean = true,
             hopperMode: LedgerEventHandler.HopperMode = LedgerEventHandler.HopperMode.LOG,
+            blockCollectToCursor: Boolean = false,
             sweepIntervalMinutes: Int = 15,
             sweepStaggerMs: Long = 250L
         ): ChainOfCustody {
@@ -93,12 +94,14 @@ class ChainOfCustody private constructor(
                 reconcileOnPickup = reconcileOnPickup,
                 reconcileOnInventoryClose = reconcileOnInventoryClose,
                 flagSuspiciousPatterns = flagSuspiciousPatterns,
-                hopperMode = hopperMode
+                hopperMode = hopperMode,
+                blockCollectToCursor = blockCollectToCursor
             )
 
             plugin.server.pluginManager.registerEvents(eventHandler, plugin)
             eventHandler.registerPaperOnlyListeners()
             eventHandler.registerHopperListener()
+            eventHandler.registerCollectBlocker()
 
             val coc = ChainOfCustody(plugin, ledgerStorage, ownershipManager, witnessManager,
                 reconciliationEngine, eventHandler, scope, trackedMaterials, logger,

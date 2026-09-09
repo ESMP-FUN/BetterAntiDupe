@@ -61,7 +61,8 @@ class LedgerEventHandler(
     private val reconcileOnPickup: Boolean = true,
     private val reconcileOnInventoryClose: Boolean = false,
     private val flagSuspiciousPatterns: Boolean = true,
-    private val hopperMode: HopperMode = HopperMode.LOG
+    private val hopperMode: HopperMode = HopperMode.LOG,
+    private val blockCollectToCursor: Boolean = false
 ) : Listener {
 
     /** What to do when a hopper, dropper or crafter moves a tracked item on its own. */
@@ -748,6 +749,34 @@ class LedgerEventHandler(
      * server with any redstone automation, so when the mode is OFF we do not add a listener at
      * all rather than paying dispatch cost for a handler that returns immediately.
      */
+    /**
+     * Stop double-click "gather every matching item" from working on watched materials.
+     *
+     * Off by default because it takes away something players use constantly and will be
+     * noticed. It exists for servers that would rather trade that convenience for closing a
+     * move whose contents are awkward to attribute.
+     *
+     * Registered at HIGH rather than MONITOR because it has to cancel, and MONITOR is for
+     * watching an outcome that is already settled.
+     */
+    fun registerCollectBlocker() {
+        if (!blockCollectToCursor) return
+        plugin.server.pluginManager.registerEvents(CollectBlocker(), plugin)
+        logger.info("[Ledger] Double-click gather is blocked for watched items")
+    }
+
+    private inner class CollectBlocker : Listener {
+        @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+        fun onCollect(event: InventoryClickEvent) {
+            if (event.action != InventoryAction.COLLECT_TO_CURSOR) return
+            val player = event.whoClicked as? Player ?: return
+            if (shouldSkip(player)) return
+            val gathered = event.cursor?.takeIf { it.type != Material.AIR } ?: event.currentItem ?: return
+            if (!isTracked(gathered.type)) return
+            event.isCancelled = true
+        }
+    }
+
     fun registerHopperListener() {
         val listener: Listener = when (hopperMode) {
             HopperMode.OFF -> return

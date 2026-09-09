@@ -275,6 +275,7 @@ class BetterAntiDupe : JavaPlugin() {
             val sweepStaggerMs = config.getLong("ledger.reconciliation.stagger_ms", 250L)
             val flagPatterns = config.getBoolean("ledger.witness.flag_suspicious_patterns", true)
             val hopperMode = parseHopperMode()
+            val blockCollect = config.getBoolean("block_collect_to_cursor", false)
 
             val alertThresholds = mutableMapOf<Material, Int>()
             var defaultAlertThreshold = 5
@@ -320,6 +321,7 @@ class BetterAntiDupe : JavaPlugin() {
                     reconcileOnInventoryClose = reconcileOnClose,
                     flagSuspiciousPatterns = flagPatterns,
                     hopperMode = hopperMode,
+                    blockCollectToCursor = blockCollect,
                     sweepIntervalMinutes = sweepIntervalMinutes,
                     sweepStaggerMs = sweepStaggerMs
                 )
