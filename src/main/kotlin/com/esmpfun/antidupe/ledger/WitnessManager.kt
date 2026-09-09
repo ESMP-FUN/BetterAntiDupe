@@ -43,7 +43,7 @@ class WitnessManager(
     private val witnessHistory = ConcurrentHashMap<UUID, MutableList<WitnessRecord>>()
 
     private fun historyFor(id: UUID): MutableList<WitnessRecord> =
-        witnessHistory.getOrPut(id) { Collections.synchronizedList(mutableListOf()) }
+        witnessHistory.computeIfAbsent(id) { Collections.synchronizedList(mutableListOf()) }
 
     /**
      * Get all players who can witness an action at a location.
@@ -256,11 +256,11 @@ class WitnessManager(
      * Get the trust score for a player.
      */
     fun getTrustScore(playerId: UUID): TrustScore {
-        return trustScores.getOrPut(playerId) { TrustScore(playerId) }
+        return trustScores.computeIfAbsent(playerId) { TrustScore(playerId) }
     }
 
     private fun updateTrustScore(playerId: UUID, trustLevel: TrustLevel) {
-        val score = trustScores.getOrPut(playerId) { TrustScore(playerId) }
+        val score = trustScores.computeIfAbsent(playerId) { TrustScore(playerId) }
         score.recordAction(trustLevel)
     }
 

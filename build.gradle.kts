@@ -50,10 +50,22 @@ dependencies {
     // falls back to plain-text notices when Adventure is absent.
     implementation("com.github.darkstarworks.PluginPulse:pluginpulse-core:v0.8.0")
 
+    // Unit tests. The ledger's hashing, canonical metadata form and balance arithmetic are
+    // pure functions, so they can be checked without standing a server up.
+    testImplementation(kotlin("test"))
+    testImplementation(
+        if (is26) "io.papermc.paper:paper-api:26.1.2.build.66-stable"
+        else "io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT"
+    )
+
     // FastStats — anonymous usage metrics and (opt-in) error reporting.
     // Server owners can disable either in config.yml; the SDK itself only
     // offers a -Dfaststats.enabled=false JVM flag, which few admins would find.
     implementation("dev.faststats.metrics:bukkit:0.28.0")
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 tasks {

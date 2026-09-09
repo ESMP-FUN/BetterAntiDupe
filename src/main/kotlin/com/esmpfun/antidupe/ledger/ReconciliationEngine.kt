@@ -190,7 +190,7 @@ class ReconciliationEngine(
         val dupeDetected = alertWorthy.isNotEmpty()
 
         if (dupeDetected) {
-            val profile = suspects.getOrPut(playerId) { SuspectProfile(playerId, player.name) }
+            val profile = suspects.computeIfAbsent(playerId) { SuspectProfile(playerId, player.name) }
             profile.recordViolation(alertWorthy, tmarViolations)
             ledgerStorage.appendBuilt(
                 player = playerId,
@@ -282,7 +282,7 @@ class ReconciliationEngine(
         val now = System.currentTimeMillis()
         // Deterministic, ~zero false positive → raise the earned floor and always alert.
         suspicion.bumpFloor(player.uniqueId)
-        val profile = suspects.getOrPut(player.uniqueId) { SuspectProfile(player.uniqueId, player.name) }
+        val profile = suspects.computeIfAbsent(player.uniqueId) { SuspectProfile(player.uniqueId, player.name) }
         profile.recordViolation(
             listOf(Discrepancy(material, 0, amount, amount)), emptyList()
         )
@@ -313,7 +313,7 @@ class ReconciliationEngine(
         if (excess < threshold) return
 
         suspicion.bumpFloor(player.uniqueId, SuspicionManager.DETERMINISTIC_FLOOR_BUMP / 2)
-        val profile = suspects.getOrPut(player.uniqueId) { SuspectProfile(player.uniqueId, player.name) }
+        val profile = suspects.computeIfAbsent(player.uniqueId) { SuspectProfile(player.uniqueId, player.name) }
         profile.recordViolation(listOf(Discrepancy(material, 0, excess, excess)), emptyList())
         emitAlert(DupeAlert(
             type = AlertType.BALANCE_DISCREPANCY,

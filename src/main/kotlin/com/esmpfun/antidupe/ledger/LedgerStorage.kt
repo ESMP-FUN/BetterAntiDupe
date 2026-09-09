@@ -24,7 +24,16 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
      * Bounded by the number of distinct players ever seen (small, cheap Mutex objects).
      */
     private val playerLocks = ConcurrentHashMap<UUID, Mutex>()
-    private fun lockFor(player: UUID): Mutex = playerLocks.getOrPut(player) { Mutex() }
+
+    /**
+     * Must be [ConcurrentHashMap.computeIfAbsent], not Kotlin's `getOrPut`. The stdlib
+     * extension is a plain get-then-put on MutableMap, so two threads appending for the same
+     * player at the same instant can each build and take a *different* Mutex. They then both
+     * read the same chain tip and write two entries carrying the same prevHash, forking that
+     * player's chain permanently, which verification later reports as tampering. That is
+     * exactly the contended case this lock exists for.
+     */
+    private fun lockFor(player: UUID): Mutex = playerLocks.computeIfAbsent(player) { Mutex() }
 
     /**
      * Read-through balance cache. Lookups consult the cache first; misses load from storage and
@@ -120,14 +129,15 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
      * own hash must be self-consistent, and each entry's prevHash must link to the previous entry
      * in that player's chain.
      *
-     * Entries before the most recent CHAIN_RESET (marker `notes = CHAIN_RESET:<reason>`) are kept
-     * for history/balance but not re-verified — used by the 3.3.0 migration to skip over legacy
-     * global-chain prevHashes inherited from 3.2.0 and earlier.
+     * Entries before the most recent chain reset are kept for history and balance but not
+     * re-verified, which is how the 3.3.0 migration skips the legacy global-chain prevHashes
+     * inherited from 3.2.0 and earlier. See [LedgerEntry.isChainReset] for why the marker is an
+     * action rather than a note.
      */
     open suspend fun verifyChainIntegrity(player: UUID): IntegrityResult {
         val full = getPlayerChainOrdered(player)
         // Take only entries from the last reset (inclusive) forward, if any reset exists.
-        val resetIdx = full.indexOfLast { it.metadata.notes?.startsWith("CHAIN_RESET:") == true }
+        val resetIdx = full.indexOfLast { it.isChainReset() }
         val entries = if (resetIdx >= 0) full.subList(resetIdx, full.size) else full
 
         var prevHash: String? = null

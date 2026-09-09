@@ -45,8 +45,9 @@ exploits, shulker and bundle laundering, item frames, entity inventories, hopper
 laundering, workstation outputs, container transfers, villager trades, chunk-load
 entity respawn, drop-pickup races, and acquisition-rate abuse (TMAR).
 
-Every ledger entry is hash-linked to the previous one, so editing the database
-directly breaks the chain and `/adp ledger verify` reports exactly where.
+Every ledger entry is hash-linked to the previous one, and the hash covers the
+audit details as well as the transaction, so editing the database directly breaks
+the chain and `/adp ledger verify` reports exactly where.
 
 The full coverage list, with the reasoning behind each detection, is in the
 [user guide](docs/README.md#62-what-it-catches).

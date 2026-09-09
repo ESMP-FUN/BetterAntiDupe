@@ -377,7 +377,11 @@ no duped item is ever created.
   exactly the pattern a dupe exploit produces.
 - **Tamper detection.** Each ledger entry contains a SHA-256 hash linking it to
   the previous entry. Anyone editing the ledger directly (e.g. by SQL) breaks
-  the chain, and `/adp ledger verify` reports exactly where.
+  the chain, and `/adp ledger verify` reports exactly where. The hash covers the
+  audit details as well as the transaction, so the witness list, trust level,
+  container location and notes cannot be rewritten without the break showing up.
+  Entries written before 4.3.0 are checked under the older rules they were
+  created with, so upgrading does not invalidate a database you already have.
 - **Trust scores.** Players build a long-term trust score based on how often
   their actions are independently corroborated by witnesses.
 - **Item-frame dupe detection.** Every frame break registers exactly one
@@ -394,8 +398,14 @@ no duped item is ever created.
   stonecutters, cartography tables, grindstones, furnaces, smokers, blast
   furnaces, lecterns, ender chests, decorated pots, horse/donkey/llama chests,
   chest boats and chest minecarts all track item movement correctly. Inputs and
-  outputs reconcile. Since 3.3.2 this includes **double chests**, **villager
-  trades** and **enchanting a book**.
+  outputs reconcile: since 4.3.0 what a station consumes is measured and taken
+  off the books, so repeatedly renaming an item on an anvil no longer quietly
+  builds up spare room in a player's balance. Since 3.3.2 this includes
+  **double chests**, **villager trades** and **enchanting a book**.
+- **Crafting balances (4.3.0).** The ingredients a recipe eats are taken off the
+  ledger, not just the result added to it. Turning nine diamonds into a block and
+  back, or dyeing a shulker box between colours over and over, used to add a
+  little headroom on every cycle while the player's inventory never changed.
 - **Accurate chest accounting (3.3.2).** Moving items with shift-clicks, number
   keys, offhand swaps, double-click gathering or drag-moves is recorded by what
   _actually_ moved — not by what the click "should" have moved. Fewer false

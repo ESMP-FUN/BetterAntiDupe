@@ -22,9 +22,20 @@ data class LedgerEntry(
     val quantity: Int,              // Positive = gain, Negative = loss
     val metadata: LedgerMetadata,
     val prevHash: String?,          // Hash of previous entry (null for genesis)
-    val hash: String                // SHA-256 of this entry's contents
+    val hash: String,               // SHA-256 of this entry's contents
+    /**
+     * Which payload the [hash] was built from. 1 is the original, which covered only the
+     * transaction fields; 2 adds [metadata], so the witness list, trust level, container
+     * location and notes are protected too. Entries written before version 2 are still on
+     * disk and must keep verifying under the rules they were created with, so this is read
+     * back from storage rather than assumed.
+     */
+    val hashVersion: Int = HASH_VERSION_CURRENT
 ) {
     companion object {
+        const val HASH_VERSION_LEGACY = 1
+        const val HASH_VERSION_CURRENT = 2
+
         /**
          * Create a new entry with computed hash
          */
@@ -39,7 +50,8 @@ data class LedgerEntry(
             val id = UUID.randomUUID()
             val timestamp = System.currentTimeMillis()
 
-            val hash = computeHash(id, timestamp, player, action, material, quantity, prevHash)
+            val hash = computeHash(id, timestamp, player, action, material, quantity, prevHash,
+                metadata, HASH_VERSION_CURRENT)
 
             return LedgerEntry(
                 id = id,
@@ -50,7 +62,8 @@ data class LedgerEntry(
                 quantity = quantity,
                 metadata = metadata,
                 prevHash = prevHash,
-                hash = hash
+                hash = hash,
+                hashVersion = HASH_VERSION_CURRENT
             )
         }
 
@@ -61,11 +74,15 @@ data class LedgerEntry(
             action: LedgerAction,
             material: Material,
             quantity: Int,
-            prevHash: String?
+            prevHash: String?,
+            metadata: LedgerMetadata,
+            version: Int
         ): String {
-            val payload = "$id|$timestamp|$player|${action.name}|${material.name}|$quantity|${prevHash ?: "GENESIS"}"
+            val base = "$id|$timestamp|$player|${action.name}|${material.name}|$quantity|${prevHash ?: "GENESIS"}"
+            // Version 1 hashed the transaction only, leaving the whole audit payload editable.
+            val payload = if (version >= HASH_VERSION_CURRENT) "$base|${metadata.canonical()}" else base
             val digest = MessageDigest.getInstance("SHA-256")
-            return digest.digest(payload.toByteArray()).joinToString("") { "%02x".format(it) }
+            return digest.digest(payload.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
         }
 
         fun fromJson(json: String): LedgerEntry {
@@ -79,7 +96,9 @@ data class LedgerEntry(
                 quantity = obj.getInt("quantity"),
                 metadata = LedgerMetadata.fromJson(obj.getJSONObject("metadata")),
                 prevHash = obj.optStringOrNull("prevHash"),
-                hash = obj.getString("hash")
+                hash = obj.getString("hash"),
+                // Absent means the entry predates hash version 2.
+                hashVersion = if (obj.has("hashVersion")) obj.getInt("hashVersion") else HASH_VERSION_LEGACY
             )
         }
 
@@ -98,6 +117,7 @@ data class LedgerEntry(
             put("metadata", metadata.toJsonObject())
             put("prevHash", prevHash)
             put("hash", hash)
+            put("hashVersion", hashVersion)
         }.toString()
     }
 
@@ -105,8 +125,24 @@ data class LedgerEntry(
      * Verify this entry's hash matches its contents
      */
     fun verifyIntegrity(): Boolean {
-        val expectedHash = computeHash(id, timestamp, player, action, material, quantity, prevHash)
+        val expectedHash = computeHash(id, timestamp, player, action, material, quantity, prevHash,
+            metadata, hashVersion)
         return hash == expectedHash
+    }
+
+    /**
+     * True when this entry marks the start of a fresh verification range for its player.
+     *
+     * Version 2 entries have to say so with [LedgerAction.CHAIN_RESET], which the hash covers.
+     * The old marker lived in the free-text notes field, which version 1 did not hash, so
+     * editing one field on one row retired the entire chain from verification. That form is
+     * still honoured on version 1 entries, because genuine ones written by earlier releases
+     * are sitting in live databases, and deliberately ignored on anything newer.
+     */
+    fun isChainReset(): Boolean = when {
+        action == LedgerAction.CHAIN_RESET -> true
+        hashVersion <= HASH_VERSION_LEGACY -> metadata.notes?.startsWith("CHAIN_RESET:") == true
+        else -> false
     }
 }
 
@@ -147,7 +183,8 @@ enum class LedgerAction {
     SPLIT,              // Stack was split (informational)
     MERGE,              // Stacks merged (informational)
     OWNERSHIP_CHANGE,   // Item changed hands (updates NBT)
-    RECONCILE           // Balance was audited
+    RECONCILE,          // Balance was audited
+    CHAIN_RESET         // Verification starts fresh from here (schema migration marker)
 }
 
 /**
@@ -234,6 +271,33 @@ data class LedgerMetadata(
             witnessSignature?.let { put("witnessSignature", it) }
         }
     }
+
+    /**
+     * A stable text form of every field, used as hash input.
+     *
+     * Written out by hand in a fixed field order rather than reusing [toJsonObject]: JSON key
+     * order is not guaranteed, and a hash whose input can be reordered is not a hash of
+     * anything. Each field is written with its length in front, so free text containing a
+     * separator cannot be arranged to look like a different set of fields.
+     */
+    fun canonical(): String = listOf(
+        worldName.orEmpty(),
+        x?.toString().orEmpty(),
+        y?.toString().orEmpty(),
+        z?.toString().orEmpty(),
+        relatedPlayer?.toString().orEmpty(),
+        containerType.orEmpty(),
+        containerLocation.orEmpty(),
+        sourceEntryId?.toString().orEmpty(),
+        blockType?.name.orEmpty(),
+        toolUsed?.name.orEmpty(),
+        enchantments.orEmpty(),
+        notes.orEmpty(),
+        witnesses?.joinToString(",").orEmpty(),
+        witnessCount?.toString().orEmpty(),
+        trustLevel.orEmpty(),
+        witnessSignature.orEmpty()
+    ).joinToString("|") { "${it.length}:$it" }
 
     fun withRelatedPlayer(player: UUID): LedgerMetadata = copy(relatedPlayer = player)
     fun withSourceEntry(entryId: UUID): LedgerMetadata = copy(sourceEntryId = entryId)

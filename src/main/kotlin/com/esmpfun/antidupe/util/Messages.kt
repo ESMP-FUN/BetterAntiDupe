@@ -17,7 +17,7 @@ import java.io.InputStreamReader
  *    positional) so translators can reorder words freely.
  *  - Console log lines and ledger metadata notes are intentionally NOT routed
  *    through here: logs stay English for supportability, and notes strings such
- *    as `CHAIN_RESET:` are machine-parsed data, not display text.
+ *    as `BASELINE_ON_JOIN` are machine-parsed data, not display text.
  */
 object Messages {
 
