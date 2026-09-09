@@ -43,7 +43,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
     implementation("io.lettuce:lettuce-core:6.3.0.RELEASE")
-    implementation("org.xerial:sqlite-jdbc:3.45.3.0")
+    implementation("org.xerial:sqlite-jdbc:3.53.4.0")
     implementation("org.json:json:20231013")
 
     // PluginPulse — update checking + verified install staging. Spigot-safe:
@@ -119,6 +119,10 @@ tasks.shadowJar {
     exclude("org/sqlite/native/Linux/x86/**")      // 32-bit Linux (glibc)
     exclude("org/sqlite/native/Linux-Musl/x86/**") // 32-bit Linux (musl / Alpine)
     exclude("org/sqlite/native/Linux/ppc64/**")    // PowerPC
+    // Linux/riscv64 appeared in sqlite-jdbc 3.53 and is deliberately KEPT (about 760 KB).
+    // RISC-V Linux boxes are rare for game hosting but they do exist, and dropping a platform
+    // means that server cannot start at all. Re-check this list whenever sqlite-jdbc is bumped:
+    // a platform added upstream is shipped silently unless someone looks.
     exclude("org/sqlite/native/Windows/aarch64/**")
     exclude("org/sqlite/native/Windows/armv7/**")
     exclude("org/sqlite/native/Windows/x86/**")    // 32-bit Windows
