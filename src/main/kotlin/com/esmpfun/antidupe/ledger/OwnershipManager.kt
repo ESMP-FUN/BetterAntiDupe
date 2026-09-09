@@ -240,6 +240,12 @@ class OwnershipManager(
                 collectOwnedInContainer(inner, ownerUuid, materials, sink, depth + 1)
             }
         }
+        SulfurCubeAccess.absorbedItem(stack)?.let { inner ->
+            if (inner.type in materials && getOwner(inner) == ownerUuid) {
+                sink.merge(inner.type, inner.amount, Int::plus)
+            }
+            collectOwnedInContainer(inner, ownerUuid, materials, sink, depth + 1)
+        }
     }
 
     private fun countOwnedInContainer(stack: ItemStack, ownerUuid: UUID, material: Material, depth: Int): Int {
@@ -262,6 +268,10 @@ class OwnershipManager(
                 if (inner.type == material && getOwner(inner) == ownerUuid) count += inner.amount
                 count += countOwnedInContainer(inner, ownerUuid, material, depth + 1)
             }
+        }
+        SulfurCubeAccess.absorbedItem(stack)?.let { inner ->
+            if (inner.type == material && getOwner(inner) == ownerUuid) count += inner.amount
+            count += countOwnedInContainer(inner, ownerUuid, material, depth + 1)
         }
         return count
     }
@@ -286,6 +296,10 @@ class OwnershipManager(
                 if (inner.type == material) count += inner.amount
                 count += countAllInContainer(inner, material, depth + 1)
             }
+        }
+        SulfurCubeAccess.absorbedItem(stack)?.let { inner ->
+            if (inner.type == material) count += inner.amount
+            count += countAllInContainer(inner, material, depth + 1)
         }
         return count
     }
@@ -342,6 +356,13 @@ class OwnershipManager(
                 }
                 collectForeignInContainer(inner, ownerUuid, outerSlot, sink, depth + 1)
             }
+        }
+        SulfurCubeAccess.absorbedItem(stack)?.let { inner ->
+            val innerOwner = getOwner(inner)
+            if (innerOwner != null && innerOwner != ownerUuid) {
+                sink.add(ForeignItem(slot = outerSlot, item = inner, originalOwner = innerOwner))
+            }
+            collectForeignInContainer(inner, ownerUuid, outerSlot, sink, depth + 1)
         }
     }
 
