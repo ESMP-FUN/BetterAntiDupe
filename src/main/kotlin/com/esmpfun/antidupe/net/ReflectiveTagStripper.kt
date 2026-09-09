@@ -82,6 +82,21 @@ class ReflectiveTagStripper(
 
     private val instanceFieldCache = ConcurrentHashMap<Class<*>, List<Field>>()
 
+    /** Packet class names already logged as a passthrough/failure, so the warning fires once each. */
+    private val loggedPacketNames = ConcurrentHashMap.newKeySet<String>()
+
+    /**
+     * A client-bound packet name that looks like it carries items but is not one we rewrite.
+     * If a version rename ever moves an item-bearing packet out of [targetPackets], the tag
+     * would start leaking to clients with no signal at all — this turns that into one warning.
+     */
+    private fun looksItemBearing(simpleName: String): Boolean =
+        simpleName.startsWith("Clientbound") && (
+            simpleName.contains("Item") || simpleName.contains("Slot") ||
+            simpleName.contains("Inventory") || simpleName.contains("Equipment") ||
+            simpleName.contains("ContainerSetContent") || simpleName.contains("MerchantOffers")
+        )
+
     // ---------------------------------------------------------------- lifecycle
 
     override fun inject(player: Player) {
@@ -121,17 +136,66 @@ class ReflectiveTagStripper(
 
     private inner class StripHandler : ChannelDuplexHandler() {
         override fun write(ctx: ChannelHandlerContext, msg: Any, promise: ChannelPromise) {
-            val out = if (msg.javaClass.simpleName in targetPackets) {
-                try { rewritePacket(msg) ?: msg } catch (e: Throwable) {
-                    logger.fine("[TagStripper] passthrough ${msg.javaClass.simpleName}: ${e.message}")
+            val name = msg.javaClass.simpleName
+            val out = if (name == "ClientboundBundlePacket") {
+                // A bundle wraps several packets sent as one unit — commonly a spawn plus its
+                // SetEntityData. Without descending into it, a bundled SetEntityData (dropped
+                // item / item frame) or container packet ships the tag straight through.
+                try { rewriteBundle(msg) ?: msg } catch (e: Throwable) {
+                    if (loggedPacketNames.add(name)) {
+                        logger.warning("[TagStripper] could not process a bundle packet, forwarding it unchanged: ${e.message}")
+                    }
                     msg
                 }
-            } else msg
+            } else if (name in targetPackets) {
+                try { rewritePacket(msg) ?: msg } catch (e: Throwable) {
+                    // A rewrite that throws means the tag may have gone out unstripped. Was
+                    // logger.fine (invisible at INFO) — a silent leak. Warn once per packet class.
+                    if (loggedPacketNames.add(name)) {
+                        logger.warning("[TagStripper] could not rewrite $name, forwarding it unchanged" +
+                            " — an ownership tag on that packet reaches the client: ${e.message}")
+                    }
+                    msg
+                }
+            } else {
+                if (looksItemBearing(name) && loggedPacketNames.add(name)) {
+                    logger.warning("[TagStripper] client-bound packet $name looks like it carries items" +
+                        " but is not on the strip list — a server update may have renamed a packet; report this")
+                }
+                msg
+            }
             super.write(ctx, out, promise)
         }
     }
 
     // ---------------------------------------------------------------- packet rewrite
+
+    /**
+     * A ClientboundBundlePacket carries an `Iterable<Packet>` (via `subPackets()`), each of
+     * which is a normal packet the outer `write` never sees. Rewrite any item-bearing member
+     * and rebuild the bundle through its `Iterable` constructor.
+     *
+     * @return a fresh bundle if a member was stripped, else null (caller forwards the original).
+     */
+    private fun rewriteBundle(msg: Any): Any? {
+        val subPackets = msg.javaClass.getMethod("subPackets").invoke(msg) as? Iterable<*> ?: return null
+        var changed = false
+        val out = ArrayList<Any?>()
+        for (p in subPackets) {
+            val replaced = if (p != null && p.javaClass.simpleName in targetPackets) {
+                try { rewritePacket(p) } catch (e: Throwable) {
+                    if (loggedPacketNames.add(p.javaClass.simpleName)) {
+                        logger.warning("[TagStripper] bundled ${p.javaClass.simpleName} could not be rewritten," +
+                            " forwarded unchanged: ${e.message}")
+                    }
+                    null
+                }
+            } else null
+            if (replaced != null) { changed = true; out.add(replaced) } else out.add(p)
+        }
+        if (!changed) return null
+        return msg.javaClass.getConstructor(Iterable::class.java).newInstance(out)
+    }
 
     /** @return a new/mutated packet if a tracked item was stripped, else null (caller forwards original). */
     private fun rewritePacket(msg: Any): Any? {
