@@ -968,6 +968,14 @@ class LedgerEventHandler(
         }
     }
 
+    // Copper golem (1.21.9+) sorting is intentionally not handled. A golem only ever moves
+    // items between a copper chest and a wooden/trapped chest — it never touches a player
+    // inventory, so no player's balance changes when it works. The items were already debited
+    // (CONTAINER_PUT) when a player stashed them and are credited (CONTAINER_TAKE) when a
+    // player retrieves them from wherever the golem left them; the hop in between is neutral.
+    // If Paper routes golem transfers through InventoryMoveItemEvent they are additionally
+    // visible in the item history via the hopper listener when hopper_tracking is LOG/BLOCK.
+
     // Crafter block automation (1.21+) is intentionally not handled here — CrafterCraftEvent
     // is exposed only on Paper API builds newer than what we currently target, and items
     // flowing out of a crafter into a hopper are already captured downstream via
@@ -987,6 +995,60 @@ class LedgerEventHandler(
 
         val meta = LedgerMetadata.fromLocation(event.lectern.location).copy(containerType = "LECTERN")
         appendAsync(player.uniqueId, LedgerAction.CONTAINER_TAKE, item.type, item.amount, meta)
+    }
+
+    /**
+     * Shelf (1.21.9+): a wall block that holds up to three item stacks. Right-clicking a slot
+     * swaps the held item with that slot's contents; a powered shelf swaps a whole hotbar row
+     * (three, six or nine items) in one interaction. None of this opens an inventory, so no
+     * click event fires — the items just move between the player and a world block the deep
+     * scan cannot see. Left unhandled a shelf is a laundering sink exactly like an item frame:
+     * park tracked items on it and they leave the ledger's view; take them back and they read
+     * as a fresh gain, or the deposit alone inflates the balance and false-flags the player.
+     *
+     * Recorded by measuring what actually left or entered the player's inventory one tick
+     * later, the same snapshot-diff the container path uses — a swap can be a put and a take
+     * at once, and this stays correct whatever the shelf's power state does with row counts.
+     * Breaking a shelf drops its contents as item entities, already covered by onBlockDropItem,
+     * so deposit-then-break-then-pickup still nets to zero.
+     *
+     * PlayerInteractEvent rather than a version-specific shelf event, so one jar covers the
+     * whole 1.21.9+ line without recompiling.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onShelfInteract(event: org.bukkit.event.player.PlayerInteractEvent) {
+        if (event.action != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) return
+        if (event.hand != org.bukkit.inventory.EquipmentSlot.HAND) return  // shelves swap the main hand only
+        val block = event.clickedBlock ?: return
+        if (!block.type.name.endsWith("_SHELF")) return
+
+        val player = event.player
+        if (shouldSkip(player)) return
+        val shelf = block.state as? org.bukkit.block.Shelf ?: return
+
+        // Candidate materials: what the player is holding, plus everything already on the shelf
+        // (including tracked items inside a shelved shulker or bundle).
+        val materials = HashSet<Material>()
+        fun consider(stack: ItemStack?) {
+            if (stack == null || stack.type == Material.AIR) return
+            if (isTracked(stack.type)) materials.add(stack.type)
+            materials.addAll(containedTracked(stack).keys)
+        }
+        consider(player.inventory.itemInMainHand)
+        shelf.inventory.contents.forEach { consider(it) }
+        if (materials.isEmpty()) return
+
+        val before = materials.associateWith { countInInventory(player.inventory, it) }
+        val loc = block.location
+        scheduler.runForEntityLater(player, 1, Runnable {
+            for ((mat, pre) in before) {
+                val delta = countInInventory(player.inventory, mat) - pre
+                if (delta == 0) continue
+                val meta = LedgerMetadata.fromLocation(player.location).withContainer("SHELF", loc)
+                if (delta < 0) appendAsync(player.uniqueId, LedgerAction.CONTAINER_PUT, mat, delta, meta)
+                else appendAsync(player.uniqueId, LedgerAction.CONTAINER_TAKE, mat, delta, meta)
+            }
+        })
     }
 
     private fun recordTake(player: Player, mat: Material, qty: Int, target: StorageTarget) {
