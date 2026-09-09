@@ -205,7 +205,7 @@ class RedisLedgerStorage internal constructor(
         return try {
             PreviousPickup(
                 playerUuid = UUID.fromString(parts[0]),
-                material = Material.valueOf(parts[1]),
+                material = LedgerEntry.materialOrNull(parts[1]) ?: Material.AIR,
                 amount = parts[2].toInt(),
                 pickedUpAt = parts[3].toLong()
             )

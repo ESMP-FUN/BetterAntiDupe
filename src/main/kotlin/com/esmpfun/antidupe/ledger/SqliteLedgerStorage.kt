@@ -132,7 +132,9 @@ class SqliteLedgerStorage private constructor(
                 st.setString(2, entry.player.toString())
                 st.setLong(3, entry.timestamp)
                 st.setString(4, entry.action.name)
-                st.setString(5, entry.material.name)
+                // Preserve the original name for an entry loaded under a since-renamed material,
+                // so a re-persist never rewrites history to the remapped or AIR name.
+                st.setString(5, entry.materialRaw ?: entry.material.name)
                 st.setInt(6, entry.quantity)
                 st.setString(7, entry.prevHash)
                 st.setString(8, entry.hash)
@@ -339,13 +341,33 @@ class SqliteLedgerStorage private constructor(
         Unit
     }
 
+    private val warnedUnknownMaterials = java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap<String, Boolean>())
+
+    /**
+     * Build an entry from a result row.
+     *
+     * A single unreadable row used to throw out of here and abort the whole result loop,
+     * making that player's entire history unreadable. The commonest cause is a Mojang
+     * material rename across a version upgrade (26.3 is a checkpoint release with a large
+     * enum churn). [LedgerEntry.materialOrNull] absorbs the known renames; anything still
+     * unresolved falls back to AIR for balance logic while [LedgerEntry.materialRaw] keeps
+     * the original string, so the row stays readable, chain-linked and hash-verifiable and
+     * only that one material's balance is understated (which reconciliation self-heals).
+     */
     private fun rowToEntry(rs: java.sql.ResultSet): LedgerEntry {
+        val matStr = rs.getString(5)
+        val material = LedgerEntry.materialOrNull(matStr) ?: Material.AIR
+        if (material == Material.AIR && matStr != "AIR" && warnedUnknownMaterials.add(matStr)) {
+            logger.warning("[Ledger] ledger rows name a material '$matStr' unknown on this server" +
+                " (renamed or removed since they were written) — history stays readable, that material's balance is treated as 0")
+        }
         return LedgerEntry(
             id = UUID.fromString(rs.getString(1)),
             player = UUID.fromString(rs.getString(2)),
             timestamp = rs.getLong(3),
             action = LedgerAction.valueOf(rs.getString(4)),
-            material = Material.valueOf(rs.getString(5)),
+            material = material,
+            materialRaw = matStr.takeIf { it != material.name },
             quantity = rs.getInt(6),
             prevHash = rs.getString(7),
             hash = rs.getString(8),
