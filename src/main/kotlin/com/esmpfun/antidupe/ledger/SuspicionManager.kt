@@ -104,10 +104,4 @@ class SuspicionManager(@Volatile var sensitivity: Int = 50) {
         val suspFactor = 1.0 + suspicion(player) / 100.0
         return (base / sensFactor / suspFactor).coerceAtLeast(1.0)
     }
-
-    /** Multiplier in [0.5 .. ~3] that widens source-bound match radius/window as leniency rises. */
-    fun leniencyScale(): Double {
-        // sensitivity 1 → ~2.0 (very lenient, wide windows); 50 → 1.0; 100 → ~0.5 (tight).
-        return (100.0 / (sensitivity.coerceIn(1, 100) + 50.0))
-    }
 }
