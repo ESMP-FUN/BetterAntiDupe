@@ -41,7 +41,7 @@ dependencies {
     compileOnly("io.netty:netty-transport:4.1.101.Final")
     compileOnly("io.netty:netty-common:4.1.101.Final")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
     implementation("io.lettuce:lettuce-core:6.3.0.RELEASE")
     implementation("org.xerial:sqlite-jdbc:3.45.3.0")
     implementation("org.json:json:20231013")
