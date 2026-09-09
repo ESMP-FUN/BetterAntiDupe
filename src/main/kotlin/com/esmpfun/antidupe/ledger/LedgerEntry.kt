@@ -30,11 +30,37 @@ data class LedgerEntry(
      * disk and must keep verifying under the rules they were created with, so this is read
      * back from storage rather than assumed.
      */
-    val hashVersion: Int = HASH_VERSION_CURRENT
+    val hashVersion: Int = HASH_VERSION_CURRENT,
+    /**
+     * The material name exactly as it was stored, kept only when it no longer resolves to a
+     * [Material] constant on this server (a Mojang enum rename across a version upgrade, e.g.
+     * GRASS -> SHORT_GRASS). [material] then carries the best-effort remap (or AIR) for logic,
+     * while the hash is still computed from this original string so the entry keeps verifying.
+     * Null on every normally-written entry.
+     */
+    val materialRaw: String? = null
 ) {
     companion object {
         const val HASH_VERSION_LEGACY = 1
         const val HASH_VERSION_CURRENT = 2
+
+        /**
+         * Mojang has renamed material enum constants across versions before (GRASS -> SHORT_GRASS
+         * in 1.20.3, SCUTE -> TURTLE_SCUTE in 1.20.5) and 26.3 is a checkpoint release with a
+         * large enum churn. A ledger row written under the old name must still be readable.
+         */
+        private val RENAMED_MATERIALS = mapOf(
+            "GRASS" to "SHORT_GRASS",
+            "SCUTE" to "TURTLE_SCUTE",
+        )
+
+        /**
+         * Resolve a stored material name to a [Material], trying the known-rename table before
+         * giving up. Returns null only when the name is genuinely unknown on this server.
+         */
+        fun materialOrNull(name: String): Material? =
+            runCatching { Material.valueOf(name) }.getOrNull()
+                ?: RENAMED_MATERIALS[name]?.let { runCatching { Material.valueOf(it) }.getOrNull() }
 
         /**
          * Create a new entry with computed hash
@@ -50,7 +76,7 @@ data class LedgerEntry(
             val id = UUID.randomUUID()
             val timestamp = System.currentTimeMillis()
 
-            val hash = computeHash(id, timestamp, player, action, material, quantity, prevHash,
+            val hash = computeHash(id, timestamp, player, action, material.name, quantity, prevHash,
                 metadata, HASH_VERSION_CURRENT)
 
             return LedgerEntry(
@@ -72,13 +98,13 @@ data class LedgerEntry(
             timestamp: Long,
             player: UUID,
             action: LedgerAction,
-            material: Material,
+            materialName: String,
             quantity: Int,
             prevHash: String?,
             metadata: LedgerMetadata,
             version: Int
         ): String {
-            val base = "$id|$timestamp|$player|${action.name}|${material.name}|$quantity|${prevHash ?: "GENESIS"}"
+            val base = "$id|$timestamp|$player|${action.name}|$materialName|$quantity|${prevHash ?: "GENESIS"}"
             // Version 1 hashed the transaction only, leaving the whole audit payload editable.
             val payload = if (version >= HASH_VERSION_CURRENT) "$base|${metadata.canonical()}" else base
             val digest = MessageDigest.getInstance("SHA-256")
@@ -92,7 +118,8 @@ data class LedgerEntry(
                 timestamp = obj.getLong("timestamp"),
                 player = UUID.fromString(obj.getString("player")),
                 action = LedgerAction.valueOf(obj.getString("action")),
-                material = Material.valueOf(obj.getString("material")),
+                material = obj.getString("material").let { materialOrNull(it) ?: Material.AIR },
+                materialRaw = obj.getString("material").let { if (materialOrNull(it)?.name == it) null else it },
                 quantity = obj.getInt("quantity"),
                 metadata = LedgerMetadata.fromJson(obj.getJSONObject("metadata")),
                 prevHash = obj.optStringOrNull("prevHash"),
@@ -112,7 +139,7 @@ data class LedgerEntry(
             put("timestamp", timestamp)
             put("player", player.toString())
             put("action", action.name)
-            put("material", material.name)
+            put("material", materialRaw ?: material.name)
             put("quantity", quantity)
             put("metadata", metadata.toJsonObject())
             put("prevHash", prevHash)
@@ -125,8 +152,8 @@ data class LedgerEntry(
      * Verify this entry's hash matches its contents
      */
     fun verifyIntegrity(): Boolean {
-        val expectedHash = computeHash(id, timestamp, player, action, material, quantity, prevHash,
-            metadata, hashVersion)
+        val expectedHash = computeHash(id, timestamp, player, action, materialRaw ?: material.name,
+            quantity, prevHash, metadata, hashVersion)
         return hash == expectedHash
     }
 
@@ -238,8 +265,8 @@ data class LedgerMetadata(
                 containerType = s("containerType"),
                 containerLocation = s("containerLocation"),
                 sourceEntryId = s("sourceEntryId")?.let { UUID.fromString(it) },
-                blockType = s("blockType")?.let { Material.valueOf(it) },
-                toolUsed = s("toolUsed")?.let { Material.valueOf(it) },
+                blockType = s("blockType")?.let { LedgerEntry.materialOrNull(it) },
+                toolUsed = s("toolUsed")?.let { LedgerEntry.materialOrNull(it) },
                 enchantments = s("enchantments"),
                 notes = s("notes"),
                 witnesses = witnesses,

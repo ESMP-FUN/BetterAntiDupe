@@ -71,6 +71,42 @@ class LedgerEntryJsonTest {
     }
 
     @Test
+    fun `an entry whose material was renamed since it was written stays readable`() {
+        // A row written on an old server as "GRASS"; on this server that constant is SHORT_GRASS.
+        val entry = LedgerEntry.create(player, LedgerAction.PICKUP, Material.SHORT_GRASS, 3, LedgerMetadata(), null)
+        val storedUnderOldName = org.json.JSONObject(entry.toJson()).apply { put("material", "GRASS") }.toString()
+
+        val restored = LedgerEntry.fromJson(storedUnderOldName)
+        assertEquals(Material.SHORT_GRASS, restored.material, "the known rename is applied for logic")
+        assertEquals("GRASS", restored.materialRaw, "the original name is kept for hashing")
+        // toJson round-trips the original name, not the remapped one, so the hash a genuine
+        // old-server entry carries still recomputes to the same value.
+        assertEquals("GRASS", org.json.JSONObject(restored.toJson()).getString("material"))
+    }
+
+    @Test
+    fun `hashing uses the raw material name so a renamed entry keeps verifying`() {
+        // Faithfully simulate what the old server wrote: hash computed over "GRASS".
+        val onOldServer = LedgerEntry.create(player, LedgerAction.PICKUP, Material.SHORT_GRASS, 3, LedgerMetadata(), null)
+        val oldJson = org.json.JSONObject(onOldServer.toJson())
+        // Recreate the entry as if SHORT_GRASS had been called GRASS end to end.
+        val faithful = LedgerEntry.fromJson(oldJson.toString())  // materialRaw = null, verifies
+        assertTrue(faithful.verifyIntegrity())
+        val renamed = faithful.copy(material = Material.AIR, materialRaw = "SHORT_GRASS")
+        assertTrue(renamed.verifyIntegrity(), "hash must read the raw name, not the AIR fallback")
+    }
+
+    @Test
+    fun `an entry naming a material unknown on this server reads back as AIR without throwing`() {
+        val entry = LedgerEntry.create(player, LedgerAction.PICKUP, Material.DIAMOND_BLOCK, 1, LedgerMetadata(), null)
+        val storedUnderGoneName = org.json.JSONObject(entry.toJson()).apply { put("material", "SOME_FUTURE_BLOCK") }.toString()
+
+        val restored = LedgerEntry.fromJson(storedUnderGoneName)
+        assertEquals(Material.AIR, restored.material)
+        assertEquals("SOME_FUTURE_BLOCK", restored.materialRaw)
+    }
+
+    @Test
     fun `a legacy entry without a hash version reads back as version one`() {
         // Rows written by earlier releases have no hashVersion key at all.
         val entry = LedgerEntry.create(player, LedgerAction.PICKUP, Material.BEACON, 1, LedgerMetadata(), null)
