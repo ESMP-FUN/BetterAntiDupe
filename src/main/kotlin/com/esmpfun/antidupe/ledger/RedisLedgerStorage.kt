@@ -24,9 +24,14 @@ import java.util.logging.Logger
 class RedisLedgerStorage internal constructor(
     private val client: RedisClient,
     private val connection: StatefulRedisConnection<String, String>,
+    private val txConnection: StatefulRedisConnection<String, String>,
     private val redis: RedisCoroutinesCommands<String, String>,
     logger: Logger
 ) : LedgerStorage(logger) {
+
+    // Redis can be written by other server processes; the per-JVM balance cache
+    // in LedgerStorage cannot see those writes, so it is bypassed for this backend.
+    override val sharedBackend: Boolean = true
 
     companion object {
         private const val KEY_ENTRY = "ledger:entry:"
@@ -47,28 +52,33 @@ class RedisLedgerStorage internal constructor(
             val client = RedisClient.create(uri)
             // Without this the client waits on lettuce's own default for every command, which
             // is a long time to hold a ledger write if the Redis box stops answering.
-            client.setDefaultTimeout(java.time.Duration.ofSeconds(timeoutSeconds.coerceAtLeast(1)))
-            val connection = client.connect()
+            val cmdTimeout = java.time.Duration.ofSeconds(timeoutSeconds.coerceAtLeast(1))
+            val connection = client.connect().apply { timeout = cmdTimeout }
+            // MULTI/EXEC is connection-scoped: commands issued on a connection with an open
+            // transaction are queued into it. Writes therefore run on their own connection so a
+            // concurrent read on `connection` can never be captured by a write's transaction.
+            val txConnection = client.connect().apply { timeout = cmdTimeout }
             val coroutines = connection.coroutines()
             val pong = coroutines.ping()
             if (pong != "PONG") {
-                connection.close(); client.shutdown()
+                connection.close(); txConnection.close(); client.shutdown()
                 throw IllegalStateException("Redis connection failed: expected PONG, got $pong")
             }
             logger.info("[Ledger] Connected to Redis at $host:$port")
-            return RedisLedgerStorage(client, connection, coroutines, logger)
+            return RedisLedgerStorage(client, connection, txConnection, coroutines, logger)
         }
     }
 
     override fun close() {
         try { connection.close() } catch (e: Exception) { logger.warning("[Ledger] connection close: ${e.message}") }
+        try { txConnection.close() } catch (e: Exception) { logger.warning("[Ledger] tx connection close: ${e.message}") }
         try { client.shutdown(100, 500, TimeUnit.MILLISECONDS) } catch (e: Exception) { logger.warning("[Ledger] client shutdown: ${e.message}") }
     }
 
     /**
-     * MULTI/EXEC is connection-scoped state, so a single global mutex keeps concurrent
-     * appends (different players bypass the per-player append lock) from interleaving
-     * transactions. Uses the sync command API - lettuce's coroutine API doesn't expose
+     * MULTI/EXEC is connection-scoped state, so a single mutex keeps concurrent appends
+     * (different players bypass the per-player append lock) from interleaving transactions on
+     * [txConnection]. Uses the sync command API - lettuce's coroutine API doesn't expose
      * transactions - on the IO dispatcher.
      */
     private val txMutex = Mutex()
@@ -87,7 +97,7 @@ class RedisLedgerStorage internal constructor(
                 put("timestamp", entry.timestamp)
             }.toString()
 
-            val sync = connection.sync()
+            val sync = txConnection.sync()
             sync.multi()
             try {
                 sync.set(entryKey, entry.toJson())

@@ -42,6 +42,14 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
      */
     private val balanceCache = ConcurrentHashMap<Pair<UUID, Material>, AtomicInteger>()
 
+    /**
+     * True when the backend can be written by another server process (Redis). The read-through
+     * balance cache is per-JVM with no cross-process invalidation, so on a shared backend it
+     * would hide other servers' writes — exactly the cross-server detection Redis exists for.
+     * Shared backends therefore skip the cache and read the authoritative counter every time.
+     */
+    protected open val sharedBackend: Boolean = false
+
     suspend fun appendBuilt(
         player: UUID,
         action: LedgerAction,
@@ -52,7 +60,7 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
         val tip = readPlayerTip(player)
         val entry = LedgerEntry.create(player, action, material, quantity, metadata, tip?.lastHash)
         writeEntry(entry)
-        balanceCache[player to material]?.addAndGet(quantity)
+        if (!sharedBackend) balanceCache[player to material]?.addAndGet(quantity)
         entry
     }
 
@@ -60,6 +68,7 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
     abstract suspend fun getTip(): ChainTip?
 
     suspend fun getBalance(player: UUID, material: Material): Int {
+        if (sharedBackend) return readBalanceFromStorage(player, material)
         val key = player to material
         balanceCache[key]?.let { return it.get() }
         // Populate under the player's append lock: an append landing between the storage
