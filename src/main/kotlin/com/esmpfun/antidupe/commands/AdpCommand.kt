@@ -376,8 +376,11 @@ class AdpCommand(
             if (confirm) {
                 coc.confirmSuspect(uuid)
                 sender.sendMessage(Messages.msg("commands.verdict.confirmed", "player" to playerName))
-                // Optional configurable punishment hook: detection.on_confirm_command, with {player}.
-                val cmd = plugin.config.getString("detection.on_confirm_command", "")?.trim().orEmpty()
+                // Optional punishment hook, with {player} substituted. It sits next to the
+                // other "what happens to a duper" settings now; configs written before that
+                // moved keep working from its old place under detection.
+                val cmd = (plugin.config.getString("on_confirm_command", null)
+                    ?: plugin.config.getString("detection.on_confirm_command", ""))?.trim().orEmpty()
                 if (cmd.isNotEmpty()) {
                     val resolved = cmd.replace("{player}", playerName)
                     scheduler.runMain(Runnable {

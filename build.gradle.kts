@@ -74,6 +74,10 @@ tasks {
         // support: ./gradlew runServer -PrunMc=26.2 (and 26.3 once it lands). The compile
         // target stays at the oldest supported release; only the runtime moves.
         minecraftVersion((findProperty("runMc") as String?) ?: if (is26) "26.2" else "1.21.8")
+        // A smoke-test server on an empty world needs very little. Left uncapped it asks for
+        // a default heap that a development machine already running a game and a real server
+        // cannot commit, and Paperclip dies allocating before the plugin ever loads.
+        jvmArgs("-Xms256M", "-Xmx1G")
     }
 }
 

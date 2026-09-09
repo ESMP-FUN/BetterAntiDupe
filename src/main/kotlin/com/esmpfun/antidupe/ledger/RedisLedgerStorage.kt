@@ -38,10 +38,16 @@ class RedisLedgerStorage internal constructor(
         private const val SCAN_BATCH = 500L
         private const val RECENT_WINDOW_MS = 5 * 60 * 1000L
 
-        suspend fun create(host: String, port: Int, password: String?, database: Int, logger: Logger): RedisLedgerStorage {
+        suspend fun create(
+            host: String, port: Int, password: String?, database: Int,
+            timeoutSeconds: Long, logger: Logger
+        ): RedisLedgerStorage {
             val uri = if (password.isNullOrBlank()) "redis://$host:$port/$database"
                       else "redis://:$password@$host:$port/$database"
             val client = RedisClient.create(uri)
+            // Without this the client waits on lettuce's own default for every command, which
+            // is a long time to hold a ledger write if the Redis box stops answering.
+            client.setDefaultTimeout(java.time.Duration.ofSeconds(timeoutSeconds.coerceAtLeast(1)))
             val connection = client.connect()
             val coroutines = connection.coroutines()
             val pong = coroutines.ping()
