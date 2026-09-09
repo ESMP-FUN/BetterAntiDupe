@@ -109,6 +109,21 @@ tasks.shadowJar {
     // shade their own copy, and unrelocated they'd fight over the class names.
     relocate("dev.faststats", "com.esmpfun.antidupe.libs.faststats")
 
+    // org.json is the classic shaded-jar collision: plenty of plugins bundle a copy, the
+    // versions differ, and whichever one loads first wins for everybody. Relocating ours means
+    // the ledger reads and writes with the version it was built against, whatever else is on
+    // the server.
+    relocate("org.json", "com.esmpfun.antidupe.libs.json")
+
+    // Lettuce and the Reactor runtime it is built on are only ever used by the Redis backend,
+    // and nothing outside this plugin touches those objects. Relocating them keeps a second
+    // plugin's copy of either from deciding how our Redis client behaves.
+    relocate("io.lettuce", "com.esmpfun.antidupe.libs.lettuce")
+    relocate("reactor", "com.esmpfun.antidupe.libs.reactor")
+
+    // Netty is deliberately NOT relocated. The packet tag stripper works against the server's
+    // own Netty pipeline, so its types have to stay the ones the server loaded.
+
     // SQLite native binaries — keep only platforms that realistically host
     // a Paper / Spigot server. Saves ~13 MB of jar.
     exclude("org/sqlite/native/Linux-Android/**")  // Minecraft server doesn't run on Android
