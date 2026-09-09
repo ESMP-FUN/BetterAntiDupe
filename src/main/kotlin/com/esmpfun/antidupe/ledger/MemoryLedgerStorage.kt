@@ -32,10 +32,12 @@ class MemoryLedgerStorage(logger: Logger) : LedgerStorage(logger) {
 
     override suspend fun writeEntry(entry: LedgerEntry) {
         entries[entry.id] = entry
-        byPlayer.getOrPut(entry.player) { Collections.synchronizedList(mutableListOf()) }.add(entry)
+        // computeIfAbsent, not getOrPut: the stdlib extension is get-then-put, so two
+        // concurrent writes for one player can each create a list and one entry is lost.
+        byPlayer.computeIfAbsent(entry.player) { Collections.synchronizedList(mutableListOf()) }.add(entry)
         balances.merge(entry.player to entry.material, entry.quantity) { a, b -> a + b }
         if (entry.quantity > 0) {
-            val list = recent.getOrPut(entry.player to entry.material) { Collections.synchronizedList(mutableListOf()) }
+            val list = recent.computeIfAbsent(entry.player to entry.material) { Collections.synchronizedList(mutableListOf()) }
             list.add(entry)
         }
         playerTips[entry.player] = ChainTip(entry.id, entry.hash, entry.timestamp)

@@ -46,7 +46,7 @@ class SuspicionManager(@Volatile var sensitivity: Int = 50) {
 
     /** A deterministic detection (entity-UUID reuse) or repeated confirmed pattern. Permanent-ish. */
     fun bumpFloor(player: UUID, amount: Double = DETERMINISTIC_FLOOR_BUMP) {
-        val s = scores.getOrPut(player) { Score() }
+        val s = scores.computeIfAbsent(player) { Score() }
         s.floor = (s.floor + amount).coerceIn(0.0, MAX)
         s.lastSignal = System.currentTimeMillis()
     }
@@ -56,7 +56,7 @@ class SuspicionManager(@Volatile var sensitivity: Int = 50) {
      * recently — a single isolated burst is ignored, a *sustained* pattern accumulates.
      */
     fun addHeat(player: UUID, amount: Double = HEAT_PER_SIGNAL) {
-        val s = scores.getOrPut(player) { Score() }
+        val s = scores.computeIfAbsent(player) { Score() }
         val now = System.currentTimeMillis()
         if (now - s.lastSignal <= HEAT_REPEAT_WINDOW_MS) {
             s.heat = (s.heat + amount).coerceIn(0.0, MAX)
@@ -81,7 +81,7 @@ class SuspicionManager(@Volatile var sensitivity: Int = 50) {
 
     /** Admin confirmed this player is duping — pin the floor high so future hits trip easily. */
     fun confirm(player: UUID) {
-        val s = scores.getOrPut(player) { Score() }
+        val s = scores.computeIfAbsent(player) { Score() }
         s.floor = CONFIRM_FLOOR
     }
 

@@ -136,7 +136,7 @@ class ReflectiveTagStripper(
     /** @return a new/mutated packet if a tracked item was stripped, else null (caller forwards original). */
     private fun rewritePacket(msg: Any): Any? {
         val cls = msg.javaClass
-        val fields = instanceFieldCache.getOrPut(cls) { collectInstanceFields(cls) }
+        val fields = instanceFieldCache.computeIfAbsent(cls) { collectInstanceFields(cls) }
 
         val replacements = HashMap<String, Any?>()
         for (f in fields) {

@@ -100,6 +100,17 @@ class SqliteLedgerStorage private constructor(
                     )
                 """.trimIndent())
                 st.execute("CREATE INDEX IF NOT EXISTS idx_pickup_ts ON pickup_history(picked_up_at)")
+
+                // Databases written before hash version 2 have no hash_version column. SQLite
+                // has no ADD COLUMN IF NOT EXISTS, so look first. Existing rows default to 1,
+                // which is exactly what they are: hashes that did not cover the metadata.
+                val hasHashVersion = st.executeQuery("PRAGMA table_info(ledger_entries)").use { rs ->
+                    generateSequence { if (rs.next()) rs.getString("name") else null }.any { it == "hash_version" }
+                }
+                if (!hasHashVersion) {
+                    st.execute("ALTER TABLE ledger_entries ADD COLUMN hash_version INTEGER NOT NULL DEFAULT 1")
+                    logger.info("[Ledger] Added hash_version to ledger_entries (existing rows keep version 1)")
+                }
             }
             logger.info("[Ledger] Connected to SQLite at ${path.name}")
             SqliteLedgerStorage(c, logger)
@@ -114,8 +125,8 @@ class SqliteLedgerStorage private constructor(
         conn.autoCommit = false
         try {
             conn.prepareStatement("""
-                INSERT INTO ledger_entries(id, player, ts, action, material, quantity, prev_hash, hash, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO ledger_entries(id, player, ts, action, material, quantity, prev_hash, hash, metadata, hash_version)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()).use { st ->
                 st.setString(1, entry.id.toString())
                 st.setString(2, entry.player.toString())
@@ -126,6 +137,7 @@ class SqliteLedgerStorage private constructor(
                 st.setString(7, entry.prevHash)
                 st.setString(8, entry.hash)
                 st.setString(9, entry.metadata.toJsonObject().toString())
+                st.setInt(10, entry.hashVersion)
                 st.executeUpdate()
             }
             // Per-player chain tip.
@@ -212,7 +224,7 @@ class SqliteLedgerStorage private constructor(
 
     override suspend fun getEntry(id: UUID): LedgerEntry? = withContext(db) {
         conn.prepareStatement(
-            "SELECT id, player, ts, action, material, quantity, prev_hash, hash, metadata FROM ledger_entries WHERE id=?"
+            "SELECT id, player, ts, action, material, quantity, prev_hash, hash, metadata, hash_version FROM ledger_entries WHERE id=?"
         ).use { st ->
             st.setString(1, id.toString())
             st.executeQuery().use { rs -> if (rs.next()) rowToEntry(rs) else null }
@@ -255,7 +267,7 @@ class SqliteLedgerStorage private constructor(
     override suspend fun getPlayerEntries(player: UUID, limit: Long, offset: Long): List<LedgerEntry> = withContext(db) {
         val out = mutableListOf<LedgerEntry>()
         conn.prepareStatement(
-            "SELECT id, player, ts, action, material, quantity, prev_hash, hash, metadata FROM ledger_entries " +
+            "SELECT id, player, ts, action, material, quantity, prev_hash, hash, metadata, hash_version FROM ledger_entries " +
             "WHERE player=? ORDER BY ts DESC LIMIT ? OFFSET ?"
         ).use { st ->
             st.setString(1, player.toString())
@@ -278,7 +290,7 @@ class SqliteLedgerStorage private constructor(
         val out = mutableListOf<LedgerEntry>()
         // rowid is the SQLite insertion sequence — true chain order, immune to same-ms ties.
         conn.prepareStatement(
-            "SELECT id, player, ts, action, material, quantity, prev_hash, hash, metadata FROM ledger_entries " +
+            "SELECT id, player, ts, action, material, quantity, prev_hash, hash, metadata, hash_version FROM ledger_entries " +
             "WHERE player=? ORDER BY rowid ASC"
         ).use { st ->
             st.setString(1, player.toString())
@@ -337,7 +349,8 @@ class SqliteLedgerStorage private constructor(
             quantity = rs.getInt(6),
             prevHash = rs.getString(7),
             hash = rs.getString(8),
-            metadata = LedgerMetadata.fromJson(org.json.JSONObject(rs.getString(9)))
+            metadata = LedgerMetadata.fromJson(org.json.JSONObject(rs.getString(9))),
+            hashVersion = rs.getInt(10)
         )
     }
 }

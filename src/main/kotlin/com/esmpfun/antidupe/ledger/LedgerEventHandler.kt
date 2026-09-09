@@ -210,6 +210,14 @@ class LedgerEventHandler(
         )
         appendAsync(player.uniqueId, LedgerAction.CRAFT, actual.type, amount, meta)
 
+        // Debit what the craft eats. Without this, crafting was a pure credit: turning nine
+        // diamonds into a block and back, or dyeing a shulker box from one colour to another
+        // and back, added ledger headroom every cycle while the inventory never changed. Since
+        // reconciliation only ever flags a surplus, that headroom was free room to dupe into.
+        val perCraft = actual.amount.coerceAtLeast(1)
+        val crafts = if (event.isShiftClick) (amount / perCraft).coerceAtLeast(1) else 1
+        debitCraftIngredients(player, event, crafts)
+
         val craftedType = actual.type
         scope.launch {
             val tmar = reconciliationEngine.checkTmar(player, craftedType, amount)
@@ -650,9 +658,10 @@ class LedgerEventHandler(
         private const val HOPPER_LOG_WINDOW_MS = 60_000L
 
         /**
-         * Vanilla result-slot indices for the stations whose outputs we credit. Inputs are
-         * intentionally not debited; consumed inputs become silent deficits in the player's
-         * ledger, and reconciliation only flags surpluses (so this is a safe asymmetry).
+         * Vanilla result-slot indices for the stations whose outputs we credit. Everything
+         * below the result index is an input slot, and those are debited by measuring what
+         * actually disappears from them (see [debitStationInputs]). Crediting the output alone
+         * used to leave the player a little more ledger room after every use.
          */
         private val STATION_RESULT_SLOTS = mapOf(
             InventoryType.ANVIL to 2,
@@ -684,6 +693,52 @@ class LedgerEventHandler(
         val meta = LedgerMetadata.fromLocation(player.location)
             .copy(containerType = type.name, notes = "STATION:${type.name}")
         appendAsync(player.uniqueId, LedgerAction.STATION_OUTPUT, current.type, qty, meta)
+
+        debitStationInputs(player, event.view.topInventory, type, resultSlot)
+    }
+
+    /**
+     * Take the inputs a workstation consumed back off the player's ledger.
+     *
+     * Crediting the result without this made every anvil rename, smithing upgrade or
+     * grindstone pass add headroom: a new item appeared on the books, the item that was eaten
+     * never left them, and the player's actual inventory count was unchanged. Repeating it was
+     * a one-line way to build room to dupe into.
+     *
+     * How much a station eats depends on the station and the recipe, and emulating that was
+     * exactly the mistake the container path already made and fixed, so this measures instead:
+     * count the input slots now, count them again next tick, and debit whatever left.
+     */
+    private fun debitStationInputs(player: Player, top: Inventory, type: InventoryType, resultSlot: Int) {
+        val watched = HashSet<Material>()
+        for (slot in 0 until minOf(resultSlot, top.size)) {
+            val stack = top.getItem(slot) ?: continue
+            if (isTracked(stack.type)) watched.add(stack.type)
+            watched.addAll(containedTracked(stack).keys)
+        }
+        if (watched.isEmpty()) return
+
+        val before = watched.associateWith { countInSlots(top, it, resultSlot) }
+        scheduler.runForEntityLater(player, 1, Runnable {
+            for ((material, pre) in before) {
+                val consumed = pre - countInSlots(top, material, resultSlot)
+                if (consumed <= 0) continue
+                val meta = LedgerMetadata.fromLocation(player.location)
+                    .copy(containerType = type.name, notes = "STATION_INPUT:${type.name}")
+                appendAsync(player.uniqueId, LedgerAction.CONSUME, material, -consumed, meta)
+            }
+        })
+    }
+
+    /** Deep count of one material across a station's input slots, everything below the result. */
+    private fun countInSlots(inv: Inventory, material: Material, endExclusive: Int): Int {
+        var total = 0
+        for (slot in 0 until minOf(endExclusive, inv.size)) {
+            val stack = inv.getItem(slot) ?: continue
+            if (stack.type == material) total += stack.amount
+            if (mightHoldItems(stack.type)) total += containedTracked(stack)[material] ?: 0
+        }
+        return total
     }
 
     /**
@@ -1044,7 +1099,7 @@ class LedgerEventHandler(
         val world = loc.world ?: return
         val key = chunkKey(world.name, loc.blockX, loc.blockZ)
         pruneExpiredDropsIn(key)
-        authorizedDrops.getOrPut(key) { ConcurrentLinkedDeque() }.add(ExpectedDrop(
+        authorizedDrops.computeIfAbsent(key) { ConcurrentLinkedDeque() }.add(ExpectedDrop(
             material = material, expectedAmount = amount, matchedAmount = 0,
             worldName = world.name, x = loc.x, y = loc.y, z = loc.z,
             sourcePlayer = sourcePlayer,
@@ -1153,6 +1208,34 @@ class LedgerEventHandler(
      * Shift-crafting in vanilla repeats the craft until either an ingredient runs out
      * OR the inventory can't hold any more output. We compute both and take the min.
      */
+    /**
+     * Take the ingredients a craft consumed back off the player's ledger.
+     *
+     * A recipe uses one item from each occupied grid slot per craft, so a material sitting in
+     * three slots costs three. Read at MONITOR the grid still holds its pre-craft contents.
+     *
+     * Recipes that hand an ingredient back (the bucket from a cake, for instance) are debited
+     * even though the item stays with the player. That only matters if such an item is on the
+     * tracked list, and it fails safe: the balance goes low rather than high, and a low balance
+     * is re-baselined by reconciliation instead of accusing anyone.
+     */
+    private fun debitCraftIngredients(player: Player, event: CraftItemEvent, crafts: Int) {
+        if (crafts <= 0) return
+        val perMaterial = HashMap<Material, Int>()
+        for (slot in event.inventory.matrix) {
+            if (slot == null || slot.type == Material.AIR) continue
+            if (!isTracked(slot.type)) continue
+            perMaterial.merge(slot.type, 1, Int::plus)
+        }
+        if (perMaterial.isEmpty()) return
+
+        val meta = LedgerMetadata.fromLocation(player.location)
+            .copy(notes = "CRAFT_INGREDIENT")
+        for ((material, slots) in perMaterial) {
+            appendAsync(player.uniqueId, LedgerAction.CONSUME, material, -(slots * crafts), meta)
+        }
+    }
+
     private fun calculateShiftCraftAmount(event: CraftItemEvent): Int {
         val result = event.recipe.result
         val matrix = event.inventory.matrix

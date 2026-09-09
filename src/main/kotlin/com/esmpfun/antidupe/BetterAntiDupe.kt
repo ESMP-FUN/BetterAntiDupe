@@ -22,6 +22,11 @@ import java.util.logging.Level
 
 class BetterAntiDupe : JavaPlugin() {
 
+    private companion object {
+        /** How long shutdown waits for queued ledger writes before giving up on them. */
+        const val SHUTDOWN_DRAIN_MS = 5_000L
+    }
+
     lateinit var pluginScope: CoroutineScope
         private set
 
@@ -92,6 +97,12 @@ class BetterAntiDupe : JavaPlugin() {
             io.github.darkstarworks.pluginpulse.PluginPulse.shutdown(this)
             tagStripper?.let { s -> server.onlinePlayers.forEach { s.eject(it) } }
             tagStripper = null
+            // Order matters. Ledger writes run as coroutines, and closing storage first
+            // meant every in-flight append hit a closed connection and was lost, in the exact
+            // window the shutdown-duper protection exists to cover. So: stop the endless
+            // background loops, let the outstanding writes finish, and only then close.
+            chainOfCustody?.stopBackgroundJobs()
+            drainPendingWork()
             chainOfCustody?.shutdown()
             chainOfCustody = null
             if (::pluginScope.isInitialized) pluginScope.cancel()
@@ -116,6 +127,31 @@ class BetterAntiDupe : JavaPlugin() {
      * Only covers a clean stop; a crash runs no plugin code and reconciliation catches that
      * case instead (a restart dupe leaves two items carrying the same ownership UUID).
      */
+    /**
+     * Wait for outstanding ledger writes to finish before the storage connection goes away.
+     *
+     * Bounded, because a wedged backend must not hang the whole server shutdown. If the wait
+     * runs out we say so plainly: anything still queued at that point is lost, and an admin
+     * seeing this line knows the last few seconds of movement may not be on the books.
+     */
+    private fun drainPendingWork() {
+        if (!::pluginScope.isInitialized) return
+        val pending = pluginScope.coroutineContext[kotlinx.coroutines.Job]?.children?.toList().orEmpty()
+        if (pending.isEmpty()) return
+        val finished = runBlocking {
+            kotlinx.coroutines.withTimeoutOrNull(SHUTDOWN_DRAIN_MS) {
+                pending.forEach { it.join() }
+                true
+            }
+        }
+        if (finished == null) {
+            logger.warning(
+                "Timed out after ${SHUTDOWN_DRAIN_MS}ms waiting for ${pending.size} pending ledger" +
+                    " write(s); some very recent item movement may not have been recorded"
+            )
+        }
+    }
+
     private fun closeOpenInventories() {
         if (!config.getBoolean("prevent-shutdown-dupers", true)) return
         // Copy — closeInventory mutates the roster's open views while we iterate.

@@ -145,26 +145,40 @@ class ChainOfCustody private constructor(
 
     /**
      * One-time migration from the pre-3.3.0 global hash chain to per-player chains. For every
-     * tracked player whose chain has no CHAIN_RESET marker yet, append one. Verification then
+     * tracked player whose chain has no reset marker yet, append one. Verification then
      * walks each player's chain from the marker forward and ignores the legacy global-chain
      * prevHashes that lived before the schema change. Idempotent: re-runs do nothing.
      */
     private suspend fun migrateLegacyChains() {
+        // A file marker, not a scan of recent entries. The old check looked for a reset inside
+        // each player's newest 200 entries; once a busy player wrote 200 more, their marker
+        // fell out of that window and a fresh reset was appended on every single startup,
+        // which in turn shortened the range that verification actually covered.
+        val marker = java.io.File(plugin.dataFolder, "chain-migration-done")
+        if (marker.exists()) return
+
         val players = ledgerStorage.getTrackedPlayers()
-        if (players.isEmpty()) return
         var stamped = 0
         for (player in players) {
             val history = ledgerStorage.getPlayerEntries(player, limit = 200)
-            val alreadyReset = history.any { it.metadata.notes?.startsWith("CHAIN_RESET:") == true }
-            if (alreadyReset) continue
+            if (history.any { it.isChainReset() }) continue
             ledgerStorage.appendBuilt(
                 player = player,
-                action = LedgerAction.RECONCILE,
+                action = LedgerAction.CHAIN_RESET,
                 material = Material.AIR,
                 quantity = 0,
-                metadata = LedgerMetadata(notes = "CHAIN_RESET:legacy-global-chain")
+                metadata = LedgerMetadata(notes = "legacy-global-chain")
             )
             stamped++
+        }
+        try {
+            plugin.dataFolder.mkdirs()
+            marker.writeText(
+                "Written once, after per-player chain verification was set up." +
+                    " Delete this file only if you restore a database from before that change."
+            )
+        } catch (e: Exception) {
+            logger.warning("[CoC] Could not write the chain-migration marker: ${e.message}")
         }
         if (stamped > 0) {
             logger.info("[CoC] Migrated $stamped legacy chain(s) to per-player verification — old entries kept for history, new chain verifies clean")
@@ -368,9 +382,20 @@ class ChainOfCustody private constructor(
         }
     }
 
-    fun shutdown() {
+    /**
+     * Stop the endless background loops, without closing storage.
+     *
+     * Called before the shutdown drain: the maintenance and sweep jobs never finish on their
+     * own, so waiting for in-flight ledger writes would otherwise block until it timed out.
+     */
+    fun stopBackgroundJobs() {
         maintenanceJob?.cancel()
         sweepJob?.cancel()
+    }
+
+    /** Close the storage connection. Only safe once nothing is still writing to it. */
+    fun shutdown() {
+        stopBackgroundJobs()
         ledgerStorage.close()
         logger.info("[CoC] Chain of Custody shutdown complete")
     }
