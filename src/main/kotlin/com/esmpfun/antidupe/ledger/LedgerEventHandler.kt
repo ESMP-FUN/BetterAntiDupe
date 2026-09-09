@@ -112,7 +112,8 @@ class LedgerEventHandler(
 
     /** Cheap pre-filter so we only pay BlockStateMeta deserialization for items that can hold others. */
     private fun mightHoldItems(type: Material): Boolean =
-        type.name.endsWith("SHULKER_BOX") || type.name.endsWith("BUNDLE")
+        type.name.endsWith("SHULKER_BOX") || type.name.endsWith("BUNDLE") ||
+        type == SulfurCubeAccess.bucketMaterial
 
     /**
      * Tracked materials stored INSIDE an item (shulker box / bundle contents), recursively.
@@ -136,6 +137,8 @@ class LedgerEventHandler(
             (meta.blockState as? Container)?.inventory?.contents?.forEach { addInner(it) }
         }
         if (meta is BundleMeta) meta.items.forEach { addInner(it) }
+        // Bucket of Sulfur Cube: the swallowed block travels in the item's component.
+        addInner(SulfurCubeAccess.absorbedItem(stack, logger))
         return counts
     }
 
