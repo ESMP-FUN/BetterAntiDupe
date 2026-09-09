@@ -44,7 +44,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
     implementation("io.lettuce:lettuce-core:6.3.0.RELEASE")
     implementation("org.xerial:sqlite-jdbc:3.53.4.0")
-    implementation("org.json:json:20231013")
+    implementation("org.json:json:20260814")
 
     // PluginPulse — update checking + verified install staging. Spigot-safe:
     // falls back to plain-text notices when Adventure is absent.
