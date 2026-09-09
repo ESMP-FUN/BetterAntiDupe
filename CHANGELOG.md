@@ -2,6 +2,26 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
+## [4.3.0] - 2026-09-09
+
+> **Note:** three things this plugin's documentation described were never
+> actually implemented. They are now. If you had `auto_delete_dupes: true` set,
+> the plugin was **not** removing anything. Read the first entry below before
+> upgrading, because it will start doing so once you also set
+> `shadow_mode: false`.
+
+### Added
+- **Duped items can now actually be removed.** `auto_delete_dupes` and `shadow_mode` were read at startup for a log line and nothing else; no code path ever removed an item. Both switches now work, and they have to agree: `shadow_mode: true` (still the default) is a hard veto, so removal needs `shadow_mode: false` **and** `auto_delete_dupes: true`. The default behaviour is unchanged: alert only. When it does act, it takes back only the surplus, only from items carrying the plugin's own ownership tag, and only at `enforcement.min_severity` (default `HIGH`) and above. New `enforcement` section: `min_severity`, `max_items_per_action` (a cap on one removal, 0 for no limit) and `notify_player`. Items stored inside a shulker box or bundle are counted but never unpacked and deleted; the console reports what it could not reach so you can handle it yourself. Every removal is written to the player's ledger history. The startup line now says which setting is in charge, and warns when shadow mode is quietly overriding auto-delete.
+- **Automated transfers are tracked.** Hoppers, droppers and crafters moving items on their own were completely unmonitored despite being listed as covered. New `hopper_tracking` setting: `LOG` (default) writes the route into the item's history so goods washed through a chest network can be traced, `BLOCK` stops machines moving tracked items at all, and `OFF` skips it entirely; with `OFF` no listener is registered, so redstone-heavy servers pay nothing. Repeated routes are recorded once a minute rather than on every hopper tick.
+- **Balance checks now run on a timer and on container close.** A check only ever ran when a player picked something up off the ground, so anyone who moved everything through chests was never checked at all, which is every container-mediated dupe. Everyone online is now swept every `ledger.reconciliation.interval_minutes` (default 15, set 0 to disable), spread out by `stagger_ms` so a full server does not do all the work in one tick, and a check also runs when a player closes a container.
+
+### Fixed
+- `ledger.reconciliation.on_pickup`, `ledger.reconciliation.on_inventory_close` and `ledger.witness.flag_suspicious_patterns` were present in config.yml but never read, so changing them did nothing. All three now work. Note that `on_inventory_close` ships as `true` for new installs; an existing config.yml already has it set to `false` and will keep that value until you change it.
+- The config reference in the user guide still documented a `ledger.enabled` toggle that was removed in 3.0.0.
+
+### Changed
+- `gradle.properties` now caps the Gradle and Kotlin compile daemons instead of letting them take their defaults, and lets them idle out after 30 minutes.
+
 ## [4.2.0] - 2026-07-20
 
 > **Note:** this release adds anonymous (private) metrics, on by default — they

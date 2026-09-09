@@ -12,6 +12,11 @@
 # so errors remain searchable and support stays easy).
 # ------------------------------------------------------------------------
 
+# Shown to a player when the plugin takes duped items back off them. Only ever
+# used when shadow_mode is off and auto_delete_dupes is on in config.yml.
+enforcement:
+  items-removed: "&c[AntiDupe] &f{amount}x {material} &7was removed from your inventory: it could not be accounted for."
+
 alerts:
   # Broadcast to admins when a dupe is detected. {details} is one of the
   # three detail messages below.

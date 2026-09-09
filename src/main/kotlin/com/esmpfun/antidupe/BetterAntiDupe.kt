@@ -180,11 +180,21 @@ class BetterAntiDupe : JavaPlugin() {
             ))
         }
 
-        if (config.getBoolean("shadow_mode", true)) {
-            logger.info("Running in SHADOW MODE - suspects will be tracked, not banned")
-        }
-        if (config.getBoolean("auto_delete_dupes", false)) {
-            logger.info("AUTO-DELETE enabled - detected dupes will be removed automatically")
+        // Say plainly which setting is actually in charge. Shadow mode outranks auto-delete,
+        // and an admin who turned auto-delete on deserves to be told when it is being ignored.
+        val shadow = config.getBoolean("shadow_mode", true)
+        val autoDelete = config.getBoolean("auto_delete_dupes", false)
+        when {
+            shadow && autoDelete -> logger.warning(
+                "SHADOW MODE is on, so auto_delete_dupes is being ignored; nothing will be removed." +
+                    " Set shadow_mode: false to let it act."
+            )
+            shadow -> logger.info("Running in SHADOW MODE - suspects are recorded, nothing is removed")
+            autoDelete -> logger.info(
+                "AUTO-DELETE enabled - surplus items will be removed at severity " +
+                    (config.getString("enforcement.min_severity", "HIGH") ?: "HIGH") + " and above"
+            )
+            else -> logger.info("Alert-only mode - admins are notified, nothing is removed")
         }
     }
 
@@ -223,6 +233,12 @@ class BetterAntiDupe : JavaPlugin() {
             val verifiedThreshold = config.getInt("ledger.witness.verified_threshold", 3)
             val suspiciousSoloRatio = config.getDouble("ledger.witness.suspicious_solo_ratio", 0.8)
             val reconciliationCooldownMs = config.getLong("ledger.reconciliation.cooldown_ms", 5000L)
+            val reconcileOnPickup = config.getBoolean("ledger.reconciliation.on_pickup", true)
+            val reconcileOnClose = config.getBoolean("ledger.reconciliation.on_inventory_close", true)
+            val sweepIntervalMinutes = config.getInt("ledger.reconciliation.interval_minutes", 15)
+            val sweepStaggerMs = config.getLong("ledger.reconciliation.stagger_ms", 250L)
+            val flagPatterns = config.getBoolean("ledger.witness.flag_suspicious_patterns", true)
+            val hopperMode = parseHopperMode()
 
             val alertThresholds = mutableMapOf<Material, Int>()
             var defaultAlertThreshold = 5
@@ -263,14 +279,30 @@ class BetterAntiDupe : JavaPlugin() {
                     defaultAlertThreshold = defaultAlertThreshold,
                     sensitivity = config.getInt("detection.sensitivity", 50),
                     logger = logger,
-                    ownershipKeys = keys
+                    ownershipKeys = keys,
+                    reconcileOnPickup = reconcileOnPickup,
+                    reconcileOnInventoryClose = reconcileOnClose,
+                    flagSuspiciousPatterns = flagPatterns,
+                    hopperMode = hopperMode,
+                    sweepIntervalMinutes = sweepIntervalMinutes,
+                    sweepStaggerMs = sweepStaggerMs
                 )
             }
 
             val notifier = AlertNotifier(config.getConfigurationSection("notifications"), pluginScope, logger)
+            val coc = chainOfCustody ?: throw IllegalStateException("Chain of Custody was not created")
+            val enforcement = com.esmpfun.antidupe.enforce.EnforcementService(
+                settings = enforcementSettings(),
+                ownershipManager = coc.ownershipManager,
+                scheduler = scheduler,
+                scope = pluginScope,
+                logger = logger
+            )
+            enforcement.setChainOfCustody(coc)
 
             chainOfCustody?.onDupeAlert { alert ->
                 notifier.handle(alert)
+                enforcement.handle(alert)
 
                 // In-game text comes from messages.yml; the console log below stays English.
                 val details = if (alert.messageKey.isNotEmpty())
@@ -310,6 +342,38 @@ class BetterAntiDupe : JavaPlugin() {
     }
 
     fun getChainOfCustody(): ChainOfCustody? = chainOfCustody
+
+    /**
+     * How automated transfers (hoppers, droppers, the crafter) are handled. Unrecognised
+     * values fall back to LOG rather than failing startup, with a warning naming the choices.
+     */
+    private fun parseHopperMode(): com.esmpfun.antidupe.ledger.LedgerEventHandler.HopperMode {
+        val raw = config.getString("hopper_tracking", "LOG") ?: "LOG"
+        return try {
+            com.esmpfun.antidupe.ledger.LedgerEventHandler.HopperMode.valueOf(raw.uppercase())
+        } catch (e: IllegalArgumentException) {
+            logger.warning("Unknown hopper_tracking '$raw', using LOG. Valid: OFF, LOG, BLOCK")
+            com.esmpfun.antidupe.ledger.LedgerEventHandler.HopperMode.LOG
+        }
+    }
+
+    /** Removal settings. Shadow mode vetoes removal, so the safe default survives a half-read config. */
+    private fun enforcementSettings(): com.esmpfun.antidupe.enforce.EnforcementService.Settings {
+        val rawSeverity = config.getString("enforcement.min_severity", "HIGH") ?: "HIGH"
+        val minSeverity = try {
+            com.esmpfun.antidupe.ledger.Severity.valueOf(rawSeverity.uppercase())
+        } catch (e: IllegalArgumentException) {
+            logger.warning("Unknown enforcement.min_severity '$rawSeverity', using HIGH. Valid: LOW, MEDIUM, HIGH, CRITICAL")
+            com.esmpfun.antidupe.ledger.Severity.HIGH
+        }
+        return com.esmpfun.antidupe.enforce.EnforcementService.Settings(
+            shadowMode = config.getBoolean("shadow_mode", true),
+            autoDelete = config.getBoolean("auto_delete_dupes", false),
+            minSeverity = minSeverity,
+            maxItemsPerAction = config.getInt("enforcement.max_items_per_action", 0),
+            notifyPlayer = config.getBoolean("enforcement.notify_player", true)
+        )
+    }
 
     /**
      * Mechanic-level blocking of the classic block dupers (rail / carpet / TNT / gravity).
