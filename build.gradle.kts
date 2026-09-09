@@ -42,7 +42,11 @@ dependencies {
     compileOnly("io.netty:netty-common:4.1.101.Final")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
-    implementation("io.lettuce:lettuce-core:6.3.0.RELEASE")
+    // Lettuce's coroutine command API bridges its Reactor types to suspend functions through
+    // kotlinx-coroutines-reactive. Lettuce declares it optional, so it is not pulled transitively
+    // and must be listed here or the Redis backend dies with NoClassDefFoundError on enable.
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactive:1.11.0")
+    implementation("io.lettuce:lettuce-core:7.7.0.RELEASE")
     implementation("org.xerial:sqlite-jdbc:3.53.4.0")
     implementation("org.json:json:20260814")
 
@@ -161,6 +165,12 @@ tasks.shadowJar {
     // the server provides its own Netty — so drop them.
     exclude("META-INF/io.netty.versions.properties")
     exclude("META-INF/services/reactor.blockhound.integration.BlockHoundIntegration")
+
+    // Relocate the ServiceLoader manifests too - both the file names and the class
+    // names they list. Lettuce 7 finds its JSON parser (io.lettuce.core.json.JsonParser)
+    // through ServiceLoader, so without this the relocated interface has no provider on
+    // the relocated path and RESP3 replies fail to parse.
+    mergeServiceFiles()
 
     // Belt-and-braces: if any other duplicate resource slips through, keep the
     // first and drop the rest rather than emitting a duplicate entry.
