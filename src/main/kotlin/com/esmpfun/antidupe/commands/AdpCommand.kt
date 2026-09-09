@@ -54,8 +54,19 @@ class AdpCommand(
         if (args.isEmpty()) { showHelp(sender); return true }
         when (args[0].lowercase()) {
             "ledger", "coc", "chain" -> handleLedger(sender, args.drop(1).toTypedArray())
-            "update" -> io.github.darkstarworks.pluginpulse.PluginPulse.handleUpdateCommand(
-                plugin, sender, args.copyOfRange(1, args.size))
+            "update" -> {
+                // Checked here rather than left to PluginPulse. The library declares the same
+                // permission in pluginpulse.yml and presumably enforces it, but that puts an
+                // authorization decision in a dependency we do not control, and the tab
+                // completer below already checks it locally. If the two ever disagree,
+                // /adp update download is a public command.
+                if (!sender.hasPermission("antidupe.admin")) {
+                    sender.sendMessage(Messages.msg("commands.no-permission-update"))
+                } else {
+                    io.github.darkstarworks.pluginpulse.PluginPulse.handleUpdateCommand(
+                        plugin, sender, args.copyOfRange(1, args.size))
+                }
+            }
             "help", "?" -> showHelp(sender)
             else -> sender.sendMessage(Messages.msg("commands.unknown-subcommand"))
         }
@@ -83,15 +94,36 @@ class AdpCommand(
                             "reconcile", "trust", "confirm", "clear", "verify", "help")
                     .filter { it.startsWith(args[1].lowercase()) }
                 3 -> when (args[1].lowercase()) {
-                    "balance", "history", "witness", "reconcile", "trust", "stash", "confirm", "clear" ->
-                        Bukkit.getOnlinePlayers().map { it.name }
-                            .filter { it.lowercase().startsWith(args[2].lowercase()) }
+                    // reconcile needs a player who is actually here; everything else works on
+                    // offline players too, and the whole point of the suspects list is to read
+                    // a name off it and look that player up. Completing only the online roster
+                    // meant the one workflow this command exists for had no completion at all.
+                    "reconcile" -> onlineNames(args[2])
+                    "balance", "history", "witness", "trust", "stash", "confirm", "clear" ->
+                        suspectAndOnlineNames(args[2])
                     else -> emptyList()
                 }
                 else -> emptyList()
             }
         }
         return emptyList()
+    }
+
+    private fun onlineNames(prefix: String): List<String> =
+        Bukkit.getOnlinePlayers().map { it.name }
+            .filter { it.lowercase().startsWith(prefix.lowercase()) }
+
+    /**
+     * Names worth completing for the commands that accept offline players: everyone online,
+     * plus everyone currently on the suspects list, which is where an admin reads a name from
+     * in the first place. Suspects come first so the interesting names are at the top.
+     */
+    private fun suspectAndOnlineNames(prefix: String): List<String> {
+        val lower = prefix.lowercase()
+        val suspects = chainOfCustody?.getSuspects()?.map { it.playerName }.orEmpty()
+        return (suspects + Bukkit.getOnlinePlayers().map { it.name })
+            .distinct()
+            .filter { it.lowercase().startsWith(lower) }
     }
 
     private fun showHelp(sender: CommandSender) {

@@ -28,6 +28,7 @@ alerts:
 
 commands:
   no-permission: "&cYou don't have permission to use ledger commands."
+  no-permission-update: "&cYou don't have permission to manage plugin updates."
   not-initialized: "&cChain of Custody is not initialized."
   unknown-subcommand: "&cUnknown subcommand. Use &e/adp help&c for available commands."
   unknown-ledger-subcommand: "&cUnknown ledger subcommand. Use &e/adp ledger help"
