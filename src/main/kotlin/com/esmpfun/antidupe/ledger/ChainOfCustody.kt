@@ -6,12 +6,15 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import java.util.UUID
 import java.util.logging.Level
 import java.util.logging.Logger
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 class ChainOfCustody private constructor(
     private val plugin: Plugin,
@@ -22,9 +25,13 @@ class ChainOfCustody private constructor(
     private val eventHandler: LedgerEventHandler,
     private val scope: CoroutineScope,
     private val trackedMaterialsView: Set<Material>,
-    private val logger: Logger
+    private val logger: Logger,
+    private val scheduler: PlatformScheduler,
+    private val sweepIntervalMinutes: Int,
+    private val sweepStaggerMs: Long
 ) {
     private var maintenanceJob: Job? = null
+    private var sweepJob: Job? = null
 
     companion object {
         suspend fun initialize(
@@ -42,7 +49,13 @@ class ChainOfCustody private constructor(
             defaultAlertThreshold: Int,
             sensitivity: Int,
             logger: Logger,
-            ownershipKeys: OwnershipKeys? = null
+            ownershipKeys: OwnershipKeys? = null,
+            reconcileOnPickup: Boolean = true,
+            reconcileOnInventoryClose: Boolean = false,
+            flagSuspiciousPatterns: Boolean = true,
+            hopperMode: LedgerEventHandler.HopperMode = LedgerEventHandler.HopperMode.LOG,
+            sweepIntervalMinutes: Int = 15,
+            sweepStaggerMs: Long = 250L
         ): ChainOfCustody {
             val ownershipManager = OwnershipManager(
                 plugin,
@@ -76,17 +89,24 @@ class ChainOfCustody private constructor(
                 trackedMaterials = trackedMaterials,
                 logger = logger,
                 scope = scope,
-                scheduler = scheduler
+                scheduler = scheduler,
+                reconcileOnPickup = reconcileOnPickup,
+                reconcileOnInventoryClose = reconcileOnInventoryClose,
+                flagSuspiciousPatterns = flagSuspiciousPatterns,
+                hopperMode = hopperMode
             )
 
             plugin.server.pluginManager.registerEvents(eventHandler, plugin)
             eventHandler.registerPaperOnlyListeners()
+            eventHandler.registerHopperListener()
 
             val coc = ChainOfCustody(plugin, ledgerStorage, ownershipManager, witnessManager,
-                reconciliationEngine, eventHandler, scope, trackedMaterials, logger)
+                reconciliationEngine, eventHandler, scope, trackedMaterials, logger,
+                scheduler, sweepIntervalMinutes, sweepStaggerMs)
 
             coc.migrateLegacyChains()
             coc.startMaintenance()
+            coc.startPeriodicSweep()
             coc.verifyIntegrityAsync()
 
             logger.info("[CoC] Chain of Custody initialized (v3.x detection model)")
@@ -245,6 +265,82 @@ class ChainOfCustody private constructor(
         )
     }
 
+    /**
+     * Record that the plugin took a surplus back out of a player's inventory.
+     *
+     * Quantity is zero on purpose: the removal cancels the surplus rather than moving items
+     * on or off the books, so the player's balance is already correct once the items are gone.
+     * This entry exists so the action is visible in `/adp ledger history`.
+     */
+    suspend fun recordEnforcement(player: UUID, material: Material, amount: Int, severity: String) {
+        ledgerStorage.appendBuilt(
+            player = player,
+            action = LedgerAction.RECONCILE,
+            material = material,
+            quantity = 0,
+            metadata = LedgerMetadata(notes = "ENFORCED_REMOVAL:$amount:$severity")
+        )
+    }
+
+    /**
+     * Re-check every online player on a timer.
+     *
+     * Without this, a balance check only ever runs when somebody picks an item up off the
+     * ground. Anyone who moves everything through chests, which is every container-mediated
+     * dupe, would never be checked at all. The sweep closes that by walking the whole online
+     * roster on an interval.
+     *
+     * Players are spaced out by [sweepStaggerMs] rather than checked all at once, so a full
+     * server does not pay for every scan in the same tick. Each check still respects the
+     * per-player cooldown, so this never doubles up with a pickup-triggered check.
+     */
+    private fun startPeriodicSweep() {
+        if (sweepIntervalMinutes <= 0) {
+            logger.info("[CoC] Periodic balance sweep disabled (interval set to 0)")
+            return
+        }
+        val intervalMs = sweepIntervalMinutes * 60_000L
+        sweepJob = scope.launch {
+            // Offset the first pass so a restart does not scan everyone during the join rush.
+            delay(intervalMs)
+            while (isActive) {
+                try {
+                    sweepOnce()
+                } catch (e: Exception) {
+                    logger.warning("[CoC] Balance sweep error: ${e.message}")
+                }
+                delay(intervalMs)
+            }
+        }
+        logger.info("[CoC] Periodic balance sweep every $sweepIntervalMinutes min")
+    }
+
+    private suspend fun sweepOnce() {
+        val players = onlinePlayersSnapshot()
+        if (players.isEmpty()) return
+        logger.fine("[CoC] Balance sweep starting for ${players.size} player(s)")
+        for (player in players) {
+            if (!player.isOnline) continue
+            reconciliationEngine.reconcileAsync(player)
+            if (sweepStaggerMs > 0) delay(sweepStaggerMs)
+        }
+    }
+
+    /**
+     * Read the online roster on the main (global region) thread. On Folia the player list is
+     * not safe to walk from an arbitrary coroutine thread.
+     */
+    private suspend fun onlinePlayersSnapshot(): List<Player> =
+        suspendCancellableCoroutine { cont ->
+            scheduler.runMain(Runnable {
+                try {
+                    cont.resume(plugin.server.onlinePlayers.toList())
+                } catch (t: Throwable) {
+                    cont.resumeWithException(t)
+                }
+            })
+        }
+
     private fun startMaintenance() {
         maintenanceJob = scope.launch {
             while (isActive) {
@@ -258,6 +354,8 @@ class ChainOfCustody private constructor(
                     // Sweep expired source-bound authorizations (chunks visited once would
                     // otherwise hold their empty deques forever).
                     eventHandler.pruneAuthorizedDrops()
+                    // Drop the "already logged this hopper route" memory for routes gone quiet.
+                    eventHandler.pruneHopperTrail()
                     // Evict stale reconciliation cooldowns.
                     reconciliationEngine.pruneMaintenance()
                     // Idle decay of transient suspicion heat (the earned floor is untouched).
@@ -272,6 +370,7 @@ class ChainOfCustody private constructor(
 
     fun shutdown() {
         maintenanceJob?.cancel()
+        sweepJob?.cancel()
         ledgerStorage.close()
         logger.info("[CoC] Chain of Custody shutdown complete")
     }

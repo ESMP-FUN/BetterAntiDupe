@@ -186,18 +186,55 @@ metrics:
   # looks like a password or token are stripped before a report is sent.
   error_reporting: false
 
-# Auto-delete detected dupes
-# If true, automatically removes duped items from the game
-# If false, only logs and alerts admins
+# =============================================================================
+# [Moderation] - What happens when a duper is caught
+# =============================================================================
+# Out of the box the plugin only tells you. It never takes anything off a
+# player unless you turn both switches below the right way.
+
+# Watch and record only. While this is on, nothing is ever removed from
+# anyone's inventory, no matter what the rest of this section says. Leave it
+# on until you have watched the alerts for a while and trust them.
+shadow_mode: true
+
+# Take duped items back automatically. Only does anything with
+# shadow_mode: false above. When it acts, it removes only the surplus - the
+# amount the player has beyond what the plugin can account for - and never
+# touches items it did not put a tag on.
 auto_delete_dupes: false
 
-# Shadow mode
-# Track suspects and log their stash locations before taking action
-shadow_mode: true
+enforcement:
+  # How sure the plugin has to be before it removes anything.
+  #   CRITICAL - only the one signal that has essentially no false alarms
+  #   HIGH     - strong evidence (recommended if you turn removal on)
+  #   MEDIUM   - a clear surplus
+  #   LOW      - anything at all over the expected amount (not advised)
+  min_severity: HIGH
+
+  # Never take more than this many items in one go, as a safety net. For
+  # example 64 means one stack at most. Set to 0 for no limit.
+  max_items_per_action: 0
+
+  # Tell the player something was taken back. With this off the removal is
+  # silent to them and only shows in your console and the item's history.
+  notify_player: true
 
 # If true, cancel double-click "collect to cursor" on tracked materials.
 # Off by default; only useful for the strictest paranoia mode.
 block_collect_to_cursor: false
+
+# What to do when a hopper, dropper or crafter moves a watched item by itself,
+# with no player touching it. This is how duped goods get washed: drop them in
+# a chest, let a hopper carry them somewhere else, and pick them up looking
+# clean.
+#   LOG   - write the route into the item's history so you can follow it
+#           afterwards. Nobody is stopped and nothing changes for players.
+#   OFF   - ignore machine-moved items completely. Choose this if you run
+#           heavy redstone farms and want the smallest possible overhead.
+#   BLOCK - machines are not allowed to move watched items at all. Hoppers
+#           under a chest of diamond blocks simply will not pick them up.
+#           This changes how the game plays, so only pick it if you mean it.
+hopper_tracking: LOG
 
 # Hide the ownership tag from players' clients.
 # On by default. ADP strips its own PersistentDataContainer keys from items in
@@ -256,15 +293,31 @@ ledger:
     # If >80% of a player's actions are unwitnessed on a populated server, flag them
     suspicious_solo_ratio: 0.8
 
-  # Reconciliation settings
+  # Balance checks. A check counts what a player is carrying and compares it
+  # to what the plugin recorded them earning. More than they earned is the
+  # thing worth looking at.
   reconciliation:
-    # Cooldown between reconciliations per player (milliseconds)
+    # Shortest gap between two checks on the same player, in milliseconds
+    # (1000 = one second). Stops a busy player being counted over and over.
     cooldown_ms: 5000
 
-    # Run reconciliation on item pickup
+    # Check a player when they pick something up off the ground.
     on_pickup: true
 
-    # Run reconciliation on inventory close
-    on_inventory_close: false
+    # Check a player when they close a chest, shulker or other container.
+    # This is the one that catches players who never pick anything up and
+    # move everything through storage instead.
+    on_inventory_close: true
+
+    # Also check everyone online on a timer, in minutes, so nobody is missed
+    # however they play. Set to 0 to turn the timer off and rely only on the
+    # two triggers above.
+    interval_minutes: 15
+
+    # When the timer runs, wait this many milliseconds between players
+    # instead of checking everyone in the same instant. On a full server
+    # this spreads the work out so nobody notices it. 250 means four
+    # players a second.
+    stagger_ms: 250
 
   # Alert thresholds (excess items per material) are configured in materials.yml.

@@ -178,18 +178,35 @@ metrics:
   # anything resembling a password or token are stripped first.
   error_reporting: false
 
-# If true, the plugin silently removes detected duplicates from inventories.
-# If false (default), it only alerts admins and logs the event.
+# Watch and record only. While this is on, nothing is ever removed from anyone's
+# inventory, whatever auto_delete_dupes says below.
+shadow_mode: true
+
+# Take duped items back automatically. Only does anything with shadow_mode: false.
+# It removes the surplus only, the amount beyond what the plugin can account
+# for, and never touches items it did not tag itself.
 auto_delete_dupes: false
 
-# In shadow mode, suspected dupers are watched and their stash locations
-# are logged, but they aren't punished automatically.
-shadow_mode: true
+enforcement:
+  # How sure the plugin has to be before removing anything: CRITICAL, HIGH,
+  # MEDIUM or LOW. HIGH is the recommended setting if you turn removal on.
+  min_severity: HIGH
+  # Never take more than this many items at once, as a safety net. 0 = no limit.
+  max_items_per_action: 0
+  # Tell the player something was taken back.
+  notify_player: true
 
 # Cancel "double-click to gather all" on tracked items. Off by default
 # because it interferes with normal play; only useful in strict paranoia
 # setups.
 block_collect_to_cursor: false
+
+# What to do when a hopper, dropper or crafter moves a watched item by itself.
+#   LOG   - record the route in the item's history (default). Nothing is blocked.
+#   OFF   - ignore machine-moved items; smallest overhead on redstone-heavy servers.
+#   BLOCK - machines may not move watched items at all. This changes how the game
+#           plays, so only choose it deliberately.
+hopper_tracking: LOG
 
 # Hide the ownership tag from players' clients. On by default. The plugin removes
 # its own tag from items in the packets sent to players, so a client-side NBT
@@ -226,11 +243,8 @@ detection:
 # levels above it). CRITICAL and ERROR both map to the server's SEVERE level.
 console_log_level: INFO
 
-# ---------- v2 Chain of Custody ----------
+# ---------- Chain of Custody ----------
 ledger:
-  # Turn the v2 system on. Off by default while it matures.
-  enabled: false
-
   # Redis database number for the ledger (used only with REDIS backend).
   redis_database: 1
 
@@ -243,8 +257,19 @@ ledger:
     suspicious_solo_ratio: 0.8
 
   reconciliation:
-    # How long to wait between balance checks per player, in milliseconds.
+    # Shortest gap between two checks on the same player, in milliseconds.
     cooldown_ms: 5000
+    # Check a player when they pick something up off the ground.
+    on_pickup: true
+    # Check a player when they close a chest or other container. This is what
+    # catches players who move everything through storage and never pick
+    # anything up.
+    on_inventory_close: true
+    # Also check everyone online on a timer, in minutes. 0 turns the timer off.
+    interval_minutes: 15
+    # Wait this many milliseconds between players during a timed sweep, so a
+    # full server does not do all the work in one instant.
+    stagger_ms: 250
 
   # Alert thresholds are configured in materials.yml.
 ```
@@ -338,10 +363,14 @@ no duped item is ever created.
     other and exists twice on the next boot. This needs no contraption, just a
     well-timed click during a restart. Covers a clean stop; after a crash
     nothing plugin-side runs, and balance reconciliation is the backstop.
-- **Balance reconciliation.** The plugin periodically counts how many of each
-  tracked material the player has in their inventory and compares it to the
-  ledger total. If a player has 20 diamond blocks but the ledger only shows
-  them ever gaining 12, that's a dupe.
+- **Balance reconciliation.** The plugin counts how many of each tracked
+  material the player has in their inventory and compares it to the ledger
+  total. If a player has 20 diamond blocks but the ledger only shows them ever
+  gaining 12, that's a dupe. A check runs when a player picks something up off
+  the ground, when they close a container, and for everyone online on a timer
+  (every 15 minutes by default). All three are configurable under
+  `ledger.reconciliation`, and the timer alone guarantees nobody is missed
+  however they play.
 - **Proof of Witness.** When a player mines, crafts, or picks up something, the
   plugin records nearby players as witnesses. Players whose actions are
   _never_ witnessed on a populated server are statistically suspicious — that's
@@ -379,24 +408,44 @@ no duped item is ever created.
   nesting level. A player carrying a duped shulker full of diamonds used to
   show a clean balance against an empty main inventory — the deep scan now
   counts the contents and surfaces the discrepancy.
-- **Hopper laundering.** Items moving through hopper automation are scanned, so
-  duped items can't be washed by feeding them through chest networks.
+- **Hopper laundering.** When a hopper, dropper or crafter moves a tracked item
+  on its own, the route is written into that item's history, so goods fed
+  through a chest network to look clean can still be traced back. Set
+  `hopper_tracking: BLOCK` to stop machines moving tracked items at all, or
+  `OFF` on a redstone-heavy server where you would rather not pay for it.
 - **Acquisition rate abuse (TMAR).** If a player suddenly starts gaining far
   more diamonds-per-minute than is physically possible, the plugin flags it.
 
 ### 6.3 Shadow mode and alerts
 
-By default, the plugin runs in _shadow mode_: it watches and records, but
-doesn't immediately delete items or punish players. When something suspicious
-happens:
+By default, the plugin runs in _shadow mode_: it watches and records, but never
+touches anyone's items. When something suspicious happens:
 
 - Admins online get an in-game alert in chat.
 - The event is logged to the server console.
 - If the player is flagged, the next chest they open is logged too — letting
   you find their stash for manual review.
 
-If you'd rather take action automatically, set `auto_delete_dupes: true`. The
-plugin will silently remove detected duplicates from inventories.
+If you'd rather have items taken back automatically, two settings have to agree:
+set `shadow_mode: false` **and** `auto_delete_dupes: true`. Shadow mode is a
+hard veto: with it on, nothing is ever removed no matter what else is set, and
+the console says so at startup if the two disagree.
+
+Removal is deliberately narrow:
+
+- Only the **surplus** is taken: the amount beyond what the plugin can account
+  for, never a player's whole stack.
+- Only items carrying the plugin's own ownership tag are eligible, so items it
+  never tracked are never touched.
+- It only acts at `enforcement.min_severity` (default `HIGH`) and above, so a
+  small unexplained difference alerts without anything being removed.
+- `enforcement.max_items_per_action` caps a single removal as a safety net.
+- Items inside a shulker box or bundle are counted but **not** unpacked and
+  deleted. If part of a surplus is stored that way, the console says how much
+  could not be reached and leaves it for you to handle by hand.
+
+Every removal is written to the player's ledger history, so `/adp ledger history
+<player>` shows what was taken and why.
 
 ## 7. Commands
 

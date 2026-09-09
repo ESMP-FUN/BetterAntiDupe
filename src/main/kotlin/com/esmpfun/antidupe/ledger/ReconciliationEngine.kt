@@ -152,6 +152,7 @@ class ReconciliationEngine(
                         details = "Has $actualCount but ledger shows $ledgerBalance (excess: $excess)",
                         severity = calculateSeverity(material, excess),
                         timestamp = now,
+                        excess = excess,
                         messageKey = "alerts.balance-discrepancy",
                         placeholders = mapOf(
                             "actual" to "$actualCount", "expected" to "$ledgerBalance", "excess" to "$excess"
@@ -293,6 +294,7 @@ class ReconciliationEngine(
             details = "Chunk-load / drop-race dupe: entity-UUID re-used ${(now - previous.pickedUpAt) / 1000}s after original pickup",
             severity = Severity.CRITICAL,
             timestamp = now,
+            excess = amount,
             messageKey = "alerts.entity-dupe",
             placeholders = mapOf("seconds" to "${(now - previous.pickedUpAt) / 1000}")
         ))
@@ -321,6 +323,7 @@ class ReconciliationEngine(
             details = "$excess ${material.name} picked up beyond nearby source output ($source)",
             severity = if (excess >= 4) Severity.CRITICAL else Severity.HIGH,
             timestamp = now,
+            excess = excess,
             messageKey = "alerts.drop-excess",
             placeholders = mapOf(
                 "excess" to "$excess", "material" to material.name, "source" to source
@@ -426,6 +429,9 @@ data class DupeAlert(
     val details: String,             // English, for console logs
     val severity: Severity,
     val timestamp: Long,
+    // How many items over the ledger this alert represents. Enforcement removes at most
+    // this many; 0 means "not a countable surplus" and is never acted on automatically.
+    val excess: Int = 0,
     // Translation hook: the display layer formats messageKey + placeholders via
     // messages.yml; `details` stays English so logs remain searchable.
     val messageKey: String = "",

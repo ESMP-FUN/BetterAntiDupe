@@ -57,8 +57,24 @@ class LedgerEventHandler(
     private val trackedMaterials: Set<Material>,
     private val logger: Logger,
     private val scope: CoroutineScope,
-    private val scheduler: PlatformScheduler
+    private val scheduler: PlatformScheduler,
+    private val reconcileOnPickup: Boolean = true,
+    private val reconcileOnInventoryClose: Boolean = false,
+    private val flagSuspiciousPatterns: Boolean = true,
+    private val hopperMode: HopperMode = HopperMode.LOG
 ) : Listener {
+
+    /** What to do when a hopper, dropper or crafter moves a tracked item on its own. */
+    enum class HopperMode {
+        /** Ignore automated transfers entirely. Cheapest. */
+        OFF,
+
+        /** Write an audit trail entry so the route is visible in the item's history. */
+        LOG,
+
+        /** Refuse to let tracked items move by machine at all. */
+        BLOCK
+    }
 
     private fun isTracked(material: Material): Boolean = material in trackedMaterials
     private fun shouldSkip(player: Player): Boolean =
@@ -317,7 +333,7 @@ class LedgerEventHandler(
         // Proof-of-Witness is a LOW-confidence signal only: it merely nudges transient heat, and
         // ONLY when other players are actually nearby to have witnessed. Solo farming — nobody
         // around — never accrues heat. It never alerts on its own.
-        if (witnessManager.othersNearby(player)) {
+        if (flagSuspiciousPatterns && witnessManager.othersNearby(player)) {
             val pattern = witnessManager.hasSuspiciousPattern(player.uniqueId)
             if (pattern.suspicious) {
                 logger.fine("[PoW] Pattern signal for ${player.name}: ${pattern.reason}")
@@ -325,7 +341,8 @@ class LedgerEventHandler(
             }
         }
 
-        if (previousOwner != null && previousOwner != player.uniqueId || previousOwner == null) {
+        if (reconcileOnPickup &&
+            (previousOwner != null && previousOwner != player.uniqueId || previousOwner == null)) {
             reconciliationEngine.reconcileAsync(player)
         }
     }
@@ -629,6 +646,9 @@ class LedgerEventHandler(
     // ========== WORKSTATION OUTPUTS ==========
 
     private companion object {
+        /** How long one hopper route stays "already recorded" before it is written down again. */
+        private const val HOPPER_LOG_WINDOW_MS = 60_000L
+
         /**
          * Vanilla result-slot indices for the stations whose outputs we credit. Inputs are
          * intentionally not debited; consumed inputs become silent deficits in the player's
@@ -664,6 +684,88 @@ class LedgerEventHandler(
         val meta = LedgerMetadata.fromLocation(player.location)
             .copy(containerType = type.name, notes = "STATION:${type.name}")
         appendAsync(player.uniqueId, LedgerAction.STATION_OUTPUT, current.type, qty, meta)
+    }
+
+    /**
+     * Machines moving items on their own: hoppers, droppers, hopper minecarts, and the crafter.
+     *
+     * Registered only when the admin has asked for it. This event is one of the busiest on a
+     * server with any redstone automation, so when the mode is OFF we do not add a listener at
+     * all rather than paying dispatch cost for a handler that returns immediately.
+     */
+    fun registerHopperListener() {
+        val listener: Listener = when (hopperMode) {
+            HopperMode.OFF -> return
+            // Blocking has to happen early enough that other plugins observing the event see
+            // the cancellation; logging has to happen late enough to see the real outcome.
+            HopperMode.BLOCK -> HopperBlockListener()
+            HopperMode.LOG -> HopperLogListener()
+        }
+        plugin.server.pluginManager.registerEvents(listener, plugin)
+        logger.info("[Ledger] Automated-transfer tracking: ${hopperMode.name}")
+    }
+
+    /**
+     * Remembers which routes have already been written down, keyed by owner + material +
+     * destination. A hopper chain fires many times a second; without this a single always-on
+     * farm would fill the ledger with thousands of identical rows a minute.
+     */
+    private val hopperTrail = ConcurrentHashMap<String, Long>()
+
+    private inner class HopperBlockListener : Listener {
+        @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+        fun onMove(event: org.bukkit.event.inventory.InventoryMoveItemEvent) {
+            // Cheapest possible rejection first; this runs on every hopper tick on the server.
+            if (!isTracked(event.item.type)) return
+            event.isCancelled = true
+        }
+    }
+
+    private inner class HopperLogListener : Listener {
+        @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+        fun onMove(event: org.bukkit.event.inventory.InventoryMoveItemEvent) {
+            val stack = event.item
+            // Cheapest possible rejection first; this runs on every hopper tick on the server.
+            if (!isTracked(stack.type)) return
+
+            val owner = ownershipManager.getOwner(stack) ?: return
+            val destination = try { event.destination.location } catch (e: Exception) { null }
+            val where = destination?.let { "${it.world?.name}:${it.blockX},${it.blockY},${it.blockZ}" } ?: "unknown"
+            val key = "$owner|${stack.type.name}|$where"
+
+            val now = System.currentTimeMillis()
+            val last = hopperTrail[key]
+            if (last != null && now - last < HOPPER_LOG_WINDOW_MS) return
+            hopperTrail[key] = now
+
+            // Quantity is zero: the item is only moving between two containers, so nobody's
+            // balance changes. The entry exists so the route shows up in the item's history.
+            val meta = LedgerMetadata(notes = "AUTOMATED_TRANSFER:${stack.type.name}")
+                .withContainer(event.destination.type.name, destination)
+            appendAsync(owner, LedgerAction.TRANSFER, stack.type, 0, meta)
+        }
+    }
+
+    /** Forget routes that have gone quiet, so the dedupe map cannot grow without bound. */
+    fun pruneHopperTrail() {
+        val cutoff = System.currentTimeMillis() - (HOPPER_LOG_WINDOW_MS * 2)
+        hopperTrail.entries.removeIf { it.value < cutoff }
+    }
+
+    /**
+     * Re-check the player when they close a container.
+     *
+     * This is the counterpart to the pickup check: a player who only ever moves items through
+     * chests never picks anything up off the ground, so without this their balance is only
+     * ever checked by the periodic sweep.
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    fun onInventoryClose(event: org.bukkit.event.inventory.InventoryCloseEvent) {
+        if (!reconcileOnInventoryClose) return
+        val player = event.player as? Player ?: return
+        if (shouldSkip(player)) return
+        if (classifyTopInventory(event.view.topInventory) == null) return
+        reconciliationEngine.reconcileAsync(player)
     }
 
     /**

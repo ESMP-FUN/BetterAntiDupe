@@ -28,7 +28,7 @@ A partial list of dupe families BetterAntiDupe detects out of the box:
 [*][B]Shulker / bundle laundering[/B] — recursive content scan up to depth 10
 [*][B]Item frame dupes[/B] — piston-into-frame, chunk-race, end-crystal variants
 [*][B]Entity inventory dupes[/B] — horse, donkey, llama, chest boat, chest minecart
-[*][B]Hopper laundering[/B] — items moving through automation are scanned
+[*][B]Hopper laundering[/B]: hoppers, droppers and crafters moving a tracked item on their own get the route written into that item's history, so goods washed through a chest network can still be traced (or blocked outright)
 [*][B]Workstation outputs[/B] — smithing, anvil, loom, stonecutter, cartography, grindstone
 [*][B]Furnace / lectern / decorated pot / ender chest[/B] — full transfer tracking
 [*][B]Single & double chests[/B] — transfers recorded by what [I]actually[/I] moved (shift-clicks, number keys, double-click gathering, drags)
