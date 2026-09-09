@@ -2,8 +2,6 @@ package com.esmpfun.antidupe.platform
 
 import org.bukkit.entity.Entity
 import org.bukkit.plugin.Plugin
-import org.bukkit.scheduler.BukkitTask
-import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
 
 /**
@@ -100,36 +98,5 @@ class PlatformScheduler(private val plugin: Plugin) {
             } catch (e: Throwable) { /* fall through */ }
         }
         server.scheduler.runTaskAsynchronously(plugin, task)
-    }
-
-    /** Schedule a repeating background task. Ticks are 50 ms each. */
-    fun runAsyncRepeating(initialDelayTicks: Long, periodTicks: Long, task: Runnable): TaskHandle {
-        val sched = paperAsyncScheduler
-        if (sched != null) {
-            try {
-                val initialMs = initialDelayTicks * 50L
-                val periodMs = periodTicks * 50L
-                val result = sched.javaClass.getMethod(
-                    "runAtFixedRate",
-                    Plugin::class.java, Consumer::class.java,
-                    Long::class.javaPrimitiveType, Long::class.javaPrimitiveType, TimeUnit::class.java
-                ).invoke(sched, plugin, Consumer<Any> { task.run() }, initialMs, periodMs, TimeUnit.MILLISECONDS)
-                return PaperTaskHandle(result)
-            } catch (e: Throwable) { /* fall through */ }
-        }
-        val bukkit = server.scheduler.runTaskTimerAsynchronously(plugin, task, initialDelayTicks, periodTicks)
-        return BukkitTaskHandle(bukkit)
-    }
-
-    interface TaskHandle { fun cancel() }
-
-    private class PaperTaskHandle(private val task: Any) : TaskHandle {
-        override fun cancel() {
-            try { task.javaClass.getMethod("cancel").invoke(task) } catch (e: Throwable) {}
-        }
-    }
-
-    private class BukkitTaskHandle(private val task: BukkitTask) : TaskHandle {
-        override fun cancel() { task.cancel() }
     }
 }

@@ -144,7 +144,7 @@ tasks.shadowJar {
 
     // Build / tooling artefacts that have no runtime purpose
     exclude("META-INF/com.android.tools/**")   // Android-specific tooling
-    exclude("META-INF/proguard/**")            // upstream ProGuard rules
+    exclude("META-INF/proguard/**")            // upstream rules for a tool we do not run
     exclude("META-INF/maven/**")               // dependency POMs / properties
     exclude("META-INF/native-image/**")        // GraalVM hints, we don't native-compile
     exclude("META-INF/versions/*/module-info.class")

@@ -56,12 +56,6 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
         entry
     }
 
-    suspend fun append(entry: LedgerEntry): LedgerEntry = lockFor(entry.player).withLock {
-        writeEntry(entry)
-        balanceCache[entry.player to entry.material]?.addAndGet(entry.quantity)
-        entry
-    }
-
     /** The most recent entry across all players — display-only (last-write-wins, unordered). */
     abstract suspend fun getTip(): ChainTip?
 
@@ -78,11 +72,6 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
                 balanceCache[key]?.get() ?: fromStorage
             }
         }
-    }
-
-    /** Drop the cached balance for one (player, material) — used after manual repairs. */
-    fun invalidateBalance(player: UUID, material: Material) {
-        balanceCache.remove(player to material)
     }
 
     /** Per-player chain tip — the anchor each new entry's prevHash links to. */
@@ -115,14 +104,6 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
     open suspend fun prunePickupHistory(olderThanMs: Long) { /* default: backend handles TTL */ }
 
     abstract fun close()
-
-    open suspend fun getPlayerMaterialEntries(player: UUID, material: Material, limit: Int = 50): List<LedgerEntry> =
-        getPlayerEntries(player, limit = limit.toLong()).filter { it.material == material }
-
-    open suspend fun recomputeBalance(player: UUID, material: Material): Int {
-        val entries = getPlayerMaterialEntries(player, material, limit = 10000)
-        return entries.sumOf { it.quantity }
-    }
 
     /**
      * Verify a single player's hash chain from its most recent reset point forward. Every entry's
