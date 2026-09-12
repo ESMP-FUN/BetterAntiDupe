@@ -17,8 +17,8 @@ If something doesn't add up, you get an alert before the dupe spreads.
 | | |
 |---|---|
 | **Server software** | Paper, Folia, Spigot, and Paper-compatible forks (Purpur, Pufferfish, etc.) |
-| **Minecraft versions** | 1.21.x (plain jar) · 26.x (`-mc26` jar) |
-| **Java** | 21+ for 1.21.x · 25+ for 26.x |
+| **Minecraft versions** | 1.21.x (plain jar), 26.x (`-mc26` jar) |
+| **Java** | 21+ for 1.21.x, 25+ for 26.x |
 | **External services** | None required (SQLite is bundled). Redis is optional for multi-server networks. |
 
 ---
@@ -27,23 +27,23 @@ If something doesn't add up, you get an alert before the dupe spreads.
 
 A non-exhaustive list of dupe families BetterAntiDupe detects:
 
-- **Rail / carpet / TNT / gravity dupers** — the classic piston and end-portal contraptions are *blocked outright*, not just detected (each toggleable in config)
-- **Phantom-GUI container dupes** — open GUIs are force-closed when their shulker/chest is destroyed or their donkey/chest-boat unloads
-- **Restart dupers** — moving items during a server shutdown can save them to player data *and* world data; all inventories are closed before those writes, so there's nothing in flight to duplicate
-- **Stack-clone exploits** — click-timing, cursor desync, drag-and-place tricks
-- **Shulker / bundle laundering** — recursive content scan at any nesting depth
-- **Item frame dupes** — piston-into-frame, chunk-race, end-crystal interaction variants
-- **Entity inventory dupes** — horses, donkeys, llamas, chest boats, chest minecarts
+- **Rail / carpet / TNT / gravity dupers** - the classic piston and end-portal contraptions are *blocked outright*, not just detected (each toggleable in config)
+- **Phantom-GUI container dupes** - open GUIs are force-closed when their shulker/chest is destroyed or their donkey/chest-boat unloads
+- **Restart dupers** - moving items during a server shutdown can save them to player data *and* world data; all inventories are closed before those writes, so there's nothing in flight to duplicate
+- **Stack-clone exploits** - click-timing, cursor desync, drag-and-place tricks
+- **Shulker / bundle laundering** - recursive content scan at any nesting depth
+- **Item frame dupes** - piston-into-frame, chunk-race, end-crystal interaction variants
+- **Entity inventory dupes** - horses, donkeys, llamas, chest boats, chest minecarts
 - **Hopper laundering**: hoppers, droppers and crafters moving a tracked item
   on their own get the route written into that item's history, so goods washed
   through a chest network can still be traced (or blocked outright)
-- **Workstation outputs** — smithing, anvil, loom, stonecutter, cartography, grindstone, furnaces
-- **Container transfers** — chests (single *and* double), barrels, ender chests, lecterns, decorated pots — recorded by what *actually* moved, so shift-clicks, number-key swaps, double-click gathering and drags are all measured exactly
-- **Villager trades & enchanting** — buying a tracked item or enchanting a book is credited properly
-- **Chunk-load entity respawn** — the "same item entity picked up twice" family
-- **Drop-pickup race** — same-NBT dupes via item-entity persistence
-- **Acquisition-rate abuse** — TMAR (Theoretical Max Acquisition Rate) thresholds per material
-- **Witness-less acquisitions** — Proof of Witness flags players whose actions are never seen by others (vanished staff are correctly ignored, so invisible patrols can't skew trust)
+- **Workstation outputs** - smithing, anvil, loom, stonecutter, cartography, grindstone, furnaces
+- **Container transfers** - chests (single *and* double), barrels, ender chests, lecterns, decorated pots - recorded by what *actually* moved, so shift-clicks, number-key swaps, double-click gathering and drags are all measured exactly
+- **Villager trades & enchanting** - buying a tracked item or enchanting a book is credited properly
+- **Chunk-load entity respawn** - the "same item entity picked up twice" family
+- **Drop-pickup race** - same-NBT dupes via item-entity persistence
+- **Acquisition-rate abuse** - TMAR (Theoretical Max Acquisition Rate) thresholds per material
+- **Witness-less acquisitions** - Proof of Witness flags players whose actions are never seen by others (vanished staff are correctly ignored, so invisible patrols can't skew trust)
 
 Full coverage matrix and the rare edge cases are documented in the
 [user guide](https://esmp-fun.gitbook.io/plugins/better-anti-dupe).
@@ -52,21 +52,21 @@ Full coverage matrix and the rare edge cases are documented in the
 
 ## How it works
 
-Every tracked item carries the owner's UUID in NBT — items still stack vanilla-style.
+Every tracked item carries the owner's UUID in NBT - items still stack vanilla-style.
 Every gain and loss event (mine, craft, pickup, container put/take, frame put/take,
 workstation output, etc.) is recorded as a SHA-256-linked ledger entry. The chain
 is tamper-evident: editing the database directly breaks the hash chain and
 `/adp ledger verify` reports exactly where.
 
-Reconciliation walks the player's inventory recursively — including the contents
-of held shulkers and bundles — and compares the total to the ledger balance.
+Reconciliation walks the player's inventory recursively - including the contents
+of held shulkers and bundles - and compares the total to the ledger balance.
 A surplus is a dupe.
 
 **Invisible to players.** The ownership tag is stripped from the packets sent to
 clients (on by default), so even players running NBT-viewer mods can't see it,
-test it, or tell a tracked item from an untracked one — while the server-side
+test it, or tell a tracked item from an untracked one - while the server-side
 data stays fully intact for detection. The tag's very name is configurable, so
-nothing in a leaked screenshot or stream frame reveals which plugin wrote it —
+nothing in a leaked screenshot or stream frame reveals which plugin wrote it -
 and renaming is safe: previously tagged items stay tracked and migrate to the
 new name automatically. A strict mode can go further and strip *every* plugin's
 custom item data from outbound packets, with a whitelist for the namespaces
@@ -84,9 +84,9 @@ and every alert is gated through per-material thresholds you control.
 
 Pick one, configurable in `config.yml`:
 
-- **SQLite** *(default)* — file-based, persistent, zero ops. Perfect for single-server setups.
-- **Redis** — fast and shareable across multiple servers behind a proxy.
-- **Memory** — in-process only, lost on restart. Dev/testing only.
+- **SQLite** *(default)* - file-based, persistent, zero ops. Perfect for single-server setups.
+- **Redis** - fast and shareable across multiple servers behind a proxy.
+- **Memory** - in-process only, lost on restart. Dev/testing only.
 
 ---
 
@@ -127,15 +127,15 @@ lets a trusted admin see the (otherwise hidden) ownership tag in their own clien
 
 Three YAML files in `plugins/BetterAntiDupe/`:
 
-- `config.yml` — storage backend, modes (shadow / auto-delete), ledger settings
-- `materials.yml` — tracked materials, rate limits, alert thresholds
-- `messages.yml` — every in-game message; **fully translatable** (missing keys fall back to English)
+- `config.yml` - storage backend, modes (shadow / auto-delete), ledger settings
+- `materials.yml` - tracked materials, rate limits, alert thresholds
+- `messages.yml` - every in-game message; **fully translatable** (missing keys fall back to English)
 
 **Speaks your language**: English, Português do Brasil, Español, Deutsch, Русский
-and Polski are built in — one `language:` line in config.yml switches everything.
+and Polski are built in - one `language:` line in config.yml switches everything.
 
 Alerts can also be pushed **outside the game**: Discord, Telegram, Slack, or any
-custom JSON webhook (n8n, Zapier, your own bot) — with severity filtering and
+custom JSON webhook (n8n, Zapier, your own bot) - with severity filtering and
 burst protection built in. See the `notifications` section of `config.yml`.
 
 Both are documented inline. Sensible defaults; you can add your own materials to
@@ -153,18 +153,18 @@ are welcome.
 
 Since 4.2.0 the plugin reports anonymous usage statistics. Here's why, plainly:
 BetterAntiDupe works quietly and the docs are thorough, so almost nobody opens a
-ticket — which leaves no way to know which Minecraft versions are actually
+ticket - which leaves no way to know which Minecraft versions are actually
 running it. Knowing that is what makes it possible to fight duplication exploits
 for those versions **first**, instead of guessing.
 
 What's sent: storage backend, which prevention toggles are on, how many
 materials you track, your language, and whether shadow mode, auto-delete and tag
-hiding are enabled — plus server software, Minecraft version, Java version and
+hiding are enabled - plus server software, Minecraft version, Java version and
 plugin version.
 
 What's never sent: IP addresses, server names, player names or UUIDs, item data,
 or anything from your ledger. The statistics are kept **private**, not published
-on a public page — while the install base is small, public numbers would tell
+on a public page - while the install base is small, public numbers would tell
 dupers how likely any given server is to be protected.
 
 Set `metrics.enabled: false` in config.yml to send nothing at all. Error

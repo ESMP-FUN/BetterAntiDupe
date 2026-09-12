@@ -1,14 +1,14 @@
 # User Guide
 
 BetterAntiDupe is a Paper, Folia and Spigot plugin that stops item duplication
-on Minecraft servers running **1.21.x** (tested through 1.21.11) and **26.x** —
+on Minecraft servers running **1.21.x** (tested through 1.21.11) and **26.x** -
 one codebase, two downloads (plain jar for 1.21.x, `-mc26` jar for 26.x). It
 tags valuable items with the owner's UUID and writes every acquisition and loss
 to a tamper-evident ledger, so when a player's actual inventory diverges from
 what their ledger says they should hold, the plugin alerts.
 
 This guide is written for server owners and admins. You do not need to
-understand how the detection works to use the plugin — just install it, pick a
+understand how the detection works to use the plugin - just install it, pick a
 storage backend, and the defaults will do the right thing.
 
 ## 1. What it does
@@ -16,12 +16,12 @@ storage backend, and the defaults will do the right thing.
 Whenever a player mines, crafts, picks up, or otherwise obtains a tracked item
 (diamonds, netherite, shulkers, elytras, etc.), BetterAntiDupe tags the item
 with the player's UUID and records the event in an append-only ledger. Every
-loss event — placing a block, dropping an item, putting something into a chest
-or frame — is recorded too. If the player's actual inventory diverges from what
+loss event - placing a block, dropping an item, putting something into a chest
+or frame - is recorded too. If the player's actual inventory diverges from what
 the ledger sums to, the plugin alerts.
 
 Detection runs through the **Chain of Custody** ledger. Every entry contains a
-SHA-256 hash linking it to the previous entry, so the chain is tamper-evident —
+SHA-256 hash linking it to the previous entry, so the chain is tamper-evident -
 anyone editing the database directly breaks the chain, and `/adp ledger verify`
 reports exactly where. Nearby players are recorded as witnesses, so dupe
 exploits that bypass normal events leave behind a telltale "no witnesses ever
@@ -51,8 +51,8 @@ output.
 | Item | Requirement |
 |---|---|
 | Server software | Paper, Folia, Spigot, or a Paper-compatible fork (Purpur, Pufferfish, etc.) |
-| Minecraft version | 1.21.0 – 1.21.11 (plain jar) · 26.x (`-mc26` jar) |
-| Java | 21 or newer for 1.21.x · 25 or newer for 26.x |
+| Minecraft version | 1.21.0 - 1.21.11 (plain jar), 26.x (`-mc26` jar) |
+| Java | 21 or newer for 1.21.x, 25 or newer for 26.x |
 | External services | None required (SQLite is built in). Redis is optional. |
 
 ### Steps
@@ -82,7 +82,7 @@ output.
 
 Stop the server, replace the jar, start the server. Your existing `config.yml`
 is preserved. If new config keys are introduced in a release, the plugin uses
-sensible defaults for them — check the changelog to see if you want to add the
+sensible defaults for them - check the changelog to see if you want to add the
 new keys explicitly.
 
 ## 4. Choosing a storage backend
@@ -112,16 +112,16 @@ If you pick `REDIS`, fill in the `redis:` section further down in the config
 
 Configuration is split across two files in `plugins/BetterAntiDupe/`:
 
-- `config.yml` — plugin behaviour: storage backend, modes, ledger settings.
-- `materials.yml` — the lists of tracked items, rate limits, and alert
+- `config.yml` - plugin behaviour: storage backend, modes, ledger settings.
+- `materials.yml` - the lists of tracked items, rate limits, and alert
   thresholds. Kept separate so this file can grow long without cluttering the
   main config.
-- `messages.yml` — every in-game message (since 3.3.3). Translate or restyle
+- `messages.yml` - every in-game message (since 3.3.3). Translate or restyle
   freely; see below.
 
 Existing installs that already have `tracked_materials`, `tmar_limits` or
 `ledger.alert_thresholds` defined in `config.yml` are migrated automatically on
-first start of this version — the values move into `materials.yml` and are
+first start of this version - the values move into `materials.yml` and are
 removed from `config.yml`. You don't need to do anything.
 
 ### config.yml
@@ -204,15 +204,15 @@ alert_thresholds:
 
 ### Webhook notifications & translation
 
-Two features have their own short guide —
+Two features have their own short guide -
 [Notifications & Translation](notifications-and-translation.md):
 
-- **Alerts outside the game (3.3.4+)** — push dupe alerts to Discord, Telegram,
+- **Alerts outside the game (3.3.4+)** - push dupe alerts to Discord, Telegram,
   Slack, or any custom webhook. Step-by-step setup per service, all off by
   default, configured in the `notifications` section of `config.yml`.
-- **Translating the plugin (3.3.3+)** — every in-game message lives in
+- **Translating the plugin (3.3.3+)** - every in-game message lives in
   `messages.yml`; edit any line, deleted lines fall back to English. Since
-  3.3.5, five translations are built in — set `language: pt_BR` / `es` / `de` /
+  3.3.5, five translations are built in - set `language: pt_BR` / `es` / `de` /
   `ru` / `pl` in config.yml.
 
 ## 6. Features
@@ -221,35 +221,35 @@ Two features have their own short guide —
 
 Every tracked item entering a player's inventory gets the player's UUID written
 to its NBT. Every gain (mine, craft, pickup, container take, workstation
-output, …) and every loss (place, drop, container put, consume, …) is appended
+output, ...) and every loss (place, drop, container put, consume, ...) is appended
 to a per-server ledger, with each entry cryptographically linked to the
-previous one. Reconciliation walks the player's inventory — recursively,
-including inside held shulkers and bundles — and compares the total to the
+previous one. Reconciliation walks the player's inventory - recursively,
+including inside held shulkers and bundles - and compares the total to the
 ledger sum. A surplus is a dupe.
 
 ### 6.2 What it catches
 
-Most of what follows is _detection_ — the ledger notices a discrepancy after the
+Most of what follows is _detection_ - the ledger notices a discrepancy after the
 fact. The first entry is different: those exploits are **blocked outright**, so
 no duped item is ever created.
 
 - **Duper prevention (blocked, not detected).** The classic contraptions are
   stopped at the mechanic level, each with its own config toggle, all on by
   default:
-  - _Rail and carpet dupers_ — piston movement that would dislodge an attached
+  - _Rail and carpet dupers_ - piston movement that would dislodge an attached
     rail or carpet is cancelled, including the carpet-on-piston-arm variant and
     the slime-block variant that drags the rail or carpet off the side or
     underside of a moving slime block.
-  - _TNT dupers_ — pistons can't move TNT blocks. Turn this off if your server
+  - _TNT dupers_ - pistons can't move TNT blocks. Turn this off if your server
     allows TNT-duper world eaters.
-  - _Gravity dupers_ — falling blocks (sand, gravel, concrete powder, dragon
+  - _Gravity dupers_ - falling blocks (sand, gravel, concrete powder, dragon
     egg...) can't travel through portals, closing the end-portal sand duper
     family. Pistons pushing sand are deliberately unaffected.
-  - _Phantom-GUI container dupes_ — an open container GUI is force-closed when
+  - _Phantom-GUI container dupes_ - an open container GUI is force-closed when
     its container goes away (shulker or chest broken or blown up, donkey or
     chest-boat chunk unloading). Without this the phantom takes are recorded as
     legitimate ledger credits, so the dupe would be invisible to reconciliation.
-  - _Restart dupers_ — every open inventory is closed when the server begins
+  - _Restart dupers_ - every open inventory is closed when the server begins
     shutting down. Player data and world data are written as separate steps, so
     an item moved in the window between them is saved on one side but not the
     other and exists twice on the next boot. This needs no contraption, just a
@@ -265,7 +265,7 @@ no duped item is ever created.
   however they play.
 - **Proof of Witness.** When a player mines, crafts, or picks up something, the
   plugin records nearby players as witnesses. Players whose actions are
-  _never_ witnessed on a populated server are statistically suspicious — that's
+  _never_ witnessed on a populated server are statistically suspicious - that's
   exactly the pattern a dupe exploit produces.
 - **Tamper detection.** Each ledger entry contains a SHA-256 hash linking it to
   the previous entry. Anyone editing the ledger directly (e.g. by SQL) breaks
@@ -278,12 +278,12 @@ no duped item is ever created.
   their actions are independently corroborated by witnesses.
 - **Item-frame dupe detection.** Every frame break registers exactly one
   expected drop. Any surplus pickup in the same area within 60 seconds fires a
-  high-severity alert — closes the piston-into-frame and chunk-race frame dupe
+  high-severity alert - closes the piston-into-frame and chunk-race frame dupe
   families.
 - **Per-entity pickup history.** Every dropped item entity is recorded the
   first time it's picked up. If the same physical entity ever gets picked up
-  again — which has no innocent explanation outside of a server crash
-  recovery — the second pickup is flagged CRITICAL and not credited. Closes
+  again - which has no innocent explanation outside of a server crash
+  recovery - the second pickup is flagged CRITICAL and not credited. Closes
   chunk-load entity dupes, drop-pickup race dupes, and proxy-network race
   dupes.
 - **Workstation and storage coverage.** Smithing tables, anvils, looms,
@@ -300,7 +300,7 @@ no duped item is ever created.
   little headroom on every cycle while the player's inventory never changed.
 - **Accurate chest accounting (3.3.2).** Moving items with shift-clicks, number
   keys, offhand swaps, double-click gathering or drag-moves is recorded by what
-  _actually_ moved — not by what the click "should" have moved. Fewer false
+  _actually_ moved - not by what the click "should" have moved. Fewer false
   alarms, no loopholes.
 - **Bundle content scanning.** Items stored inside bundles are inspected just
   like shulker contents, so duped items can't be laundered through bundles or
@@ -308,7 +308,7 @@ no duped item is ever created.
 - **Deep container reconciliation.** The balance check recursively descends
   into shulker boxes, barrels, chests-stored-as-items and bundles at every
   nesting level. A player carrying a duped shulker full of diamonds used to
-  show a clean balance against an empty main inventory — the deep scan now
+  show a clean balance against an empty main inventory - the deep scan now
   counts the contents and surfaces the discrepancy.
 - **Hopper laundering.** When a hopper, dropper or crafter moves a tracked item
   on its own, the route is written into that item's history, so goods fed
@@ -325,7 +325,7 @@ touches anyone's items. When something suspicious happens:
 
 - Admins online get an in-game alert in chat.
 - The event is logged to the server console.
-- If the player is flagged, the next chest they open is logged too — letting
+- If the player is flagged, the next chest they open is logged too - letting
   you find their stash for manual review.
 
 If you'd rather have items taken back automatically, two settings have to agree:
@@ -385,11 +385,11 @@ Current Suspects (3)
 Use /adp ledger stash <player> to see where they stashed items.
 ```
 
-The number on the right of each line — `+60`, `+50`, `+69` — is the
+The number on the right of each line - `+60`, `+50`, `+69` - is the
 **cumulative excess** of the named material across that suspect's violations.
 Concretely:
 
-- `R4gnar95 — 19 violations (ENCHANTED_BOOK: +60)` means the reconciliation
+- `R4gnar95 - 19 violations (ENCHANTED_BOOK: +60)` means the reconciliation
   engine has flagged R4gnar95 on 19 separate occasions, and across all of
   those events they were carrying a total of 60 more enchanted books than
   their ledger said they should hold.
@@ -399,19 +399,19 @@ Concretely:
 ### Finding the stash
 
 Once you spot a suspect, run `/adp ledger stash <player>` to see where they put
-the items. The output lists their last 20 stash events — items placed into
+the items. The output lists their last 20 stash events - items placed into
 chests, shulkers, barrels, ender chests, lecterns, decorated pots,
-horse/donkey/llama chests, chest boats and item frames — newest first:
+horse/donkey/llama chests, chest boats and item frames - newest first:
 
 ```
 Recent stashes by R4gnar95 (newest first, click coords to TP)
-2026-05-31 14:22:05 16×ENCHANTED_BOOK → CHEST @ [overworld 102, 64, -200]
-2026-05-31 14:21:48 8×DIAMOND_BLOCK → BARREL @ [overworld 102, 65, -200]
-2026-05-31 14:15:11 1×ELYTRA → DECORATED_POT @ [the_end 0, 60, 0]
-2026-05-31 14:10:33 32×NETHERITE_INGOT → ENDER_CHEST @ [overworld 50, 70, 12]
+2026-05-31 14:22:05 16xENCHANTED_BOOK -> CHEST @ [overworld 102, 64, -200]
+2026-05-31 14:21:48 8xDIAMOND_BLOCK -> BARREL @ [overworld 102, 65, -200]
+2026-05-31 14:15:11 1xELYTRA -> DECORATED_POT @ [the_end 0, 60, 0]
+2026-05-31 14:10:33 32xNETHERITE_INGOT -> ENDER_CHEST @ [overworld 50, 70, 12]
 ```
 
-The bracketed coordinates are clickable in chat — a single click runs
+The bracketed coordinates are clickable in chat - a single click runs
 `/execute in <world> run tp @s x y z`, teleporting you directly to the stash,
 even across worlds. Hover for a confirmation tooltip.
 
@@ -462,7 +462,7 @@ grants both at once.
 
 ### "I want to stop tracking shulkers."
 
-You can't fully — shulker scanning is hardcoded because they're the primary
+You can't fully - shulker scanning is hardcoded because they're the primary
 tool for shipping duped goods. You can remove `SHULKER_BOX` from
 `tracked_materials` (which stops tagging the shulker box _item itself_ with
 ownership), but their contents will still be scanned during reconciliation.
@@ -496,7 +496,7 @@ seeing them:
   armor/elytras counted twice, double chests not being tracked, shift-clicks
   into nearly-full chests, and an alert flood that happened when another plugin
   blocked an item pickup.
-- **Turn sensitivity down.** `detection.sensitivity` (1–100, default 50) is
+- **Turn sensitivity down.** `detection.sensitivity` (1-100, default 50) is
   the master dial. Lower it toward 1 for a more forgiving server; raise it
   toward 100 only if you want to catch the smallest discrepancies and accept
   more noise.
@@ -506,7 +506,7 @@ seeing them:
   future hits trip on far less.
 - **Custom plugins / shops giving items.** Plugins that grant items via direct
   API (shop purchases, kit/reward plugins) bypass the events the ledger
-  watches. The plugin self-heals this automatically — a balance that goes
+  watches. The plugin self-heals this automatically - a balance that goes
   negative is recognised as a tracking gap and re-baselined to the player's
   real inventory rather than flagged. For zero-noise integration, plugin
   authors can call
@@ -516,7 +516,7 @@ seeing them:
   player's inventory is baselined on first join. No manual action needed.
 
 Note that acquisition-rate bursts (raid farms, fast vault looting) and solo
-unwitnessed play no longer trigger alerts on their own — they only nudge a
+unwitnessed play no longer trigger alerts on their own - they only nudge a
 player's suspicion, which decays on its own when nothing else is wrong.
 
 ### "I got a CRITICAL chunk-load dupe alert but the player swears they didn't cheat."
@@ -528,7 +528,7 @@ chunk reverts on restart and the player legitimately picks up the same entity
 again. This produces a false-positive CRITICAL alert.
 
 (Before 3.3.2 this alert could also fire hundreds of times in a row when
-another plugin blocked a pickup — that was a bug, not a dupe, and it's fixed.
+another plugin blocked a pickup - that was a bug, not a dupe, and it's fixed.
 Each item can now only trigger this alert once.)
 
 How to tell them apart:
@@ -566,7 +566,7 @@ real ItemStack in Paper is trackable.
 They have no owner UUID in their NBT and no ledger history. The plugin treats
 them as legitimate (it fails open). The first time the holder picks one up or
 moves it through a tracked event, it gets tagged with the owner UUID and joins
-the ledger from that point onward — no manual action is needed.
+the ledger from that point onward - no manual action is needed.
 
 ### Can a sneaky admin tamper with the ledger?
 
@@ -580,10 +580,10 @@ BetterAntiDupe originally shipped two detection systems side by side: a
 "Digital Isotope" system that wrote a unique signature into every tracked
 item's NBT, and the Chain of Custody ledger. As of 3.0.0 the isotope system is
 removed entirely. The reason is straightforward: per-item NBT broke vanilla
-stacking — no two diamonds ever combined into a single slot — and the ledger
+stacking - no two diamonds ever combined into a single slot - and the ledger
 now catches everything the isotope system used to catch, plus several families
 it never could (item frames, entity inventories, workstations, chunk-load
-entity dupes, drop-pickup races, …).
+entity dupes, drop-pickup races, ...).
 
 Existing 2.x installs upgrading to 3.x: the plugin no longer reads the old
 isotope data. The `isotopes` table in your SQLite file or the `iso:*` keys in
@@ -598,6 +598,6 @@ the relevant console log lines (search for `BetterAntiDupe` or `[DUPE]`).
 
 ---
 
-_Last updated for BetterAntiDupe 4.2.0 — Minecraft 1.21.x (Paper, Folia,
+_Last updated for BetterAntiDupe 4.2.0 - Minecraft 1.21.x (Paper, Folia,
 Spigot) and 26.x (Paper). One codebase, two downloads: the plain jar for
 1.21.x, the `-mc26` jar for 26.x._
