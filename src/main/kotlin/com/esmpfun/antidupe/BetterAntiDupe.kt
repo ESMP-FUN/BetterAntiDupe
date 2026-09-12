@@ -23,7 +23,6 @@ import java.util.logging.Level
 class BetterAntiDupe : JavaPlugin() {
 
     private companion object {
-        /** How long shutdown waits for queued ledger writes before giving up on them. */
         const val SHUTDOWN_DRAIN_MS = 5_000L
     }
 
@@ -61,10 +60,9 @@ class BetterAntiDupe : JavaPlugin() {
             validateConfiguration()
             logger.info("✓ Configuration loaded")
 
-            // Anonymous usage metrics and (opt-in) error reporting. Started here, before the
-            // risky init below, so a crash in Chain of Custody or the tag stripper can be
-            // reported. start() swallows every failure of its own, so this can't delay startup.
-            // The tracked-material count isn't known yet, hence the supplier.
+            // Started before the risky init below so a crash in Chain of Custody or the tag
+            // stripper still gets reported. The tracked-material count is not known yet, hence
+            // the supplier.
             metrics = com.esmpfun.antidupe.metrics.MetricsService.start(this) { trackedMaterialCount }
 
             adpCommand = AdpCommand(this, pluginScope, scheduler)
@@ -78,9 +76,8 @@ class BetterAntiDupe : JavaPlugin() {
             initializeTagStripper()
             registerDuperPrevention()
 
-            // Update checking (PluginPulse). Spigot-safe: plain-text notices
-            // when Adventure is absent. Config in pluginpulse.yml; server owners
-            // can override mode/interval via an `update:` block in config.yml.
+            // Update checking. Its own settings live in pluginpulse.yml; an `update:` block in
+            // config.yml overrides the mode and interval.
             io.github.darkstarworks.pluginpulse.PluginPulse.bootstrap(this)
 
             logger.info("=== BetterAntiDupe enabled successfully ===")
@@ -100,10 +97,10 @@ class BetterAntiDupe : JavaPlugin() {
             io.github.darkstarworks.pluginpulse.PluginPulse.shutdown(this)
             tagStripper?.let { s -> server.onlinePlayers.forEach { s.eject(it) } }
             tagStripper = null
-            // Order matters. Ledger writes run as coroutines, and closing storage first
-            // meant every in-flight append hit a closed connection and was lost, in the exact
-            // window the shutdown-duper protection exists to cover. So: stop the endless
-            // background loops, let the outstanding writes finish, and only then close.
+            // Order matters: ledger writes run as coroutines, so stop the endless background
+            // loops, let the outstanding writes finish, and only then close storage. Closing
+            // first loses every in-flight append, in the exact window the shutdown-duper
+            // protection exists to cover.
             chainOfCustody?.stopBackgroundJobs()
             drainPendingWork()
             chainOfCustody?.shutdown()
@@ -115,28 +112,7 @@ class BetterAntiDupe : JavaPlugin() {
         logger.info("=== BetterAntiDupe disabled ===")
     }
 
-    /**
-     * Restart duper: the shutdown sequence writes player data and world data as separate
-     * steps, so a stack moved between an inventory and a container in the window between
-     * them is saved on one side and not the other — on next boot it exists twice. Plugins
-     * are disabled before the player-data write, so closing every view here means there is
-     * no in-flight transfer left to race.
-     *
-     * The ordering this relies on was read off MinecraftServer.stopServer() — disablePlugins()
-     * runs before ServerConnectionListener.stop(), PlayerList.saveAll()/removeAll() and
-     * saveAllChunks(), i.e. ahead of BOTH writes and while players are still connected.
-     * Confirmed identical on Paper 1.21.1, 1.21.7, 1.21.11, 26.1.2 and 26.2.
-     *
-     * Only covers a clean stop; a crash runs no plugin code and reconciliation catches that
-     * case instead (a restart dupe leaves two items carrying the same ownership UUID).
-     */
-    /**
-     * Wait for outstanding ledger writes to finish before the storage connection goes away.
-     *
-     * Bounded, because a wedged backend must not hang the whole server shutdown. If the wait
-     * runs out we say so plainly: anything still queued at that point is lost, and an admin
-     * seeing this line knows the last few seconds of movement may not be on the books.
-     */
+    /** Bounded, because a wedged storage backend must not hang the whole server shutdown. */
     private fun drainPendingWork() {
         if (!::pluginScope.isInitialized) return
         val pending = pluginScope.coroutineContext[kotlinx.coroutines.Job]?.children?.toList().orEmpty()
@@ -155,12 +131,23 @@ class BetterAntiDupe : JavaPlugin() {
         }
     }
 
+    /**
+     * Restart duper: the shutdown sequence writes player data and world data as separate steps,
+     * so a stack moved between an inventory and a container in the window between them is saved
+     * on one side and not the other, and exists twice on the next boot. Closing every view
+     * leaves no in-flight transfer to race.
+     *
+     * MinecraftServer.stopServer() runs disablePlugins() ahead of both writes and while players
+     * are still connected; confirmed on Paper 1.21.1, 1.21.7, 1.21.11, 26.1.2 and 26.2. Only a
+     * clean stop is covered: a crash runs no plugin code, and reconciliation catches that case
+     * instead (a restart dupe leaves two items carrying the same ownership UUID).
+     */
     private fun closeOpenInventories() {
         if (!config.getBoolean("prevent-shutdown-dupers", true)) return
-        // Copy — closeInventory mutates the roster's open views while we iterate.
+        // Copy: closeInventory mutates the roster's open views while we iterate.
         val closed = server.onlinePlayers.toList().count { player ->
-            // A player with nothing open still reports their own crafting view; closing it
-            // is harmless, but don't count it as a duper-relevant close in the log line.
+            // A player with nothing open still reports their own crafting view; don't count
+            // closing that as a duper-relevant close.
             val wasOpen = player.openInventory.type != org.bukkit.event.inventory.InventoryType.CRAFTING
             player.closeInventory()
             wasOpen
@@ -219,8 +206,6 @@ class BetterAntiDupe : JavaPlugin() {
             ))
         }
 
-        // Say plainly which setting is actually in charge. Shadow mode outranks auto-delete,
-        // and an admin who turned auto-delete on deserves to be told when it is being ignored.
         val shadow = config.getBoolean("shadow_mode", true)
         val autoDelete = config.getBoolean("auto_delete_dupes", false)
         when {
@@ -246,9 +231,8 @@ class BetterAntiDupe : JavaPlugin() {
                         logger.warning("Invalid material in tracked_materials: $name"); null
                     }
                 }
-            // Shulker boxes of every colour are always tracked (as materials.yml documents) —
-            // they're the primary laundering vector, and listing only SHULKER_BOX would leave
-            // the 16 dyed variants invisible to the ledger.
+            // Every dyed variant is tracked as well, not just SHULKER_BOX. materials.yml says so;
+            // they are the primary laundering vector and must never fall out of the ledger.
             val allShulkerBoxes = Material.values().filter {
                 it.name.endsWith("SHULKER_BOX") && !it.name.startsWith("LEGACY_")
             }
@@ -293,8 +277,8 @@ class BetterAntiDupe : JavaPlugin() {
                 }
             }
 
-            // Resolve the (configurable) ownership tag key once; the detection side and the
-            // client-side stripper must agree on it. Handles rename migration via marker file.
+            // Detection and the client-side stripper must agree on this key, so resolve the
+            // configured one once, here.
             val keys = com.esmpfun.antidupe.ledger.OwnershipKeys.resolve(this, logger)
             ownershipKeys = keys
             if (keys.primary.toString() != "${name.lowercase()}:adp_owner") {
@@ -358,12 +342,11 @@ class BetterAntiDupe : JavaPlugin() {
                 ) + if (alert.severity == com.esmpfun.antidupe.ledger.Severity.CRITICAL)
                     Messages.msg("alerts.critical-suffix") else ""
 
-                // Alerts can be emitted from reconciliation coroutines — hop to the main
-                // (global region) thread before touching the online-player roster.
+                // Alerts can be emitted from reconciliation coroutines; hop to the main (global
+                // region) thread before touching the online-player roster.
                 scheduler.runMain(Runnable {
-                    // Alerts go to anyone with antidupe.alerts (admins inherit it via the
-                    // antidupe.admin child tree); ledger COMMAND access is gated separately on
-                    // antidupe.ledger, so a mod can be alerts-only.
+                    // antidupe.admin inherits antidupe.alerts, while the ledger command is gated
+                    // separately on antidupe.ledger, so a mod can be alerts-only.
                     Bukkit.getOnlinePlayers()
                         .filter { it.hasPermission("antidupe.alerts") }
                         .forEach { it.sendMessage(message) }
@@ -387,10 +370,7 @@ class BetterAntiDupe : JavaPlugin() {
 
     fun getChainOfCustody(): ChainOfCustody? = chainOfCustody
 
-    /**
-     * How automated transfers (hoppers, droppers, the crafter) are handled. Unrecognised
-     * values fall back to LOG rather than failing startup, with a warning naming the choices.
-     */
+    /** Covers droppers and the crafter too, not only hoppers. */
     private fun parseHopperMode(): com.esmpfun.antidupe.ledger.LedgerEventHandler.HopperMode {
         val raw = config.getString("hopper_tracking", "LOG") ?: "LOG"
         return try {
@@ -401,7 +381,6 @@ class BetterAntiDupe : JavaPlugin() {
         }
     }
 
-    /** Removal settings. Shadow mode vetoes removal, so the safe default survives a half-read config. */
     private fun enforcementSettings(): com.esmpfun.antidupe.enforce.EnforcementService.Settings {
         val rawSeverity = config.getString("enforcement.min_severity", "HIGH") ?: "HIGH"
         val minSeverity = try {
@@ -419,11 +398,6 @@ class BetterAntiDupe : JavaPlugin() {
         )
     }
 
-    /**
-     * Mechanic-level blocking of the classic block dupers (rail / carpet / TNT / gravity).
-     * These duplicate blocks in the world before any inventory event exists, so the ledger
-     * alone can only catch the aftermath — this stops the contraption itself.
-     */
     private fun registerDuperPrevention() {
         val rail = config.getBoolean("prevent-rail-dupers", true)
         val carpet = config.getBoolean("prevent-carpet-dupers", true)
@@ -446,16 +420,14 @@ class BetterAntiDupe : JavaPlugin() {
     }
 
     /**
-     * Optional client-side tag concealment. Strips ADP's PDC keys from outgoing item packets so
-     * players can't read the ownership tag with an NBT-viewer mod. Server-side data is untouched.
-     * Gated behind config and wrapped so a mapping mismatch on an unexpected server build disables
-     * the feature cleanly instead of breaking the plugin.
+     * Wrapped so a mapping mismatch on an unexpected server build disables the concealment
+     * feature cleanly instead of breaking the plugin.
      */
     private fun initializeTagStripper() {
         if (!config.getBoolean("hide_tag_from_clients", true)) return
         try {
-            // Same key(s) the detection writes — resolved once in initializeChainOfCustody.
-            // Legacy keys (from a rename) are concealed too; un-migrated items must not leak.
+            // Resolved in initializeChainOfCustody, which must have run first. Legacy keys from
+            // a rename are concealed too, so un-migrated items don't leak.
             val keys = ownershipKeys
             val namespace = keys?.primary?.namespace ?: name.lowercase()
             val qualified = keys?.allQualified ?: listOf("$namespace:adp_owner")
@@ -467,15 +439,14 @@ class BetterAntiDupe : JavaPlugin() {
                     if (whitelist.isNotEmpty()) " (except: ${whitelist.joinToString()})" else "")
             }
 
-            // Resolve the adapter for THIS server version; null = unsupported build, feature off.
+            // null means this server build is unsupported, so the feature simply stays off.
             val stripper = com.esmpfun.antidupe.net.TagStripAdapters.load(
                 this, logger, namespace, qualified, stripAll, whitelist
             ) ?: return
             tagStripper = stripper
 
-            // Players with antidupe.tag.view keep the real tag in their own client (NBT viewers,
-            // F3) — we simply never inject the stripper for them. Evaluated at join, so a
-            // permission change applies on their next login.
+            // Exempt players are simply never injected. Evaluated at join, so a permission
+            // change only applies on their next login.
             fun injectUnlessExempt(player: org.bukkit.entity.Player) {
                 if (!player.hasPermission("antidupe.tag.view")) stripper.inject(player)
             }
@@ -491,17 +462,13 @@ class BetterAntiDupe : JavaPlugin() {
             server.onlinePlayers.forEach { injectUnlessExempt(it) }
             logger.info("✓ Client-side tag concealment enabled (hide_tag_from_clients)")
         } catch (e: Throwable) {
-            logger.log(Level.WARNING, "Tag stripper unavailable on this server build — feature disabled", e)
+            logger.log(Level.WARNING, "Tag stripper unavailable on this server build - feature disabled", e)
             metrics?.report("tag-stripper-init", e)
             tagStripper = null
         }
     }
 
-    /**
-     * Map the config's 5-level scheme (CRITICAL/ERROR/WARNING/INFO/DEBUG, each including those
-     * above it) onto java.util.logging levels and apply it to the plugin logger. Note CRITICAL
-     * and ERROR both map to SEVERE (the JVM has no separate tier).
-     */
+    /** CRITICAL and ERROR both land on SEVERE; java.util.logging has no separate tier. */
     private fun applyLogLevel() {
         val configured = (config.getString("console_log_level", "INFO") ?: "INFO").uppercase()
         val level = when (configured) {
@@ -520,7 +487,6 @@ class BetterAntiDupe : JavaPlugin() {
         return if (configured == "DEBUG") Level.INFO else Level.FINE
     }
 
-    /** Seed a never-seen player's ledger from their inventory on first join (one-time baseline). */
     private fun registerJoinBaseline() {
         server.pluginManager.registerEvents(object : org.bukkit.event.Listener {
             @org.bukkit.event.EventHandler
@@ -546,9 +512,9 @@ class BetterAntiDupe : JavaPlugin() {
                 val dest = java.io.File(dataFolder, src.relativeTo(legacy).path)
                 if (src.isDirectory) dest.mkdirs() else src.copyTo(dest, overwrite = false)
             }
-            logger.info("Migration complete — the old folder was kept as a backup.")
+            logger.info("Migration complete - the old folder was kept as a backup.")
         } catch (e: Exception) {
-            logger.severe("Legacy data-folder migration failed: ${e.message} — migrate manually and restart.")
+            logger.severe("Legacy data-folder migration failed: ${e.message} - migrate manually and restart.")
         }
     }
 }

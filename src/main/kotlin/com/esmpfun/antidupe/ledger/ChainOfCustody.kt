@@ -125,11 +125,6 @@ class ChainOfCustody private constructor(
     suspend fun getPlayerHistory(player: UUID, limit: Int = 50): List<LedgerEntry> =
         ledgerStorage.getPlayerEntries(player, limit = limit.toLong())
 
-    /**
-     * Recent "stash" actions for a player: items they put into a chest, shulker, barrel,
-     * ender chest, lectern, decorated pot, horse / boat / minecart chest, or item frame.
-     * Used by the admin "where did they hide it" workflow.
-     */
     suspend fun getPlayerStashes(player: UUID, limit: Int = 30): List<LedgerEntry> {
         val stashActions = setOf(
             LedgerAction.CONTAINER_PUT,
@@ -142,21 +137,17 @@ class ChainOfCustody private constructor(
             .take(limit)
     }
 
-    /** Verify a single player's chain, or all players' chains if [player] is null. */
     suspend fun verifyIntegrity(player: UUID? = null): IntegrityResult =
         if (player != null) ledgerStorage.verifyChainIntegrity(player) else ledgerStorage.verifyAllChains()
 
     /**
-     * One-time migration from the pre-3.3.0 global hash chain to per-player chains. For every
-     * tracked player whose chain has no reset marker yet, append one. Verification then
-     * walks each player's chain from the marker forward and ignores the legacy global-chain
-     * prevHashes that lived before the schema change. Idempotent: re-runs do nothing.
+     * One-time migration from the pre-3.3.0 global hash chain to per-player chains: stamp a
+     * reset marker on any tracked player who lacks one, so verification starts there and
+     * ignores the old global-chain prevHashes.
      */
     private suspend fun migrateLegacyChains() {
-        // A file marker, not a scan of recent entries. The old check looked for a reset inside
-        // each player's newest 200 entries; once a busy player wrote 200 more, their marker
-        // fell out of that window and a fresh reset was appended on every single startup,
-        // which in turn shortened the range that verification actually covered.
+        // The file marker, not the 200-entry scan below, is what makes this run once: a busy
+        // player's marker falls out of that window and would be re-stamped every startup.
         val marker = java.io.File(plugin.dataFolder, "chain-migration-done")
         if (marker.exists()) return
 
@@ -184,7 +175,7 @@ class ChainOfCustody private constructor(
             logger.warning("[CoC] Could not write the chain-migration marker: ${e.message}")
         }
         if (stamped > 0) {
-            logger.info("[CoC] Migrated $stamped legacy chain(s) to per-player verification — old entries kept for history, new chain verifies clean")
+            logger.info("[CoC] Migrated $stamped legacy chain(s) to per-player verification - old entries kept for history, new chain verifies clean")
         }
     }
 
@@ -195,7 +186,7 @@ class ChainOfCustody private constructor(
                 if (result.valid) logger.info("[CoC] Chain integrity verified: ${result.entriesVerified} entries OK")
                 else {
                     logger.warning("[CoC] Chain integrity check found a break: ${result.error}")
-                    logger.warning("[CoC] Broken at entry: ${result.brokenAt} — investigate or run /adp ledger verify <player>")
+                    logger.warning("[CoC] Broken at entry: ${result.brokenAt} - investigate or run /adp ledger verify <player>")
                 }
             } catch (e: Exception) {
                 logger.log(Level.WARNING, "[CoC] integrity check failed", e)
@@ -220,13 +211,9 @@ class ChainOfCustody private constructor(
     fun getTrustScore(player: UUID): TrustScore = witnessManager.getTrustScore(player)
 
     /**
-     * Public API for other plugins to declare a legitimate grant of items to a player.
-     * Use this whenever your plugin uses `player.getInventory().addItem(...)` or similar
-     * outside of normal Bukkit events — otherwise BetterAntiDupe's reconciliation will see
-     * the extra inventory and may flag the player as a duper.
-     *
-     * Example:
-     *     anti.recordSystemGrant(player.uniqueId, Material.DIAMOND_BLOCK, 5, "DailyReward")
+     * Declare a legitimate grant of items to a player. Other plugins must call this when they
+     * add items outside normal Bukkit events, or reconciliation sees the surplus and may flag
+     * the player as a duper.
      */
     suspend fun recordSystemGrant(player: UUID, material: Material, amount: Int, source: String) {
         if (amount <= 0) return
@@ -244,22 +231,20 @@ class ChainOfCustody private constructor(
     fun getSuspect(player: UUID): SuspectProfile? = reconciliationEngine.getSuspect(player)
     fun clearSuspect(player: UUID) = reconciliationEngine.clearSuspect(player)
 
-    /** Admin verdict: confirm a player is duping (pins suspicion high). */
     fun confirmSuspect(player: UUID) = reconciliationEngine.confirmSuspect(player)
-    /** Admin verdict: false positive — clear suspicion and remove from the suspect list. */
+    /** Clears suspicion and removes the player from the suspect list, unlike [clearSuspect]. */
     fun clearVerdict(player: UUID) = reconciliationEngine.clearVerdict(player)
-    /** Current effective suspicion (0..100) for a player. */
+    /** Current effective suspicion, 0 to 100. */
     fun suspicionOf(player: UUID): Double = reconciliationEngine.suspicionOf(player)
 
     /**
      * Seed a never-before-seen player's ledger from their current inventory, so pre-existing
-     * or externally-granted items don't read as a surplus. Safe because it only runs once per
-     * player (guarded by a BASELINE marker entry) — returning players keep their real history.
+     * or externally granted items do not read as a surplus.
      */
     suspend fun baselineIfNew(player: Player) {
         val already = ledgerStorage.getPlayerEntries(player.uniqueId, limit = 1).isNotEmpty()
         if (already) return
-        // Snapshot on the player's thread (we're on Dispatchers.IO here) — single pass.
+        // Snapshots on the player's thread; this coroutine runs on Dispatchers.IO.
         val owned = reconciliationEngine.snapshotOwned(player)
         for ((material, actual) in owned) {
             if (actual > 0) {
@@ -283,11 +268,9 @@ class ChainOfCustody private constructor(
     }
 
     /**
-     * Record that the plugin took a surplus back out of a player's inventory.
-     *
-     * Quantity is zero on purpose: the removal cancels the surplus rather than moving items
-     * on or off the books, so the player's balance is already correct once the items are gone.
-     * This entry exists so the action is visible in `/adp ledger history`.
+     * Record that the plugin took a surplus back out of a player's inventory. Quantity is zero
+     * on purpose: the removal cancels a surplus the balance never counted, so only the history
+     * entry is wanted.
      */
     suspend fun recordEnforcement(player: UUID, material: Material, amount: Int, severity: String) {
         ledgerStorage.appendBuilt(
@@ -300,16 +283,9 @@ class ChainOfCustody private constructor(
     }
 
     /**
-     * Re-check every online player on a timer.
-     *
-     * Without this, a balance check only ever runs when somebody picks an item up off the
-     * ground. Anyone who moves everything through chests, which is every container-mediated
-     * dupe, would never be checked at all. The sweep closes that by walking the whole online
-     * roster on an interval.
-     *
-     * Players are spaced out by [sweepStaggerMs] rather than checked all at once, so a full
-     * server does not pay for every scan in the same tick. Each check still respects the
-     * per-player cooldown, so this never doubles up with a pickup-triggered check.
+     * Re-check every online player on a timer, catching dupes that never trigger a pickup.
+     * Each check still respects the per-player cooldown, so a sweep never doubles up with a
+     * pickup-triggered check.
      */
     private fun startPeriodicSweep() {
         if (sweepIntervalMinutes <= 0) {
@@ -343,10 +319,7 @@ class ChainOfCustody private constructor(
         }
     }
 
-    /**
-     * Read the online roster on the main (global region) thread. On Folia the player list is
-     * not safe to walk from an arbitrary coroutine thread.
-     */
+    /** On Folia the player list is not safe to walk off the global region thread. */
     private suspend fun onlinePlayersSnapshot(): List<Player> =
         suspendCancellableCoroutine { cont ->
             scheduler.runMain(Runnable {
@@ -365,17 +338,13 @@ class ChainOfCustody private constructor(
                 try {
                     witnessManager.pruneHistory()
                     ledgerStorage.pruneRecentWindows()
-                    // Pickup-history retention: 30 days. Entries older than this are evicted
-                    // — long enough to catch latent chunk-load dupes, short enough to bound disk.
+                    // 30 days: long enough to catch latent chunk-load dupes, short enough to
+                    // bound disk use.
                     ledgerStorage.prunePickupHistory(30L * 86_400_000L)
-                    // Sweep expired source-bound authorizations (chunks visited once would
-                    // otherwise hold their empty deques forever).
                     eventHandler.pruneAuthorizedDrops()
-                    // Drop the "already logged this hopper route" memory for routes gone quiet.
                     eventHandler.pruneHopperTrail()
-                    // Evict stale reconciliation cooldowns.
                     reconciliationEngine.pruneMaintenance()
-                    // Idle decay of transient suspicion heat (the earned floor is untouched).
+                    // Decays transient heat only; the earned suspicion floor is untouched.
                     reconciliationEngine.decaySuspicion()
                     logger.fine("[CoC] Maintenance completed")
                 } catch (e: Exception) {
@@ -386,17 +355,14 @@ class ChainOfCustody private constructor(
     }
 
     /**
-     * Stop the endless background loops, without closing storage.
-     *
-     * Called before the shutdown drain: the maintenance and sweep jobs never finish on their
-     * own, so waiting for in-flight ledger writes would otherwise block until it timed out.
+     * Must run before the shutdown drain: these loops never finish on their own, so waiting on
+     * in-flight ledger writes would block until it timed out.
      */
     fun stopBackgroundJobs() {
         maintenanceJob?.cancel()
         sweepJob?.cancel()
     }
 
-    /** Close the storage connection. Only safe once nothing is still writing to it. */
     fun shutdown() {
         stopBackgroundJobs()
         ledgerStorage.close()

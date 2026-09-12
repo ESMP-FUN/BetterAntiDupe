@@ -29,8 +29,6 @@ class RedisLedgerStorage internal constructor(
     logger: Logger
 ) : LedgerStorage(logger) {
 
-    // Redis can be written by other server processes; the per-JVM balance cache
-    // in LedgerStorage cannot see those writes, so it is bypassed for this backend.
     override val sharedBackend: Boolean = true
 
     companion object {
@@ -50,13 +48,12 @@ class RedisLedgerStorage internal constructor(
             val uri = if (password.isNullOrBlank()) "redis://$host:$port/$database"
                       else "redis://:$password@$host:$port/$database"
             val client = RedisClient.create(uri)
-            // Without this the client waits on lettuce's own default for every command, which
-            // is a long time to hold a ledger write if the Redis box stops answering.
+            // Lettuce's own default is far too long to hold a ledger write for if the Redis
+            // box stops answering.
             val cmdTimeout = java.time.Duration.ofSeconds(timeoutSeconds.coerceAtLeast(1))
             val connection = client.connect().apply { timeout = cmdTimeout }
-            // MULTI/EXEC is connection-scoped: commands issued on a connection with an open
-            // transaction are queued into it. Writes therefore run on their own connection so a
-            // concurrent read on `connection` can never be captured by a write's transaction.
+            // MULTI/EXEC is connection scoped, so writes get their own connection and a
+            // concurrent read is never swallowed into a write's transaction.
             val txConnection = client.connect().apply { timeout = cmdTimeout }
             val coroutines = connection.coroutines()
             val pong = coroutines.ping()
@@ -76,10 +73,9 @@ class RedisLedgerStorage internal constructor(
     }
 
     /**
-     * MULTI/EXEC is connection-scoped state, so a single mutex keeps concurrent appends
-     * (different players bypass the per-player append lock) from interleaving transactions on
-     * [txConnection]. Uses the sync command API - lettuce's coroutine API doesn't expose
-     * transactions - on the IO dispatcher.
+     * One mutex for every append, not one per player: transactions are connection scoped, so two
+     * players writing at once would interleave on [txConnection]. Writes use the sync command
+     * API because lettuce's coroutine API has no transactions.
      */
     private val txMutex = Mutex()
 
@@ -102,10 +98,10 @@ class RedisLedgerStorage internal constructor(
             try {
                 sync.set(entryKey, entry.toJson())
                 sync.zadd(playerEntriesKey, entry.timestamp.toDouble(), entry.id.toString())
-                // Append-order list for chain verification (immune to same-ms ties, unlike the ZSET).
+                // Append-order list for chain verification: the ZSET above ties on same-ms writes.
                 sync.rpush(playerChainKey, entry.id.toString())
-                sync.set("$KEY_PLAYER_TIP${entry.player}", tipJson)  // per-player chain tip
-                sync.set(KEY_GLOBAL_TIP, tipJson)                     // global display tip
+                sync.set("$KEY_PLAYER_TIP${entry.player}", tipJson)
+                sync.set(KEY_GLOBAL_TIP, tipJson)
                 sync.incrby(balanceKey, entry.quantity.toLong())
                 if (entry.quantity > 0) {
                     sync.zadd(recentKey, entry.timestamp.toDouble(), "${entry.quantity}:${entry.id}")
@@ -133,7 +129,6 @@ class RedisLedgerStorage internal constructor(
     }
 
     override suspend fun getTrackedPlayers(): Set<UUID> {
-        // Player entry-index keys look like "ledger:player:<uuid>:entries".
         return scanKeys("${KEY_PLAYER_ENTRIES}*:entries").mapNotNullTo(mutableSetOf()) { key ->
             val uuidStr = key.removePrefix(KEY_PLAYER_ENTRIES).removeSuffix(":entries")
             try { UUID.fromString(uuidStr) } catch (e: IllegalArgumentException) { null }
@@ -212,7 +207,7 @@ class RedisLedgerStorage internal constructor(
         } catch (e: Exception) { null }
     }
 
-    // pickup_history pruning: Redis TTL handles expiry automatically; no manual pass needed.
+    // No prunePickupHistory override: the TTL set above expires those keys.
 
     private suspend fun scanKeys(pattern: String): List<String> {
         val out = mutableListOf<String>()

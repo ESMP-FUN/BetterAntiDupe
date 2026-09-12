@@ -8,22 +8,14 @@ import org.bukkit.plugin.java.JavaPlugin
 import java.util.logging.Level
 import java.util.logging.Logger
 
-/**
- * Anonymous usage metrics via FastStats, plus opt-in error reporting.
- *
- * Nothing sent identifies a server or a player: no IPs, names, UUIDs or item data, only aggregate
- * counts and which features are switched on.
- */
+/** Nothing sent identifies a server or a player: no IPs, names, UUIDs or item data. */
 class MetricsService private constructor(
     private val context: BukkitContext,
     private val errorTracker: ErrorTracker?,
     private val logger: Logger
 ) {
 
-    /**
-     * [where] is a short fixed label that groups reports; it must never contain a player name,
-     * a world name or any other per-server detail.
-     */
+    /** [where] must never contain a player name, a world name or any other per-server detail. */
     fun report(where: String, t: Throwable) {
         val tracker = errorTracker ?: return
         try {
@@ -44,25 +36,20 @@ class MetricsService private constructor(
     }
 
     companion object {
-        /** Public by design: it ships inside the jar, is not a secret and grants no account access. */
         private const val TOKEN = "a18c8ce61660086181da8310cdbc7955"
 
-        /**
-         * [trackedMaterialCount] is a supplier because this starts before Chain of Custody loads,
-         * and it is polled on the metrics thread.
-         */
+        /** [trackedMaterialCount] is a supplier because this starts before Chain of Custody loads. */
         fun start(plugin: JavaPlugin, trackedMaterialCount: () -> Int): MetricsService? {
             val config = plugin.config
             // A /reload keeps this object and its counts; start each run from zero.
             DetectionCounters.reset()
             if (!config.getBoolean("metrics.enabled", true)) {
-                plugin.logger.info("Metrics disabled in config — sending nothing")
+                plugin.logger.info("Metrics disabled in config - sending nothing")
                 return null
             }
 
             return try {
-                // Metric suppliers run on a background thread, so read every value up front
-                // rather than touching the live config from inside one.
+                // Metric suppliers run on a background thread, so read every config value up front.
                 val backend = (config.getString("storage.backend", "SQLITE") ?: "SQLITE").uppercase()
                 val language = config.getString("language", "en") ?: "en"
                 val shadowMode = config.getBoolean("shadow_mode", true)
@@ -97,8 +84,7 @@ class MetricsService private constructor(
                             .addMetric(Metric.number("items_removed") { DetectionCounters.itemsRemoved() })
                             .addMetric(Metric.numberMap("items_removed_by_material") { DetectionCounters.itemsRemovedByMaterial() })
                             .addMetric(Metric.numberMap("prevention_blocks") { DetectionCounters.preventionBlocks() })
-                            // Only runs after an upload the server accepted, so a failed send
-                            // carries its counts into the next cycle.
+                            // Only runs after an accepted upload, so a failed send keeps its counts.
                             .onFlush { DetectionCounters.reset() }
                             .create()
                     }
@@ -116,12 +102,11 @@ class MetricsService private constructor(
                 )
                 MetricsService(context, errorTracker, plugin.logger)
             } catch (e: Throwable) {
-                plugin.logger.log(Level.FINE, "FastStats unavailable — metrics disabled", e)
+                plugin.logger.log(Level.FINE, "FastStats unavailable - metrics disabled", e)
                 null
             }
         }
 
-        /** Scrubs anything that could tie a report back to a person or a machine before it leaves the server. */
         private fun buildErrorTracker(): ErrorTracker = ErrorTracker.contextAware()
             .anonymize("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", "[uuid hidden]")
             .anonymize("(?i)[A-Z]:\\\\Users\\\\[^\\\\]+", "[path hidden]")

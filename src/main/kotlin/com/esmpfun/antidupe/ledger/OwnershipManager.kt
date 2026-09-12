@@ -12,13 +12,8 @@ import org.bukkit.plugin.Plugin
 import java.util.UUID
 
 /**
- * Manages item ownership tagging using a simplified NBT approach.
- *
- * Unlike the per-item UUID approach (which breaks stacking), this system
- * only stores the current OWNER's UUID. Items with the same owner and
- * material type stack normally, preserving vanilla behavior.
- *
- * Ownership changes are tracked in the Ledger, not in item NBT history.
+ * Tags items with the current owner's UUID and nothing else. A per-item UUID would stop
+ * same-owner stacks merging, so ownership history lives in the ledger rather than in NBT.
  */
 class OwnershipManager(
     private val plugin: Plugin,
@@ -27,20 +22,14 @@ class OwnershipManager(
 ) {
 
     private companion object {
-        // Bounded recursion for nested-container scans. Matches the v1 isotope scanner depth.
         private const val MAX_RECURSION_DEPTH = 10
     }
 
-    /** The key new/updated tags are written under. Configurable (see [OwnershipKeys]). */
     private val ownerKey = primaryKey ?: NamespacedKey("antidupepro", "adp_owner")
 
     /** Older keys still recognized on read; rewritten to [ownerKey] on the next write. */
     private val legacyOwnerKeys = legacyKeys.filter { it != ownerKey }
 
-    /**
-     * Get the current owner of an item, if tracked. Checks the primary key first, then any
-     * legacy keys (items tagged before a key rename stay tracked).
-     */
     fun getOwner(item: ItemStack): UUID? {
         val meta = item.itemMeta ?: return null
         val pdc = meta.persistentDataContainer
@@ -55,10 +44,6 @@ class OwnershipManager(
         }
     }
 
-    /**
-     * Set the owner of an item. Also migrates: any legacy-named tag is removed, so items
-     * re-stamp onto the current key organically as ownership changes.
-     */
     fun setOwner(item: ItemStack, owner: UUID) {
         val meta = item.itemMeta ?: return
         val pdc = meta.persistentDataContainer
@@ -67,9 +52,6 @@ class OwnershipManager(
         item.itemMeta = meta
     }
 
-    /**
-     * Remove ownership tag (makes item untracked)
-     */
     fun clearOwner(item: ItemStack) {
         val meta = item.itemMeta ?: return
         val pdc = meta.persistentDataContainer
@@ -78,31 +60,18 @@ class OwnershipManager(
         item.itemMeta = meta
     }
 
-    /**
-     * Check if an item is currently tracked (has an owner)
-     */
     fun isTracked(item: ItemStack): Boolean {
         return getOwner(item) != null
     }
 
-    /**
-     * Check if an item is owned by a specific player
-     */
     fun isOwnedBy(item: ItemStack, player: Player): Boolean {
         return getOwner(item) == player.uniqueId
     }
 
-    /**
-     * Check if an item is owned by a specific player UUID
-     */
     fun isOwnedBy(item: ItemStack, playerUuid: UUID): Boolean {
         return getOwner(item) == playerUuid
     }
 
-    /**
-     * Transfer ownership from one player to another.
-     * Returns true if ownership was changed, false if item was untracked.
-     */
     fun transferOwnership(item: ItemStack, newOwner: UUID): Boolean {
         val currentOwner = getOwner(item) ?: return false
         if (currentOwner == newOwner) return false
@@ -111,10 +80,6 @@ class OwnershipManager(
         return true
     }
 
-    /**
-     * Create a tagged copy of an item for a new owner.
-     * Used when items are legitimately duplicated (crafting output, etc.)
-     */
     fun tagNewItem(item: ItemStack, owner: UUID): ItemStack {
         val tagged = item.clone()
         setOwner(tagged, owner)
@@ -122,12 +87,8 @@ class OwnershipManager(
     }
 
     /**
-     * Count items of a specific type owned by a player in their inventory.
-     *
-     * NOTE: `PlayerInventory.getContents()` is the FULL 41-slot array — storage (0-35),
-     * armor (36-39) AND offhand (40). Iterating it alone covers everything; adding
-     * `armorContents`/`itemInOffHand` on top double-counts worn gear (a worn elytra
-     * read as 2) and was the source of phantom +1 discrepancies.
+     * `PlayerInventory.getContents()` already spans storage, armor and offhand, so adding
+     * `armorContents` or `itemInOffHand` on top double-counts worn gear.
      */
     fun countOwnedInInventory(player: Player, material: Material): Int {
         var count = 0
@@ -139,9 +100,6 @@ class OwnershipManager(
         return count
     }
 
-    /**
-     * Count ALL items of a specific type in player's inventory (tracked or not)
-     */
     fun countAllInInventory(player: Player, material: Material): Int {
         var count = 0
         for (item in player.inventory.contents.filterNotNull()) {
@@ -152,9 +110,6 @@ class OwnershipManager(
         return count
     }
 
-    /**
-     * Get all tracked items in a player's inventory grouped by material
-     */
     fun getTrackedInventory(player: Player): Map<Material, Int> {
         val tracked = mutableMapOf<Material, Int>()
         for (item in player.inventory.contents.filterNotNull()) {
@@ -165,15 +120,6 @@ class OwnershipManager(
         return tracked
     }
 
-    /**
-     * Deep version of [countOwnedInInventory] that descends into containers (shulkers,
-     * barrels, chests stored as items) and bundles at every nesting level.
-     *
-     * Closes the "items hidden in a held shulker" blind spot: a player can have an empty
-     * main inventory but 64 diamonds inside a shulker they're carrying, and the shallow
-     * count would report 0 while reconciliation would say "balance matches at 0." The
-     * deep count includes those items so the dupe surfaces.
-     */
     fun countOwnedInInventoryDeep(player: Player, material: Material): Int {
         var count = countOwnedInInventory(player, material)
         for (item in allHeldItems(player)) {
@@ -182,11 +128,6 @@ class OwnershipManager(
         return count
     }
 
-    /**
-     * Deep version of [countAllInInventory]. Counts every item of the given material at
-     * every nesting level regardless of ownership. Useful when the caller wants the
-     * physical total ("how much of this is actually in the player's possession").
-     */
     fun countAllInInventoryDeep(player: Player, material: Material): Int {
         var count = countAllInInventory(player, material)
         for (item in allHeldItems(player)) {
@@ -195,12 +136,7 @@ class OwnershipManager(
         return count
     }
 
-    /**
-     * Single-pass deep snapshot of all owned tracked materials. Equivalent to calling
-     * [countOwnedInInventoryDeep] once per material, but walks the inventory (and nested
-     * containers/bundles) exactly once. MUST be called on the player's thread — callers
-     * reconciling asynchronously snapshot here first, then compute off-thread.
-     */
+    /** Must be called on the player's thread; async callers snapshot here, then compute off-thread. */
     fun snapshotOwnedDeep(player: Player, materials: Set<Material>): Map<Material, Int> {
         val counts = HashMap<Material, Int>()
         for (item in player.inventory.contents) {
@@ -304,17 +240,12 @@ class OwnershipManager(
         return count
     }
 
-    // getContents() already spans storage + armor + offhand (slots 0-40); yielding armor and
-    // offhand again would scan a held bundle/shulker's contents twice.
+    // Yielding armorContents or the offhand as well would scan a held container twice:
+    // getContents() already spans storage, armor and offhand.
     private fun allHeldItems(player: Player): Sequence<ItemStack> = sequence {
         for (item in player.inventory.contents.filterNotNull()) yield(item)
     }
 
-    /**
-     * Recursively walk every container in a player's inventory and report tracked items
-     * whose owner UUID doesn't match the bearer. Captures the foreign item, the slot path
-     * leading to it (for admin investigation), and the original owner.
-     */
     fun findForeignItemsDeep(player: Player): List<ForeignItem> {
         val foreign = mutableListOf<ForeignItem>()
         for ((slot, item) in player.inventory.contents.withIndex()) {
@@ -366,9 +297,6 @@ class OwnershipManager(
         }
     }
 
-    /**
-     * Find items that are tracked but have a different owner (suspicious)
-     */
     fun findForeignItems(player: Player): List<ForeignItem> {
         val foreign = mutableListOf<ForeignItem>()
 
@@ -394,9 +322,6 @@ data class ForeignItem(
     val originalOwner: UUID
 )
 
-/**
- * Extension functions for ItemStack to work with ownership
- */
 fun ItemStack.getOwner(manager: OwnershipManager): UUID? = manager.getOwner(this)
 fun ItemStack.setOwner(manager: OwnershipManager, owner: UUID) = manager.setOwner(this, owner)
 fun ItemStack.isTracked(manager: OwnershipManager): Boolean = manager.isTracked(this)

@@ -7,9 +7,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Logger
 
-/**
- * In-memory ledger. Data is lost on restart — use for testing only.
- */
+/** Testing only: everything is lost on restart. */
 class MemoryLedgerStorage(logger: Logger) : LedgerStorage(logger) {
 
     private val entries = ConcurrentHashMap<UUID, LedgerEntry>()
@@ -32,8 +30,8 @@ class MemoryLedgerStorage(logger: Logger) : LedgerStorage(logger) {
 
     override suspend fun writeEntry(entry: LedgerEntry) {
         entries[entry.id] = entry
-        // computeIfAbsent, not getOrPut: the stdlib extension is get-then-put, so two
-        // concurrent writes for one player can each create a list and one entry is lost.
+        // computeIfAbsent, not getOrPut: that extension is get-then-put, so two concurrent
+        // writes for one player each create a list and one entry is lost.
         byPlayer.computeIfAbsent(entry.player) { Collections.synchronizedList(mutableListOf()) }.add(entry)
         balances.merge(entry.player to entry.material, entry.quantity) { a, b -> a + b }
         if (entry.quantity > 0) {

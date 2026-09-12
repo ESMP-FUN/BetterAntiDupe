@@ -6,13 +6,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/**
- * Entries reach Redis and the memory backend as JSON, and the hash now covers the metadata.
- * That makes the JSON round trip load-bearing: if a single field came back even slightly
- * different, every affected entry would fail verification and admins would be chasing a
- * tampering warning that nothing caused. Worth pinning down, especially across a bump of the
- * JSON library itself.
- */
 class LedgerEntryJsonTest {
 
     private val player: UUID = UUID.fromString("00000000-0000-0000-0000-000000000002")
@@ -53,8 +46,6 @@ class LedgerEntryJsonTest {
 
     @Test
     fun `coordinates survive the round trip exactly`() {
-        // Doubles are the field most likely to drift through a serializer, and the hash
-        // reads them back as text, so an inexact value would show up as tampering.
         val meta = LedgerMetadata(worldName = "w", x = 1.0 / 3.0, y = 255.99999999, z = -0.1)
         val entry = LedgerEntry.create(player, LedgerAction.DROP, Material.ELYTRA, -1, meta, null)
         val restored = LedgerEntry.fromJson(entry.toJson())
@@ -72,25 +63,20 @@ class LedgerEntryJsonTest {
 
     @Test
     fun `an entry whose material was renamed since it was written stays readable`() {
-        // A row written on an old server as "GRASS"; on this server that constant is SHORT_GRASS.
         val entry = LedgerEntry.create(player, LedgerAction.PICKUP, Material.SHORT_GRASS, 3, LedgerMetadata(), null)
         val storedUnderOldName = org.json.JSONObject(entry.toJson()).apply { put("material", "GRASS") }.toString()
 
         val restored = LedgerEntry.fromJson(storedUnderOldName)
         assertEquals(Material.SHORT_GRASS, restored.material, "the known rename is applied for logic")
         assertEquals("GRASS", restored.materialRaw, "the original name is kept for hashing")
-        // toJson round-trips the original name, not the remapped one, so the hash a genuine
-        // old-server entry carries still recomputes to the same value.
         assertEquals("GRASS", org.json.JSONObject(restored.toJson()).getString("material"))
     }
 
     @Test
     fun `hashing uses the raw material name so a renamed entry keeps verifying`() {
-        // Faithfully simulate what the old server wrote: hash computed over "GRASS".
         val onOldServer = LedgerEntry.create(player, LedgerAction.PICKUP, Material.SHORT_GRASS, 3, LedgerMetadata(), null)
         val oldJson = org.json.JSONObject(onOldServer.toJson())
-        // Recreate the entry as if SHORT_GRASS had been called GRASS end to end.
-        val faithful = LedgerEntry.fromJson(oldJson.toString())  // materialRaw = null, verifies
+        val faithful = LedgerEntry.fromJson(oldJson.toString())
         assertTrue(faithful.verifyIntegrity())
         val renamed = faithful.copy(material = Material.AIR, materialRaw = "SHORT_GRASS")
         assertTrue(renamed.verifyIntegrity(), "hash must read the raw name, not the AIR fallback")
@@ -108,7 +94,6 @@ class LedgerEntryJsonTest {
 
     @Test
     fun `a legacy entry without a hash version reads back as version one`() {
-        // Rows written by earlier releases have no hashVersion key at all.
         val entry = LedgerEntry.create(player, LedgerAction.PICKUP, Material.BEACON, 1, LedgerMetadata(), null)
         val stripped = org.json.JSONObject(entry.toJson()).apply { remove("hashVersion") }.toString()
         assertEquals(LedgerEntry.HASH_VERSION_LEGACY, LedgerEntry.fromJson(stripped).hashVersion)

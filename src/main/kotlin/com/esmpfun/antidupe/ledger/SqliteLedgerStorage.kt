@@ -17,10 +17,9 @@ class SqliteLedgerStorage private constructor(
 ) : LedgerStorage(logger) {
 
     /**
-     * All SQLite access is confined to ONE thread. The per-player append mutex only
-     * serializes same-player appends; with plain Dispatchers.IO two different players'
-     * writeEntry calls would interleave `autoCommit = false` / `commit()` on the single
-     * shared connection and cross-commit each other's half-finished transactions.
+     * One thread for all SQLite access. The per-player append mutex leaves different players'
+     * writes concurrent, and those would interleave autoCommit and commit on this single shared
+     * connection, cross-committing each other's half-finished transactions.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     private val db: CoroutineDispatcher = Dispatchers.IO.limitedParallelism(1)
@@ -51,9 +50,8 @@ class SqliteLedgerStorage private constructor(
                 """.trimIndent())
                 st.execute("CREATE INDEX IF NOT EXISTS idx_entries_player_ts ON ledger_entries(player, ts)")
                 st.execute("CREATE INDEX IF NOT EXISTS idx_entries_ts ON ledger_entries(ts)")
-                // Per-player chain tip — the anchor each player's next entry links to.
-                // Fresh table name (not "ledger_tip") so we don't collide with the old global-tip
-                // schema on databases created before the per-player-chain refactor.
+                // A new table name, so older databases keep their incompatible global-tip table
+                // instead of colliding with this one.
                 st.execute("""
                     CREATE TABLE IF NOT EXISTS ledger_player_tip (
                         player TEXT PRIMARY KEY,
@@ -62,7 +60,6 @@ class SqliteLedgerStorage private constructor(
                         ts INTEGER NOT NULL
                     )
                 """.trimIndent())
-                // Global display tip (last-write-wins, unordered) for the status command only.
                 st.execute("""
                     CREATE TABLE IF NOT EXISTS ledger_global_tip (
                         k INTEGER PRIMARY KEY CHECK (k=0),
@@ -101,9 +98,8 @@ class SqliteLedgerStorage private constructor(
                 """.trimIndent())
                 st.execute("CREATE INDEX IF NOT EXISTS idx_pickup_ts ON pickup_history(picked_up_at)")
 
-                // Databases written before hash version 2 have no hash_version column. SQLite
-                // has no ADD COLUMN IF NOT EXISTS, so look first. Existing rows default to 1,
-                // which is exactly what they are: hashes that did not cover the metadata.
+                // SQLite has no ADD COLUMN IF NOT EXISTS, so look first. Rows written before
+                // hash version 2 default to 1: hashes that did not cover the metadata.
                 val hasHashVersion = st.executeQuery("PRAGMA table_info(ledger_entries)").use { rs ->
                     generateSequence { if (rs.next()) rs.getString("name") else null }.any { it == "hash_version" }
                 }
@@ -132,8 +128,8 @@ class SqliteLedgerStorage private constructor(
                 st.setString(2, entry.player.toString())
                 st.setLong(3, entry.timestamp)
                 st.setString(4, entry.action.name)
-                // Preserve the original name for an entry loaded under a since-renamed material,
-                // so a re-persist never rewrites history to the remapped or AIR name.
+                // The original name, so re-persisting an entry whose material was renamed since
+                // never rewrites history to the remapped or AIR name.
                 st.setString(5, entry.materialRaw ?: entry.material.name)
                 st.setInt(6, entry.quantity)
                 st.setString(7, entry.prevHash)
@@ -142,7 +138,6 @@ class SqliteLedgerStorage private constructor(
                 st.setInt(10, entry.hashVersion)
                 st.executeUpdate()
             }
-            // Per-player chain tip.
             conn.prepareStatement(
                 "INSERT INTO ledger_player_tip(player, last_entry_id, last_hash, ts) VALUES (?, ?, ?, ?) " +
                 "ON CONFLICT(player) DO UPDATE SET last_entry_id=excluded.last_entry_id, last_hash=excluded.last_hash, ts=excluded.ts"
@@ -153,7 +148,6 @@ class SqliteLedgerStorage private constructor(
                 st.setLong(4, entry.timestamp)
                 st.executeUpdate()
             }
-            // Global display tip (cosmetic, last-write-wins).
             conn.prepareStatement(
                 "INSERT INTO ledger_global_tip(k, last_entry_id, last_hash, ts) VALUES (0, ?, ?, ?) " +
                 "ON CONFLICT(k) DO UPDATE SET last_entry_id=excluded.last_entry_id, last_hash=excluded.last_hash, ts=excluded.ts"
@@ -290,7 +284,7 @@ class SqliteLedgerStorage private constructor(
 
     override suspend fun getPlayerChainOrdered(player: UUID): List<LedgerEntry> = withContext(db) {
         val out = mutableListOf<LedgerEntry>()
-        // rowid is the SQLite insertion sequence — true chain order, immune to same-ms ties.
+        // rowid is the insertion sequence, so it gives true chain order even for same-ms ties.
         conn.prepareStatement(
             "SELECT id, player, ts, action, material, quantity, prev_hash, hash, metadata, hash_version FROM ledger_entries " +
             "WHERE player=? ORDER BY rowid ASC"
@@ -344,22 +338,16 @@ class SqliteLedgerStorage private constructor(
     private val warnedUnknownMaterials = java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap<String, Boolean>())
 
     /**
-     * Build an entry from a result row.
-     *
-     * A single unreadable row used to throw out of here and abort the whole result loop,
-     * making that player's entire history unreadable. The commonest cause is a Mojang
-     * material rename across a version upgrade (26.3 is a checkpoint release with a large
-     * enum churn). [LedgerEntry.materialOrNull] absorbs the known renames; anything still
-     * unresolved falls back to AIR for balance logic while [LedgerEntry.materialRaw] keeps
-     * the original string, so the row stays readable, chain-linked and hash-verifiable and
-     * only that one material's balance is understated (which reconciliation self-heals).
+     * A material this server no longer knows must not throw, or one row renamed by a Minecraft
+     * upgrade takes that player's whole history with it. Unresolved names become AIR for balance
+     * purposes while materialRaw keeps the original, leaving the row hash-verifiable.
      */
     private fun rowToEntry(rs: java.sql.ResultSet): LedgerEntry {
         val matStr = rs.getString(5)
         val material = LedgerEntry.materialOrNull(matStr) ?: Material.AIR
         if (material == Material.AIR && matStr != "AIR" && warnedUnknownMaterials.add(matStr)) {
             logger.warning("[Ledger] ledger rows name a material '$matStr' unknown on this server" +
-                " (renamed or removed since they were written) — history stays readable, that material's balance is treated as 0")
+                " (renamed or removed since they were written) - history stays readable, that material's balance is treated as 0")
         }
         return LedgerEntry(
             id = UUID.fromString(rs.getString(1)),
