@@ -17,16 +17,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Exercises the two Redis-backend faults from the 26.3 review (F8) against a real Redis:
- *
- *  - concurrent appends for different players must not corrupt any player's hash chain. This
- *    fails if a write's MULTI runs on the connection the reads share, because a concurrent
- *    tip read gets queued into the transaction and comes back empty, producing a stray
- *    genesis entry mid-chain.
- *  - a balance written by one server process must be visible to another. This fails if the
- *    per-JVM read-through balance cache is consulted for a backend other processes can write.
- *
- * Skipped automatically when nothing is listening on localhost:6379. To run it:
+ * Needs a Redis on localhost:6379, otherwise every test here is skipped. To run it:
  *   docker run -d --name adp-redis -p 6379:6379 redis:7-alpine
  */
 class RedisLedgerStorageIntegrationTest {
@@ -54,7 +45,6 @@ class RedisLedgerStorageIntegrationTest {
     fun cleanup() {
         stores.forEach { runCatching { it.close() } }
         stores.clear()
-        // Wipe only the scratch db so a rerun starts clean.
         runCatching {
             val client = RedisClient.create("redis://$host:$port/$db")
             try { client.connect().use { it.sync().flushdb() } } finally { client.shutdown() }
@@ -87,7 +77,7 @@ class RedisLedgerStorageIntegrationTest {
     @Test
     fun `a balance written by one client is visible to another`() = runBlocking {
         val writer = newStore()
-        val reader = newStore()                         // stands in for a second server process
+        val reader = newStore()
         val player = UUID.randomUUID()
 
         writer.appendBuilt(player, LedgerAction.PICKUP, Material.EMERALD, 10, LedgerMetadata())

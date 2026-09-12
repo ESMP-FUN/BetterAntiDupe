@@ -13,20 +13,14 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Logger
 
 /**
- * Removes ADP's PersistentDataContainer keys from items in CLIENT-BOUND packets, so the
- * ownership tag never reaches a player's client (defeating NBT-viewer mods / the alt-account
- * swap test). The tag stays intact server-side — only the copy sent over the wire is rewritten.
+ * Removes our PersistentDataContainer keys from items in client-bound packets. The server-side
+ * item keeps its tag; only the copy sent over the wire is rewritten.
  *
- * Reflection, not NMS/paperweight: this builds against plain paper-api (the project's normal
- * setup) and resolves all server-internal types at runtime. Because it compiles to plain
- * bytecode with no version-specific classes, ONE jar runs on every supported server (1.21.x on
- * JDK21 and 26.x on JDK25 alike) — the runtime adapts.
- *
- * The single version-fragile operation — editing an item — is deliberately routed through the
- * PUBLIC Bukkit API: convert the NMS item to a Bukkit copy via CraftItemStack, drop our
- * NamespacedKeys through PersistentDataContainer, convert back. That API is stable across the
- * whole version span, so only the packet plumbing (field/record reflection) varies, and it fails
- * OPEN — any reflection hiccup forwards the original packet untouched rather than dropping it.
+ * Every server-internal type is resolved by reflection at runtime, so one jar covers the whole
+ * supported version span. Editing an item deliberately goes through the public Bukkit API
+ * (CraftItemStack plus PersistentDataContainer), which is stable across that span, leaving only
+ * the packet plumbing version-fragile. Any reflection failure forwards the original packet
+ * untouched rather than dropping it.
  */
 class ReflectiveTagStripper(
     private val plugin: Plugin,
@@ -34,10 +28,8 @@ class ReflectiveTagStripper(
     namespace: String,
     keys: Collection<String>,
     /**
-     * Strict mode: strip EVERY plugin's PDC entries from outbound items, not only ours —
-     * anything reaching the client is "clean". Costs more (nearly every custom-data item is
-     * rewritten) and can blank CIT resource packs / client mods that read item data, which is
-     * why it's opt-in and paired with [whitelistNamespaces].
+     * Strip every plugin's PDC entries, not only ours. Can blank CIT resource packs and client
+     * mods that read item data, hence [whitelistNamespaces].
      */
     private val stripAll: Boolean = false,
     /** Namespaces preserved in strict mode. Our own namespaces are never honored here. */
@@ -59,22 +51,20 @@ class ReflectiveTagStripper(
         val cleaned = whitelistNamespaces.map { it.lowercase().trim() }.filter { it.isNotEmpty() }.toSet()
         val rejected = cleaned intersect ours
         if (rejected.isNotEmpty()) {
-            logger.warning("[TagStripper] strip_whitelist may not contain our own namespace(s) $rejected — ignored")
+            logger.warning("[TagStripper] strip_whitelist may not contain our own namespace(s) $rejected - ignored")
         }
         cleaned - ours
     }
 
-    // --- reflection handles, resolved once at construction (throws => unsupported server) ---
     private val nmsItemClass = Class.forName("net.minecraft.world.item.ItemStack")
     private val craftItemStackClass = Class.forName("org.bukkit.craftbukkit.inventory.CraftItemStack")
     private val asBukkitCopy = craftItemStackClass.getMethod("asBukkitCopy", nmsItemClass)
     private val asNMSCopy = craftItemStackClass.getMethod("asNMSCopy", org.bukkit.inventory.ItemStack::class.java)
 
-    /** Only these client-bound packets can carry a tracked item; everything else passes straight through. */
     private val targetPackets = setOf(
-        "ClientboundContainerSetSlotPacket",     // single inventory/container slot
-        "ClientboundContainerSetContentPacket",  // whole window
-        "ClientboundSetEquipmentPacket",         // worn/held on an entity
+        "ClientboundContainerSetSlotPacket",
+        "ClientboundContainerSetContentPacket",
+        "ClientboundSetEquipmentPacket",
         "ClientboundSetEntityDataPacket",        // dropped item entities AND item frames
         "ClientboundSetPlayerInventoryPacket",   // 1.21.2+ direct slot set
         "ClientboundSetCursorItemPacket",        // 1.21.2+ carried cursor item
@@ -86,9 +76,8 @@ class ReflectiveTagStripper(
     private val loggedPacketNames = ConcurrentHashMap.newKeySet<String>()
 
     /**
-     * A client-bound packet name that looks like it carries items but is not one we rewrite.
-     * If a version rename ever moves an item-bearing packet out of [targetPackets], the tag
-     * would start leaking to clients with no signal at all — this turns that into one warning.
+     * A version rename could move an item-bearing packet out of [targetPackets] and the tag
+     * would start leaking to clients with no signal at all; this turns that into one warning.
      */
     private fun looksItemBearing(simpleName: String): Boolean =
         simpleName.startsWith("Clientbound") && (
@@ -96,8 +85,6 @@ class ReflectiveTagStripper(
             simpleName.contains("Inventory") || simpleName.contains("Equipment") ||
             simpleName.contains("ContainerSetContent") || simpleName.contains("MerchantOffers")
         )
-
-    // ---------------------------------------------------------------- lifecycle
 
     override fun inject(player: Player) {
         try {
@@ -119,7 +106,7 @@ class ReflectiveTagStripper(
                 if (channel.pipeline().get(handlerName) != null) channel.pipeline().remove(handlerName)
             }
         } catch (e: Exception) {
-            // channel already gone on quit — Netty drops the handler with it
+            // channel already gone on quit, Netty drops the handler with it
         }
     }
 
@@ -138,9 +125,9 @@ class ReflectiveTagStripper(
         override fun write(ctx: ChannelHandlerContext, msg: Any, promise: ChannelPromise) {
             val name = msg.javaClass.simpleName
             val out = if (name == "ClientboundBundlePacket") {
-                // A bundle wraps several packets sent as one unit — commonly a spawn plus its
-                // SetEntityData. Without descending into it, a bundled SetEntityData (dropped
-                // item / item frame) or container packet ships the tag straight through.
+                // A bundle wraps several packets sent as one unit, commonly a spawn plus its
+                // SetEntityData. Without descending into it, a bundled SetEntityData or
+                // container packet ships the tag straight through.
                 try { rewriteBundle(msg) ?: msg } catch (e: Throwable) {
                     if (loggedPacketNames.add(name)) {
                         logger.warning("[TagStripper] could not process a bundle packet, forwarding it unchanged: ${e.message}")
@@ -149,18 +136,16 @@ class ReflectiveTagStripper(
                 }
             } else if (name in targetPackets) {
                 try { rewritePacket(msg) ?: msg } catch (e: Throwable) {
-                    // A rewrite that throws means the tag may have gone out unstripped. Was
-                    // logger.fine (invisible at INFO) — a silent leak. Warn once per packet class.
                     if (loggedPacketNames.add(name)) {
                         logger.warning("[TagStripper] could not rewrite $name, forwarding it unchanged" +
-                            " — an ownership tag on that packet reaches the client: ${e.message}")
+                            " - an ownership tag on that packet reaches the client: ${e.message}")
                     }
                     msg
                 }
             } else {
                 if (looksItemBearing(name) && loggedPacketNames.add(name)) {
                     logger.warning("[TagStripper] client-bound packet $name looks like it carries items" +
-                        " but is not on the strip list — a server update may have renamed a packet; report this")
+                        " but is not on the strip list - a server update may have renamed a packet; report this")
                 }
                 msg
             }
@@ -168,12 +153,9 @@ class ReflectiveTagStripper(
         }
     }
 
-    // ---------------------------------------------------------------- packet rewrite
-
     /**
-     * A ClientboundBundlePacket carries an `Iterable<Packet>` (via `subPackets()`), each of
-     * which is a normal packet the outer `write` never sees. Rewrite any item-bearing member
-     * and rebuild the bundle through its `Iterable` constructor.
+     * A bundle's members arrive via `subPackets()` and never reach the outer `write`; a rebuilt
+     * bundle goes back through the bundle class's `Iterable` constructor.
      *
      * @return a fresh bundle if a member was stripped, else null (caller forwards the original).
      */
@@ -214,7 +196,6 @@ class ReflectiveTagStripper(
         else reconstructOrMutate(msg, cls, fields, replacements)
     }
 
-    /** A single field value: a bare NMS item, or a List/NonNullList that may contain items. */
     private fun rewriteValue(value: Any): Any? = when {
         nmsItemClass.isInstance(value) -> stripItem(value)
         value is List<*> -> rewriteList(value)
@@ -232,7 +213,7 @@ class ReflectiveTagStripper(
         return coerceListType(list, out)
     }
 
-    /** List element: NMS item, a Pair (equipment: slot -> item), or a DataValue (entity data). */
+    /** A Pair here is an equipment slot plus its item; a DataValue is one entity-data entry. */
     private fun rewriteElement(el: Any): Any? = when {
         nmsItemClass.isInstance(el) -> stripItem(el)
         el.javaClass.name == "com.mojang.datafixers.util.Pair" -> rewritePair(el)
@@ -261,8 +242,6 @@ class ReflectiveTagStripper(
         return ctor.newInstance(id, serializer, newValue)
     }
 
-    // ---------------------------------------------------------------- item strip (public Bukkit API)
-
     /** @return a fresh NMS item with the offending keys removed, or null if nothing to strip. */
     private fun stripItem(nmsItem: Any): Any? {
         val bukkit = asBukkitCopy.invoke(null, nmsItem) as org.bukkit.inventory.ItemStack
@@ -278,8 +257,6 @@ class ReflectiveTagStripper(
         return asNMSCopy.invoke(null, bukkit)
     }
 
-    // ---------------------------------------------------------------- reconstruction helpers
-
     private fun reconstructRecord(msg: Any, cls: Class<*>, replacements: Map<String, Any?>): Any {
         val components = cls.recordComponents
         val args = components.map { rc ->
@@ -290,10 +267,7 @@ class ReflectiveTagStripper(
         return ctor.newInstance(*args.toTypedArray())
     }
 
-    /**
-     * Non-record packet: prefer a constructor whose parameter types line up with the instance
-     * fields (so we never set a final field), falling back to in-place mutation if none matches.
-     */
+    /** Prefers a matching constructor so a final field is never written to. */
     private fun reconstructOrMutate(
         msg: Any, cls: Class<*>, fields: List<Field>, replacements: Map<String, Any?>,
     ): Any {
@@ -306,12 +280,11 @@ class ReflectiveTagStripper(
             ctor.isAccessible = true
             return ctor.newInstance(*values.toTypedArray())
         }
-        // Last resort: mutate the existing packet's item fields in place.
         for (f in fields) if (replacements.containsKey(f.name)) f.set(msg, replacements[f.name])
         return msg
     }
 
-    /** Rebuild a list as the same concrete type the field expects — NonNullList must stay NonNullList. */
+    /** The field's concrete list type must be preserved: a NonNullList has to stay a NonNullList. */
     private fun coerceListType(original: List<*>, out: List<Any?>): Any {
         if (original.javaClass.simpleName == "NonNullList") {
             val nnl = Class.forName("net.minecraft.core.NonNullList")
@@ -321,8 +294,6 @@ class ReflectiveTagStripper(
         }
         return out
     }
-
-    // ---------------------------------------------------------------- field reflection
 
     private fun collectInstanceFields(cls: Class<*>): List<Field> {
         val result = ArrayList<Field>()

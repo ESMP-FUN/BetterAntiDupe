@@ -8,11 +8,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
-/**
- * The ledger's tamper-evidence rests entirely on these rules, and the cost of getting them
- * wrong is silent: verification keeps reporting "clean" while the thing it is meant to catch
- * goes through. None of this needs a running server, so it is checked here.
- */
 class LedgerEntryHashTest {
 
     private val player: UUID = UUID.fromString("00000000-0000-0000-0000-000000000001")
@@ -35,8 +30,6 @@ class LedgerEntryHashTest {
     @Test
     fun `editing the audit metadata breaks the hash`() {
         val original = entry(LedgerMetadata(notes = "mined at spawn"))
-        // What an attacker with database write access would do: rewrite the audit trail but
-        // leave the transaction columns, which are all version 1 ever hashed, untouched.
         val tampered = original.copy(metadata = original.metadata.copy(notes = "nothing to see"))
         assertFalse(tampered.verifyIntegrity())
     }
@@ -50,8 +43,6 @@ class LedgerEntryHashTest {
 
     @Test
     fun `legacy entries still verify under the old rules`() {
-        // A version 1 row, as written by an earlier release: its hash never covered metadata,
-        // so it must keep verifying even though the payload has changed since.
         val v2 = entry()
         val legacyHash = legacyHashOf(v2)
         val legacyRow = v2.copy(hash = legacyHash, hashVersion = LedgerEntry.HASH_VERSION_LEGACY)
@@ -61,8 +52,6 @@ class LedgerEntryHashTest {
 
     @Test
     fun `a reset marker in the notes is ignored on current entries`() {
-        // The old marker lived in free text that version 1 did not hash, so one edit to one
-        // row retired the whole chain from verification. Only the action counts now.
         val forged = entry(LedgerMetadata(notes = "CHAIN_RESET:let me through"))
         assertFalse(forged.isChainReset())
     }
@@ -81,7 +70,6 @@ class LedgerEntryHashTest {
 
     @Test
     fun `canonical form separates fields that would otherwise run together`() {
-        // Without length prefixes, text moved across a field boundary would hash identically.
         val a = LedgerMetadata(containerType = "CHEST", notes = "abc")
         val b = LedgerMetadata(containerType = "CHESTabc", notes = "")
         assertNotEquals(a.canonical(), b.canonical())

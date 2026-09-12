@@ -18,20 +18,6 @@ import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Logger
 
-/**
- * Pushes dupe alerts to external services (Discord, Telegram, Slack, or any
- * generic JSON webhook). Configured under `notifications:` in config.yml.
- *
- * Design constraints:
- *  - Fire-and-forget: delivery runs async on the IO dispatcher and can never
- *    block the server thread or the alert pipeline.
- *  - Storm-proof: alerts are rate-limited per (player, type, material) so a
- *    burst of identical detections sends one notification, not hundreds.
- *  - Quiet failure: an unreachable webhook logs a warning at most once per
- *    minute per target instead of spamming the console.
- *  - Text reuses the messages.yml translations with colour codes stripped,
- *    so notifications follow the server's language.
- */
 class AlertNotifier(
     config: ConfigurationSection?,
     private val scope: CoroutineScope,
@@ -79,17 +65,15 @@ class AlertNotifier(
         HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build()
     }
 
-    /** (player|type|material) -> last send time, for the burst rate limit. */
+    /** Keyed by player, alert type and material, so one burst sends a single notification. */
     private val lastSent = ConcurrentHashMap<String, Long>()
 
-    /** target name -> last failure log time (warn at most once per minute per target). */
     private val lastFailureLog = ConcurrentHashMap<String, Long>()
 
     fun handle(alert: DupeAlert) {
         if (!anyEnabled) return
         if (alert.severity.ordinal < minSeverity.ordinal) return
 
-        // Burst control: one notification per (player, type, material) per window.
         val key = "${alert.player}|${alert.type}|${alert.material}"
         val now = System.currentTimeMillis()
         var allowed = false
@@ -111,7 +95,6 @@ class AlertNotifier(
         }
     }
 
-    /** Human-readable single line, using the server's messages.yml language, colours stripped. */
     private fun plainText(alert: DupeAlert): String {
         val details = if (alert.messageKey.isNotEmpty())
             Messages.msg(alert.messageKey, alert.placeholders) else alert.details
@@ -134,7 +117,6 @@ class AlertNotifier(
         return JSONObject().put("embeds", JSONArray().put(embed)).toString()
     }
 
-    /** Full machine-readable alert for custom integrations (n8n, Zapier, home-grown bots). */
     private fun genericPayload(alert: DupeAlert): String = JSONObject()
         .put("plugin", "BetterAntiDupe")
         .put("type", alert.type.name)

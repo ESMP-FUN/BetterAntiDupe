@@ -10,23 +10,8 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Proof of Witness (PoW) - A mesh network consensus system for item tracking.
- *
- * When a player performs a tracked action (mine, pickup, drop, etc.), nearby
- * players act as "witnesses" who can validate that the action occurred.
- *
- * This creates a decentralized trust model where:
- * - Actions with multiple witnesses are highly trusted
- * - Actions with no witnesses (solo) are flagged for extra scrutiny
- * - Patterns of unwitnessed acquisitions indicate suspicious behavior
- * - Duping exploits that bypass server events have no witnesses
- *
- * Trust Levels:
- *   VERIFIED   - 3+ witnesses, cryptographically signed
- *   CORROBORATED - 1-2 witnesses present
- *   SOLO       - No witnesses (not suspicious alone, but patterns matter)
- *   CONTESTED  - Witness reports conflict with actor's claim
- *   UNVERIFIED - Unable to determine witness status
+ * Treats nearby players as witnesses to a tracked action. A single unwitnessed action means
+ * nothing; a sustained run of them while others are around is what the signal is looking for.
  */
 class WitnessManager(
     private val plugin: Plugin,
@@ -36,18 +21,14 @@ class WitnessManager(
 ) {
     private val radiusSquared = witnessRadius * witnessRadius
 
-    // Player trust scores based on witness history
     private val trustScores = ConcurrentHashMap<UUID, TrustScore>()
 
-    // Recent witnessed events for each player (sliding window). Lists are synchronized.
+    // Hold each list's own monitor while iterating or filtering it.
     private val witnessHistory = ConcurrentHashMap<UUID, MutableList<WitnessRecord>>()
 
     private fun historyFor(id: UUID): MutableList<WitnessRecord> =
         witnessHistory.computeIfAbsent(id) { Collections.synchronizedList(mutableListOf()) }
 
-    /**
-     * Get all players who can witness an action at a location.
-     */
     fun getNearbyWitnesses(actor: Player, location: Location): List<Player> {
         return location.world?.players?.filter { player ->
             player.uniqueId != actor.uniqueId &&
@@ -58,9 +39,8 @@ class WitnessManager(
     }
 
     /**
-     * Whether any *other* player is within witness radius right now (ignoring line of sight).
-     * The unwitnessed-action signal is only meaningful when someone could plausibly have
-     * witnessed — solo play, with nobody around, is not suspicious and must never accrue heat.
+     * Ignores line of sight on purpose: this only answers whether anyone could plausibly
+     * have seen the action, so playing alone never accrues suspicion.
      */
     fun othersNearby(actor: Player): Boolean {
         val world = actor.world
@@ -73,13 +53,9 @@ class WitnessManager(
     }
 
     /**
-     * A nearby player who must NOT count as a witness. Two cases:
-     *  - Vanished staff: standing invisibly near a duper would otherwise inflate their trust
-     *    (SOLO -> CORROBORATED) and mask the very solo-acquisition pattern PoW exists to catch.
-     *    Honoured via the de-facto "vanished" metadata flag set by EssentialsX / SuperVanish /
-     *    PremiumVanish, so no hard dependency on any one vanish plugin.
-     *  - Explicit exemption: anyone with `antidupe.witness.exempt`, for admins who patrol
-     *    invisibly through means other than a standard vanish plugin.
+     * A vanished admin standing next to a duper would otherwise turn a solo action into a
+     * corroborated one. "vanished" is the shared metadata flag EssentialsX, SuperVanish and
+     * PremiumVanish all set, so reading it avoids a hard dependency on any of them.
      */
     private fun isExcludedWitness(player: Player): Boolean {
         if (player.hasPermission("antidupe.witness.exempt")) return true
@@ -90,10 +66,6 @@ class WitnessManager(
         }
     }
 
-    /**
-     * Create a witness attestation for an action.
-     * Returns the witnesses and a trust level.
-     */
     fun attestAction(
         actor: Player,
         actionId: UUID,
@@ -110,7 +82,6 @@ class WitnessManager(
             else -> TrustLevel.SOLO
         }
 
-        // Generate attestation signature
         val signature = generateSignature(
             actionId = actionId,
             actor = actor.uniqueId,
@@ -120,7 +91,6 @@ class WitnessManager(
             itemDetails = itemDetails
         )
 
-        // Record this in witness history
         val record = WitnessRecord(
             actionId = actionId,
             timestamp = System.currentTimeMillis(),
@@ -129,7 +99,6 @@ class WitnessManager(
         )
         historyFor(actor.uniqueId).add(record)
 
-        // Update trust score
         updateTrustScore(actor.uniqueId, trustLevel)
 
         return WitnessAttestation(
@@ -142,10 +111,6 @@ class WitnessManager(
         )
     }
 
-    /**
-     * Generate a cryptographic signature for an attestation.
-     * This binds the witnesses to the specific action.
-     */
     private fun generateSignature(
         actionId: UUID,
         actor: UUID,
@@ -171,14 +136,9 @@ class WitnessManager(
         val digest = MessageDigest.getInstance("SHA-256")
         return digest.digest(payload.toByteArray())
             .joinToString("") { "%02x".format(it) }
-            .take(16)  // Short signature for storage
+            .take(16)
     }
 
-    /**
-     * Calculate witness ratio for a player.
-     * High ratio = most actions are witnessed = trustworthy
-     * Low ratio = most actions are solo = needs scrutiny
-     */
     fun getWitnessRatio(playerId: UUID): WitnessRatio {
         val history = witnessHistory[playerId] ?: return WitnessRatio(0, 0, 0.0)
         val cutoff = System.currentTimeMillis() - 3600_000
@@ -193,10 +153,6 @@ class WitnessManager(
         return WitnessRatio(witnessed, total, ratio)
     }
 
-    /**
-     * Check if a player has a suspicious witness pattern.
-     * Returns true if they have many unwitnessed acquisitions.
-     */
     fun hasSuspiciousPattern(playerId: UUID): SuspicionAnalysis {
         val history = witnessHistory[playerId] ?: return SuspicionAnalysis(
             suspicious = false,
@@ -228,10 +184,9 @@ class WitnessManager(
             )
         }
 
-        // Check for burst of unwitnessed acquisitions
         val recentSolo = recent.filter {
             it.trustLevel == TrustLevel.SOLO &&
-            it.timestamp >= System.currentTimeMillis() - 300_000  // Last 5 min
+            it.timestamp >= System.currentTimeMillis() - 300_000
         }
         if (recentSolo.size >= 20) {
             return SuspicionAnalysis(
@@ -252,9 +207,6 @@ class WitnessManager(
         )
     }
 
-    /**
-     * Get the trust score for a player.
-     */
     fun getTrustScore(playerId: UUID): TrustScore {
         return trustScores.computeIfAbsent(playerId) { TrustScore(playerId) }
     }
@@ -264,9 +216,6 @@ class WitnessManager(
         score.recordAction(trustLevel)
     }
 
-    /**
-     * Clean up old history entries (call periodically)
-     */
     fun pruneHistory() {
         val cutoff = System.currentTimeMillis() - 3600_000 * 24
         witnessHistory.forEach { (_, records) ->
@@ -275,9 +224,6 @@ class WitnessManager(
         witnessHistory.entries.removeIf { synchronized(it.value) { it.value.isEmpty() } }
     }
 
-    /**
-     * Get detailed witness stats for admin inspection
-     */
     fun getPlayerStats(playerId: UUID): WitnessStats {
         val historyRef = witnessHistory[playerId]
         val snapshot: List<WitnessRecord> = if (historyRef == null) emptyList()
@@ -300,20 +246,14 @@ class WitnessManager(
     }
 }
 
-/**
- * Trust levels for witnessed actions
- */
 enum class TrustLevel {
-    VERIFIED,      // 3+ witnesses, cryptographically signed
-    CORROBORATED,  // 1-2 witnesses present
-    SOLO,          // No witnesses (not inherently suspicious)
-    CONTESTED,     // Witnesses disagree with claimed action
-    UNVERIFIED     // Unable to determine
+    VERIFIED,
+    CORROBORATED,
+    SOLO,
+    CONTESTED,
+    UNVERIFIED
 }
 
-/**
- * Attestation record for a witnessed action
- */
 data class WitnessAttestation(
     val actionId: UUID,
     val actor: UUID,
@@ -334,7 +274,7 @@ data class WitnessAttestation(
             return WitnessAttestation(
                 actionId = actionId,
                 actor = actor,
-                witnesses = emptyList(),  // Not stored in compact form
+                witnesses = emptyList(),  // The compact form does not carry the witness list
                 trustLevel = TrustLevel.valueOf(parts[0]),
                 signature = parts[2],
                 timestamp = System.currentTimeMillis()
@@ -364,9 +304,6 @@ data class SuspicionAnalysis(
     val totalActions: Int = 0
 )
 
-/**
- * Running trust score for a player based on witness history
- */
 class TrustScore(val playerId: UUID) {
     var score: Double = 100.0
         private set
@@ -384,7 +321,7 @@ class TrustScore(val playerId: UUID) {
         when (trustLevel) {
             TrustLevel.VERIFIED -> {
                 verifiedCount++
-                score = minOf(100.0, score + 0.5)  // Slow increase
+                score = minOf(100.0, score + 0.5)
             }
             TrustLevel.CORROBORATED -> {
                 corroboratedCount++
@@ -392,14 +329,13 @@ class TrustScore(val playerId: UUID) {
             }
             TrustLevel.SOLO -> {
                 soloCount++
-                // Solo doesn't decrease score unless pattern emerges
+                // No penalty: a single unwitnessed action is normal, only the pattern counts.
             }
             TrustLevel.CONTESTED -> {
                 contestedCount++
-                score = maxOf(0.0, score - 10.0)  // Big penalty
+                score = maxOf(0.0, score - 10.0)
             }
             TrustLevel.UNVERIFIED -> {
-                // No change
             }
         }
     }

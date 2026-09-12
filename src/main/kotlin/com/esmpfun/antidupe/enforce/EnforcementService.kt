@@ -14,21 +14,8 @@ import org.bukkit.entity.Player
 import java.util.logging.Logger
 
 /**
- * Acts on a confirmed dupe alert by taking the surplus back out of the player's inventory.
- *
- * Everything here is off unless an admin turns it on. Two independent switches gate it, and
- * both must agree before a single item is touched:
- *
- *  - `shadow_mode: true` (the default) is a hard veto. Shadow mode means "watch and record",
- *    so it wins over every other setting in this file.
- *  - `auto_delete_dupes: false` (the default) means alert-only even with shadow mode off.
- *
- * Removal is deliberately conservative. It only takes items the ledger actually counted:
- * stacks carrying this player's ownership tag, in the main inventory, and never more than
- * the surplus the alert reported. Items stored inside a shulker box or bundle are counted by
- * reconciliation but are not unpacked here: reaching into nested containers to delete things
- * is a far larger blast radius than the problem warrants, so a shortfall is reported to the
- * console instead and left for an admin to handle by hand.
+ * Takes a confirmed surplus back out of the player's inventory. Items nested in a shulker box
+ * or bundle are counted by reconciliation but deliberately left alone; the shortfall is logged.
  */
 class EnforcementService(
     private val settings: Settings,
@@ -38,13 +25,7 @@ class EnforcementService(
     private val logger: Logger
 ) {
 
-    /**
-     * @param shadowMode          Watch-only. Vetoes removal regardless of [autoDelete].
-     * @param autoDelete          Remove the surplus instead of only alerting.
-     * @param minSeverity         Alerts below this confidence are never acted on.
-     * @param maxItemsPerAction   Safety cap on one removal; 0 means no cap.
-     * @param notifyPlayer        Tell the player something was taken back.
-     */
+    /** [maxItemsPerAction] 0 means no cap. */
     data class Settings(
         val shadowMode: Boolean = true,
         val autoDelete: Boolean = false,
@@ -52,7 +33,6 @@ class EnforcementService(
         val maxItemsPerAction: Int = 0,
         val notifyPlayer: Boolean = true
     ) {
-        /** True when this configuration can ever remove an item. */
         val active: Boolean get() = autoDelete && !shadowMode
     }
 
@@ -62,7 +42,6 @@ class EnforcementService(
         chainOfCustody = coc
     }
 
-    /** Alert listener entry point. Returns immediately unless removal is both enabled and warranted. */
     fun handle(alert: DupeAlert) {
         if (!settings.active) return
         if (alert.excess <= 0) return
@@ -71,9 +50,8 @@ class EnforcementService(
         val wanted = if (settings.maxItemsPerAction > 0)
             minOf(alert.excess, settings.maxItemsPerAction) else alert.excess
 
-        // Alerts arrive on a reconciliation coroutine. The online-player roster is read on the
-        // main (global region) thread, and the inventory itself is only safe to change on the
-        // player's own thread. On Folia, doing either from here is a cross-region violation.
+        // Alerts arrive on a coroutine. On Folia, reading the player roster off the global region
+        // thread or touching an inventory off the player's own thread is a cross-region violation.
         scheduler.runMain(Runnable {
             val player = Bukkit.getPlayer(alert.player) ?: return@Runnable
             scheduler.runForEntity(player, Runnable {
@@ -89,10 +67,6 @@ class EnforcementService(
         })
     }
 
-    /**
-     * Take up to [wanted] items of [material] that carry this player's ownership tag out of
-     * their main inventory. Returns how many were actually removed.
-     */
     private fun removeOwned(player: Player, material: Material, wanted: Int): Int {
         val inventory = player.inventory
         var remaining = wanted
@@ -101,8 +75,7 @@ class EnforcementService(
             if (remaining <= 0) break
             val stack = inventory.getItem(slot) ?: continue
             if (stack.type != material) continue
-            // Untagged stacks were never counted by reconciliation, so they are not part of
-            // the surplus and must not be taken.
+            // Untagged stacks were never counted by reconciliation, so they are not surplus.
             if (!ownershipManager.isOwnedBy(stack, player.uniqueId)) continue
 
             val take = minOf(stack.amount, remaining)
@@ -117,13 +90,11 @@ class EnforcementService(
         return wanted - remaining
     }
 
-    /** DIAMOND_BLOCK reads as "Diamond Block" for anything a player sees. */
     private fun friendlyName(material: Material): String =
         material.name.split('_').joinToString(" ") { word ->
             word.lowercase().replaceFirstChar { it.uppercase() }
         }
 
-    /** Console line, optional player notice, and an audit entry so the removal is on the record. */
     private fun report(player: Player, alert: DupeAlert, removed: Int, wanted: Int) {
         com.esmpfun.antidupe.metrics.DetectionCounters.recordItemsRemoved(alert.material.name, removed)
         logger.warning(

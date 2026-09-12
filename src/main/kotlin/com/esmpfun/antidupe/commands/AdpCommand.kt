@@ -17,11 +17,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.UUID
 
-/**
- * Single-entry `/adp` command for Chain of Custody administration. All subcommands
- * live under `/adp ledger ...`. Every displayed string is looked up through
- * [Messages] (messages.yml) so the plugin is translatable.
- */
 class AdpCommand(
     private val plugin: JavaPlugin,
     private val scope: CoroutineScope,
@@ -33,10 +28,7 @@ class AdpCommand(
 
     fun setChainOfCustody(coc: ChainOfCustody) { this.chainOfCustody = coc }
 
-    /**
-     * Resolve a player name to a UUID without blocking the calling thread on a Mojang
-     * lookup. Online roster first, cached offline players second, async lookup as last resort.
-     */
+    /** getOfflinePlayer can hit Mojang, so an unknown name is resolved off the calling thread. */
     private fun resolvePlayer(name: String, sender: CommandSender, onResolved: (UUID) -> Unit) {
         Bukkit.getPlayerExact(name)?.let { return onResolved(it.uniqueId) }
         sender.sendMessage(Messages.msg("commands.player-lookup", "player" to name))
@@ -55,11 +47,8 @@ class AdpCommand(
         when (args[0].lowercase()) {
             "ledger", "coc", "chain" -> handleLedger(sender, args.drop(1).toTypedArray())
             "update" -> {
-                // Checked here rather than left to PluginPulse. The library declares the same
-                // permission in pluginpulse.yml and presumably enforces it, but that puts an
-                // authorization decision in a dependency we do not control, and the tab
-                // completer below already checks it locally. If the two ever disagree,
-                // /adp update download is a public command.
+                // Checked here as well as in PluginPulse: if the library ever stops enforcing
+                // its own declared permission, /adp update download becomes a public command.
                 if (!sender.hasPermission("antidupe.admin")) {
                     sender.sendMessage(Messages.msg("commands.no-permission-update"))
                 } else {
@@ -94,10 +83,7 @@ class AdpCommand(
                             "reconcile", "trust", "confirm", "clear", "verify", "help")
                     .filter { it.startsWith(args[1].lowercase()) }
                 3 -> when (args[1].lowercase()) {
-                    // reconcile needs a player who is actually here; everything else works on
-                    // offline players too, and the whole point of the suspects list is to read
-                    // a name off it and look that player up. Completing only the online roster
-                    // meant the one workflow this command exists for had no completion at all.
+                    // reconcile needs the player online; the rest accept offline names too.
                     "reconcile" -> onlineNames(args[2])
                     "balance", "history", "witness", "trust", "stash", "confirm", "clear" ->
                         suspectAndOnlineNames(args[2])
@@ -113,11 +99,7 @@ class AdpCommand(
         Bukkit.getOnlinePlayers().map { it.name }
             .filter { it.lowercase().startsWith(prefix.lowercase()) }
 
-    /**
-     * Names worth completing for the commands that accept offline players: everyone online,
-     * plus everyone currently on the suspects list, which is where an admin reads a name from
-     * in the first place. Suspects come first so the interesting names are at the top.
-     */
+    /** Suspects are listed first so the names an admin is actually after are at the top. */
     private fun suspectAndOnlineNames(prefix: String): List<String> {
         val lower = prefix.lowercase()
         val suspects = chainOfCustody?.getSuspects()?.map { it.playerName }.orEmpty()
@@ -168,9 +150,7 @@ class AdpCommand(
             "trust" -> if (args.size < 2) usage(sender, "/adp ledger trust <player>")
                        else ledgerTrust(sender, coc, args[1])
             "verify" -> ledgerVerify(sender, coc)
-            // Internal: target of the clickable stash coordinates. A plugin command avoids
-            // the client's "elevated permissions" confirmation dialog (MC 1.21.6+) that a
-            // raw /execute click-event would trigger.
+            // Internal target of the clickable stash coordinates; see Chat.clickRunCommand.
             "tp" -> if (args.size < 5) usage(sender, "/adp ledger tp <world> <x> <y> <z>")
                     else ledgerTp(sender, args[1], args[2], args[3], args[4])
             "help" -> showLedgerHelp(sender)
@@ -281,10 +261,6 @@ class AdpCommand(
         sender.sendMessage(Messages.msg("commands.suspects.hint"))
     }
 
-    /**
-     * Show the player's recent CONTAINER_PUT / ENTITY_PUT / FRAME_PUT entries with clickable
-     * coordinates that fire `/execute in <dimension> run tp @s x y z` when the admin clicks.
-     */
     private fun ledgerStash(sender: CommandSender, coc: ChainOfCustody, playerName: String) {
         resolvePlayer(playerName, sender) { uuid ->
             scope.launch {
@@ -337,15 +313,14 @@ class AdpCommand(
         }
         val loc = org.bukkit.Location(world, x + 0.5, y, z + 0.5, player.location.yaw, player.location.pitch)
         try {
-            player.teleportAsync(loc)  // Paper/Folia: safe from any thread
+            player.teleportAsync(loc)  // Paper only, and safe from any thread
         } catch (e: Throwable) {
-            player.teleport(loc)       // Spigot fallback
+            player.teleport(loc)
         }
         sender.sendMessage(Messages.msg("commands.tp.success",
             "world" to worldName, "x" to xs, "y" to ys, "z" to zs))
     }
 
-    /** Parses "world,x,y,z" container-location strings produced by LedgerMetadata.withContainer. */
     private fun parseContainerCoords(loc: String?): Coords? {
         if (loc.isNullOrBlank()) return null
         val parts = loc.split(",")
@@ -355,7 +330,6 @@ class AdpCommand(
         } catch (e: NumberFormatException) { null }
     }
 
-    /** Falls back to the entry's own world/x/y/z if there's no containerLocation. */
     private fun parseEntryCoords(entry: com.esmpfun.antidupe.ledger.LedgerEntry): Coords? {
         val w = entry.metadata.worldName ?: return null
         val x = entry.metadata.x ?: return null
@@ -366,19 +340,12 @@ class AdpCommand(
 
     private data class Coords(val world: String, val x: Int, val y: Int, val z: Int)
 
-    /**
-     * Admin verdict on a flagged player. `confirm` pins suspicion high (future hits trip easily)
-     * and runs the configured punishment command if set; `clear` marks it a false positive and
-     * resets the player's suspicion and suspect entry.
-     */
     private fun ledgerVerdict(sender: CommandSender, coc: ChainOfCustody, playerName: String, confirm: Boolean) {
         resolvePlayer(playerName, sender) { uuid ->
             if (confirm) {
                 coc.confirmSuspect(uuid)
                 sender.sendMessage(Messages.msg("commands.verdict.confirmed", "player" to playerName))
-                // Optional punishment hook, with {player} substituted. It sits next to the
-                // other "what happens to a duper" settings now; configs written before that
-                // moved keep working from its old place under detection.
+                // The detection. prefix is where this key used to live; old configs still work.
                 val cmd = (plugin.config.getString("on_confirm_command", null)
                     ?: plugin.config.getString("detection.on_confirm_command", ""))?.trim().orEmpty()
                 if (cmd.isNotEmpty()) {

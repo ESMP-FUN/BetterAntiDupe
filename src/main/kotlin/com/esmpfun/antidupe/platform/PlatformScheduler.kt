@@ -5,26 +5,20 @@ import org.bukkit.plugin.Plugin
 import java.util.function.Consumer
 
 /**
- * Scheduler abstraction that works across:
- *   - **Folia**: native region/entity/async schedulers (BukkitScheduler is rejected)
- *   - **Paper non-Folia**: Paper's global region / async schedulers (delegate to BukkitScheduler)
- *   - **Spigot**: classic BukkitScheduler
- *
- * Detection is done via reflection so the compiled bytecode has no hard reference to
- * Paper-only classes. That keeps the plugin loadable on Spigot even though we compile
- * against `paper-api`.
+ * Folia rejects BukkitScheduler outright, so its region/entity/async schedulers are used instead.
+ * They are reached by reflection so the bytecode holds no hard reference to Paper-only classes,
+ * which keeps the plugin loadable on Spigot despite compiling against `paper-api`.
  */
 class PlatformScheduler(private val plugin: Plugin) {
 
     private val server = plugin.server
 
-    /** True if running on Folia (entity scheduler is needed to follow teleports). */
     val isFolia: Boolean = try {
         Class.forName("io.papermc.paper.threadedregions.RegionizedServer")
         true
     } catch (e: Throwable) { false }
 
-    /** The Paper-style GlobalRegionScheduler if available (Paper ≥1.20.4 and Folia), else null. */
+    /** Null on Spigot and on Paper older than 1.20.4. */
     private val paperGlobalScheduler: Any? = try {
         server.javaClass.getMethod("getGlobalRegionScheduler").invoke(server)
     } catch (e: Throwable) { null }
@@ -33,7 +27,7 @@ class PlatformScheduler(private val plugin: Plugin) {
         server.javaClass.getMethod("getAsyncScheduler").invoke(server)
     } catch (e: Throwable) { null }
 
-    /** Run a task on the main thread (or the global region thread on Folia). */
+    /** Runs on the global region thread when there is one, the main thread otherwise. */
     fun runMain(task: Runnable) {
         val sched = paperGlobalScheduler
         if (sched != null) {
@@ -46,7 +40,7 @@ class PlatformScheduler(private val plugin: Plugin) {
         server.scheduler.runTask(plugin, task)
     }
 
-    /** Run a task on the region thread that owns [entity] (follows teleports on Folia). */
+    /** On Folia the task follows [entity] across teleports between regions. */
     fun runForEntity(entity: Entity, task: Runnable) {
         if (isFolia) {
             try {
@@ -60,15 +54,10 @@ class PlatformScheduler(private val plugin: Plugin) {
                 return
             } catch (e: Throwable) { /* fall through */ }
         }
-        // Paper or Spigot non-Folia: the regular scheduler is single-threaded enough.
         server.scheduler.runTask(plugin, task)
     }
 
-    /**
-     * Run a task on the region thread that owns [entity], after [delayTicks]. On Folia the
-     * entity scheduler is used; if the entity is retired before the delay elapses, the task
-     * still runs (so callers can observe "entity is gone" as a state).
-     */
+    /** The task still runs if [entity] is retired before the delay elapses. */
     fun runForEntityLater(entity: Entity, delayTicks: Long, task: Runnable) {
         if (isFolia) {
             try {
@@ -87,7 +76,6 @@ class PlatformScheduler(private val plugin: Plugin) {
         server.scheduler.runTaskLater(plugin, task, delayTicks)
     }
 
-    /** Run a task on a background pool. */
     fun runAsync(task: Runnable) {
         val sched = paperAsyncScheduler
         if (sched != null) {

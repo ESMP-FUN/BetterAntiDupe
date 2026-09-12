@@ -21,20 +21,17 @@ import java.util.concurrent.atomic.AtomicLong
 import java.util.logging.Logger
 
 /**
- * Blocks the classic block-duplication contraptions (rail dupers, carpet dupers, TNT dupers,
- * gravity-block dupers) at the mechanic level.
+ * Blocks the classic block-duplication contraptions (rail, carpet, TNT and gravity dupers) at
+ * the mechanic level.
  *
- * These exploits duplicate BLOCKS in the world, not inventory items: a piston dislodges a
- * fragile attached block (rail / carpet) in the same tick it moves its support, and the
- * update-order quirk leaves both the block and a dropped item — no inventory event ever
- * fires, so the ledger can't see the duplication moment (only the eventual pickup surplus).
- * Cancelling the piston movement removes the exploit at its root.
+ * These duplicate blocks in the world, not inventory items: a piston dislodges a fragile
+ * attached block in the same tick it moves its support, and the update order leaves both the
+ * block and a dropped item. No inventory event fires, so the ledger only ever sees the later
+ * pickup surplus; cancelling the piston movement removes the exploit at its root.
  *
- * Legit cost is small and documented in config.yml: pistons can no longer push/pull a block
- * that has a rail or carpet sitting on top of it (vanilla would pop the rail/carpet off —
- * exactly the interaction dupers abuse), can't move TNT blocks while the TNT toggle is on,
- * and falling blocks (sand, gravel, concrete powder, dragon egg...) can't travel through
- * portals (the end-portal sand duper).
+ * The cost, documented in config.yml: a piston can no longer move a block with a rail or carpet
+ * on top (vanilla pops it off, which is the interaction being abused) or a TNT block while that
+ * toggle is on, and falling blocks can no longer travel through portals.
  */
 class DuperPreventionListener(
     private val preventRail: Boolean,
@@ -45,9 +42,8 @@ class DuperPreventionListener(
     private val logger: Logger
 ) : Listener {
 
-    // Contraptions clock piston dupers several times a second; log at most one line per
-    // location-agnostic 10s window so a running duper can't flood the console. The anonymous
-    // counter is bumped every time (it's just an atomic add), only the console line is throttled.
+    // Contraptions clock piston dupers several times a second, so only one console line per 10s
+    // window gets through. The counter is still bumped every time; only the log is throttled.
     private val lastLogAt = AtomicLong(0)
     private fun logBlocked(reason: String, block: Block) {
         com.esmpfun.antidupe.metrics.DetectionCounters.recordPreventionBlock(counterKey(reason))
@@ -58,7 +54,7 @@ class DuperPreventionListener(
             "${block.world.name},${block.x},${block.y},${block.z}")
     }
 
-    /** Maps the human reason string onto the stable short tag the metrics counter uses. */
+    /** The reason strings are human-facing; the counter needs a short tag that stays stable. */
     private fun counterKey(reason: String) = when {
         reason.startsWith("rail") -> "rail"
         reason.startsWith("carpet") -> "carpet"
@@ -70,29 +66,19 @@ class DuperPreventionListener(
 
     private fun isSlimeLike(m: Material) = m == Material.SLIME_BLOCK || m == Material.HONEY_BLOCK
 
-    /** Non-null reason when [type] is a fragile attached block covered by an enabled toggle. */
     private fun railCarpetVector(type: Material): String? = when {
         preventRail && Tag.RAILS.isTagged(type) -> "rail duper"
         preventCarpet && isCarpet(type) -> "carpet duper"
         else -> null
     }
 
-    // Cells a moving slime/honey block can dislodge a fragile block from, beyond the "on top"
-    // case handled for every block. Down + the 4 sides cover the observer-driven slime-drag
-    // variant where the carpet sits beside or beneath the slime column, not on a pushed block.
+    // Beyond the "on top" case checked for every block: in the observer-driven slime-drag duper
+    // the carpet sits beside or beneath the slime column, never on a pushed block.
     private val slimeDragFaces = arrayOf(
         BlockFace.DOWN, BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST
     )
 
-    /**
-     * Returns a short reason string when this piston movement matches a duper signature,
-     * else null. For each moved block:
-     *   - TNT itself is the dupe (TNT duper).
-     *   - A rail/carpet resting directly on TOP of it is the classic detach-mid-move dupe.
-     *   - If the moved block is slime/honey it can drag a rail/carpet off ANY adjacent face,
-     *     so also scan the sides and the block below (the observer + slime-block carpet duper
-     *     pulls the carpet out from beside/under the slime, never from a pushed block's top).
-     */
+    /** A short reason string when this piston movement matches a duper signature, else null. */
     private fun dupeVector(moved: List<Block>): Pair<String, Block>? {
         for (block in moved) {
             val type = block.type
@@ -119,10 +105,9 @@ class DuperPreventionListener(
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     fun onPistonRetract(event: BlockPistonRetractEvent) {
-        // Carpet-on-piston-arm variant (used by TNT dupers too): the carpet/rail sits on the
-        // HEAD block, which never appears in event.blocks — a plain (non-sticky) retract moves
-        // nothing at all, yet removing the arm is exactly what dislodges and dupes it. Check
-        // the head column explicitly.
+        // Carpet-on-piston-arm variant, also used by TNT dupers: the rail or carpet sits on the
+        // head block, which never appears in event.blocks, and a plain retract moves nothing at
+        // all, yet pulling the arm back is exactly what dislodges and dupes it.
         val aboveHead = event.block.getRelative(event.direction).getRelative(BlockFace.UP)
         railCarpetVector(aboveHead.type)?.let { reason ->
             event.isCancelled = true
@@ -135,22 +120,11 @@ class DuperPreventionListener(
     }
 
     /**
-     * Gravity-block dupers (the end-portal sand duper family) work by sending a FallingBlock
-     * entity through a portal: the entity is duplicated across the dimension change while the
-     * block also lands. No legitimate farm needs falling blocks to travel through portals, so
-     * cancelling the teleport kills the whole family with zero gameplay cost. Piston-based
-     * gravity dupers all ride on the rail/carpet detach trick and are covered above — we
-     * deliberately do NOT cancel pistons pushing sand (flying machines, legit farms).
-     */
-    // ========== CONTAINER-DESYNC (phantom GUI) DUPES ==========
-
-    /**
-     * "Removed container GUI reference" family: keep a shulker box / chest GUI open while the
-     * block is destroyed, then take items out of the phantom GUI — the dropped box keeps its
-     * contents too, so everything inside is duplicated. Especially dangerous for this plugin:
-     * the phantom takes are recorded as legitimate CONTAINER_TAKE ledger credits, making the
-     * dupe invisible to reconciliation. Force-closing viewers when the block goes away removes
-     * the phantom reference entirely; a legitimately-open GUI just closes, nothing is lost.
+     * "Removed container GUI reference" family: a shulker box or chest GUI kept open while the
+     * block is destroyed still hands out items, and the dropped box keeps its contents too. The
+     * phantom takes are recorded as legitimate CONTAINER_TAKE ledger credits, so reconciliation
+     * cannot see this one. Closing the viewers removes the phantom reference; a legitimately
+     * open GUI just closes and loses nothing.
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onContainerBreak(event: BlockBreakEvent) {
@@ -172,7 +146,7 @@ class DuperPreventionListener(
 
     private fun closeViewersOf(block: Block, how: String) {
         val container = block.state as? Container ?: return
-        // Copy — closeInventory mutates the live viewer list while we iterate.
+        // Copy: closeInventory mutates the live viewer list while we iterate.
         val viewers = container.inventory.viewers.toList()
         if (viewers.isEmpty()) return
         for (viewer in viewers) viewer.closeInventory()
@@ -182,9 +156,8 @@ class DuperPreventionListener(
     }
 
     /**
-     * "Unloaded ridable entity GUI reference": a donkey / llama / chest-boat / minecart
-     * inventory kept open while the entity's chunk unloads leaves the same kind of phantom
-     * GUI. Close viewers of any inventory-holding entity in an unloading chunk.
+     * A donkey, llama, chest boat or minecart inventory kept open while the entity's chunk
+     * unloads leaves the same kind of phantom GUI.
      */
     @EventHandler
     fun onChunkUnload(event: ChunkUnloadEvent) {
@@ -199,6 +172,12 @@ class DuperPreventionListener(
         }
     }
 
+    /**
+     * The end-portal sand duper sends a falling block through a portal, which duplicates the
+     * entity across the dimension change while the block also lands. Nothing legitimate needs
+     * that, so the teleport is cancelled outright. Pistons pushing sand are deliberately left
+     * alone (flying machines): those dupers ride on the rail/carpet detach trick instead.
+     */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     fun onEntityPortal(event: EntityPortalEvent) {
         if (!preventGravity) return

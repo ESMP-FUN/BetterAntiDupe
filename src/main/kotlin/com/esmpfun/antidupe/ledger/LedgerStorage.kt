@@ -10,43 +10,25 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.logging.Logger
 
 /**
- * Append-only ledger with **per-player hash chains**. Each player's entries link to that
- * player's previous entry via [LedgerEntry.prevHash], so appends for different players never
- * contend — only same-player appends serialize, through a per-player [Mutex]. This removes the
- * single global append lock that previously bottlenecked every item gain server-wide.
- *
- * Backends implement [readPlayerTip], [writeEntry], and the read-only query methods.
+ * Append-only ledger with one hash chain per player: entries link to that player's previous
+ * entry via [LedgerEntry.prevHash], so only same-player appends serialize.
  */
 abstract class LedgerStorage protected constructor(protected val logger: Logger) {
 
-    /**
-     * One lock per player. Keyed by UUID so two different players' appends run concurrently.
-     * Bounded by the number of distinct players ever seen (small, cheap Mutex objects).
-     */
     private val playerLocks = ConcurrentHashMap<UUID, Mutex>()
 
     /**
-     * Must be [ConcurrentHashMap.computeIfAbsent], not Kotlin's `getOrPut`. The stdlib
-     * extension is a plain get-then-put on MutableMap, so two threads appending for the same
-     * player at the same instant can each build and take a *different* Mutex. They then both
-     * read the same chain tip and write two entries carrying the same prevHash, forking that
-     * player's chain permanently, which verification later reports as tampering. That is
-     * exactly the contended case this lock exists for.
+     * Must stay [ConcurrentHashMap.computeIfAbsent], not Kotlin's `getOrPut`: the stdlib
+     * extension is a plain get-then-put, so simultaneous appends for one player can take
+     * different locks and fork that player's chain, which verification reports as tampering.
      */
     private fun lockFor(player: UUID): Mutex = playerLocks.computeIfAbsent(player) { Mutex() }
 
-    /**
-     * Read-through balance cache. Lookups consult the cache first; misses load from storage and
-     * populate. Appends bump the cached entry atomically, so reconciliation passes — which
-     * query getBalance once per material per player — avoid round-trips to the backend.
-     */
     private val balanceCache = ConcurrentHashMap<Pair<UUID, Material>, AtomicInteger>()
 
     /**
-     * True when the backend can be written by another server process (Redis). The read-through
-     * balance cache is per-JVM with no cross-process invalidation, so on a shared backend it
-     * would hide other servers' writes — exactly the cross-server detection Redis exists for.
-     * Shared backends therefore skip the cache and read the authoritative counter every time.
+     * True when another server process can write the backend. The balance cache is per-JVM with
+     * no cross-process invalidation, so shared backends skip it and read the counter every time.
      */
     protected open val sharedBackend: Boolean = false
 
@@ -64,16 +46,15 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
         entry
     }
 
-    /** The most recent entry across all players — display-only (last-write-wins, unordered). */
+    /** Most recent entry across all players. Display only: last write wins, unordered. */
     abstract suspend fun getTip(): ChainTip?
 
     suspend fun getBalance(player: UUID, material: Material): Int {
         if (sharedBackend) return readBalanceFromStorage(player, material)
         val key = player to material
         balanceCache[key]?.let { return it.get() }
-        // Populate under the player's append lock: an append landing between the storage
-        // read and the cache insert would otherwise be missing from the cached value until
-        // a manual invalidate.
+        // Populate under the append lock: an append landing between the storage read and the
+        // cache insert would otherwise be missing from the cached value.
         return lockFor(player).withLock {
             balanceCache[key]?.get() ?: run {
                 val fromStorage = readBalanceFromStorage(player, material)
@@ -83,12 +64,11 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
         }
     }
 
-    /** Per-player chain tip — the anchor each new entry's prevHash links to. */
     protected abstract suspend fun readPlayerTip(player: UUID): ChainTip?
     protected abstract suspend fun writeEntry(entry: LedgerEntry)
     protected abstract suspend fun readBalanceFromStorage(player: UUID, material: Material): Int
 
-    /** Distinct players that have at least one ledger entry. Used by [verifyAllChains]. */
+    /** Players with at least one ledger entry. */
     abstract suspend fun getTrackedPlayers(): Set<UUID>
 
     abstract suspend fun getEntry(id: UUID): LedgerEntry?
@@ -98,9 +78,8 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
     abstract suspend fun pruneRecentWindows()
 
     /**
-     * Atomically record that an item-entity UUID was picked up by a player.
-     * @return null if this is the first time the UUID has been seen (legitimate pickup),
-     *         or the previous pickup record if the UUID has already been consumed (dupe).
+     * Atomically record that an item-entity UUID was picked up. Returns null the first time a
+     * UUID is seen, or the earlier record if that UUID was already consumed, which is a dupe.
      */
     abstract suspend fun markEntityPickup(
         entityUuid: UUID,
@@ -109,24 +88,17 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
         amount: Int
     ): PreviousPickup?
 
-    /** Prune entity-pickup records older than [olderThanMs]. */
     open suspend fun prunePickupHistory(olderThanMs: Long) { /* default: backend handles TTL */ }
 
     abstract fun close()
 
     /**
-     * Verify a single player's hash chain from its most recent reset point forward. Every entry's
-     * own hash must be self-consistent, and each entry's prevHash must link to the previous entry
-     * in that player's chain.
-     *
-     * Entries before the most recent chain reset are kept for history and balance but not
-     * re-verified, which is how the 3.3.0 migration skips the legacy global-chain prevHashes
-     * inherited from 3.2.0 and earlier. See [LedgerEntry.isChainReset] for why the marker is an
-     * action rather than a note.
+     * Verify one player's hash chain from its most recent reset point forward. Entries before
+     * that reset are kept for history and balance but never re-verified, which is how the
+     * legacy global-chain prevHashes are skipped.
      */
     open suspend fun verifyChainIntegrity(player: UUID): IntegrityResult {
         val full = getPlayerChainOrdered(player)
-        // Take only entries from the last reset (inclusive) forward, if any reset exists.
         val resetIdx = full.indexOfLast { it.isChainReset() }
         val entries = if (resetIdx >= 0) full.subList(resetIdx, full.size) else full
 
@@ -146,7 +118,7 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
         return IntegrityResult(valid = true, entriesVerified = entries.size)
     }
 
-    /** Verify every player's chain. Returns the first failure found, or aggregate success. */
+    /** Stops at the first failing chain. */
     open suspend fun verifyAllChains(): IntegrityResult {
         var total = 0
         for (player in getTrackedPlayers()) {
@@ -158,9 +130,9 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
     }
 
     /**
-     * A player's entries in chain (insertion) order, oldest first. Backends should order by a
-     * monotonic insertion key (SQLite rowid, Redis/Memory list order) rather than timestamp, so
-     * same-millisecond bursts don't read as chain breaks.
+     * A player's entries oldest first. Backends must order by a monotonic insertion key (SQLite
+     * rowid, Redis and Memory list order), not timestamp, or same-millisecond bursts read as
+     * chain breaks.
      */
     protected abstract suspend fun getPlayerChainOrdered(player: UUID): List<LedgerEntry>
 
@@ -173,11 +145,8 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
                     val host = plugin.config.getString("redis.host", "localhost") ?: "localhost"
                     val port = plugin.config.getInt("redis.port", 6379)
                     val pw = plugin.config.getString("redis.password", "")
-                    // redis.database is where anyone would look for this, and is what new
-                    // configs use. Older configs carry BOTH: a live ledger.redis_database and
-                    // a redis.database that nothing ever read. Reading the new key first would
-                    // silently move those servers to whatever that dead key happened to say,
-                    // so the old key still wins wherever it is present.
+                    // Older configs carry both keys, but only ledger.redis_database was ever
+                    // read, so it must keep winning or those servers silently change database.
                     val db = if (plugin.config.contains("ledger.redis_database"))
                         plugin.config.getInt("ledger.redis_database", 1)
                     else plugin.config.getInt("redis.database", 1)
@@ -197,11 +166,7 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
 
 data class ChainTip(val lastEntryId: UUID, val lastHash: String, val timestamp: Long)
 
-/**
- * Record of a previously-processed item-entity pickup. Returned by
- * [LedgerStorage.markEntityPickup] when a UUID has been picked up before — which is
- * almost always a chunk-load / drop-race / cross-server-race dupe.
- */
+/** A pickup of an item entity that was already picked up once, so almost always a dupe. */
 data class PreviousPickup(
     val playerUuid: UUID,
     val material: Material,
