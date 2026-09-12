@@ -61,16 +61,21 @@ Knowing that is what makes it possible to fight duplication exploits for those
 versions first, instead of guessing.
 
 Sent: storage backend, which prevention toggles are on, tracked-material count,
-language, and whether shadow mode, auto-delete and tag hiding are enabled. Never
-sent: IP addresses, server names, player names or UUIDs, item data, or ledger
-contents. The statistics are kept private rather than published on a public page —
-while the install base is small, public numbers would tell dupers how likely any
-given server is to be protected.
+language, and whether shadow mode, auto-delete and tag hiding are enabled. Also
+sent, as running totals since the last report: detection counts grouped by check
+type, severity and item; items removed by enforcement, by item; and duper
+contraptions blocked by type — aggregate counts only, so we can see whether the
+plugin is actually catching anything and which items dupers target. Never sent:
+IP addresses, server names, player names or UUIDs, coordinates, or ledger
+contents. The statistics are kept private rather
+than published on a public page — while the install base is small, public numbers
+would tell dupers how likely any given server is to be protected.
 
 Turn it off entirely with `metrics.enabled: false`.
 
-Error reporting is separate and **off by default** — opt in with
-`metrics.error_reporting: true` if you'd like stack traces sent automatically.
+Error reporting rides along by default: when the plugin hits an error it sends a
+stack trace, redacted first so anything resembling a password, token, id or home
+folder is stripped. Turn it off with `metrics.error_reporting: false`.
 
 ## Documentation
 

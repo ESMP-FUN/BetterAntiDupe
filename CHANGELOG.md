@@ -2,6 +2,14 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- **The metrics now say what the plugin actually caught.** Alongside the config snapshot it already sent, each report carries plain running totals since the last one: how many times a suspect was flagged, split by the kind of check, how serious it was, and which item; how many surplus items enforcement removed, by item; and how many duper contraptions the block-level protection stopped, by type (rail, carpet, TNT, gravity, phantom window). These are counts and nothing else, with no player, location or server attached — enough to tell whether the plugin is earning its place and which items dupers go for, not enough to identify a server. The counters clear only after a report the server accepted, so a failed send never loses a period's numbers.
+
+### Changed
+- **Error reporting is now on by default** (`metrics.error_reporting`, previously off). When the plugin hits an error it sends the stack trace, redacted first: UUIDs, home directories and anything resembling a password or token are stripped before it leaves the server. Set `metrics.error_reporting: false` to keep error details to yourself. The plugin also now hands the reporter the exceptions it catches and recovers from during startup, which the underlying SDK would otherwise never see.
+
 ## [4.3.0] - 2026-09-09
 
 > **Note:** four things this plugin's documentation described were never

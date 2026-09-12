@@ -1,5 +1,6 @@
 package com.esmpfun.antidupe.metrics
 
+import dev.faststats.Attributes
 import dev.faststats.ErrorTracker
 import dev.faststats.bukkit.BukkitContext
 import dev.faststats.data.Metric
@@ -10,26 +11,29 @@ import java.util.logging.Logger
 /**
  * Anonymous usage metrics via FastStats, plus opt-in error reporting.
  *
- * Nothing here identifies a server or a player: no IPs, names, UUIDs or item data — only which
- * features are switched on, so we can tell which parts of the plugin are actually used. FastStats
- * adds server software, Minecraft version, Java version and plugin version on its own.
- *
- * Two config switches, both under `metrics:` in config.yml:
- *   - `enabled` (default true)         — turns all transmission on or off.
- *   - `error_reporting` (default false) — attaches the error tracker. Off by default because
- *     stack traces are a different privacy proposition than counters; a server owner should
- *     choose to send them.
- *
- * The SDK's own opt-out is the `-Dfaststats.enabled=false` JVM flag, which realistically nobody
- * finds, hence the config keys above.
- *
- * Every entry point swallows its own failures. Telemetry must never be the reason an anti-dupe
- * plugin fails to start.
+ * Nothing sent identifies a server or a player: no IPs, names, UUIDs or item data, only aggregate
+ * counts and which features are switched on.
  */
 class MetricsService private constructor(
     private val context: BukkitContext,
+    private val errorTracker: ErrorTracker?,
     private val logger: Logger
 ) {
+
+    /**
+     * [where] is a short fixed label that groups reports; it must never contain a player name,
+     * a world name or any other per-server detail.
+     */
+    fun report(where: String, t: Throwable) {
+        val tracker = errorTracker ?: return
+        try {
+            tracker.trackError(t)
+                .handled(true)
+                .attributes(Attributes.empty().put("where", where))
+        } catch (e: Throwable) {
+            logger.log(Level.FINE, "FastStats error report failed", e)
+        }
+    }
 
     fun shutdown() {
         try {
@@ -40,23 +44,25 @@ class MetricsService private constructor(
     }
 
     companion object {
-        /**
-         * Project ingest token. Public by design — it ships inside the jar and can be read out of
-         * it, exactly like a bStats plugin id. It is not a secret and grants no account access.
-         */
+        /** Public by design: it ships inside the jar, is not a secret and grants no account access. */
         private const val TOKEN = "a18c8ce61660086181da8310cdbc7955"
 
-        /** Returns null when metrics are disabled or the SDK could not start. */
-        fun start(plugin: JavaPlugin, trackedMaterialCount: Int): MetricsService? {
+        /**
+         * [trackedMaterialCount] is a supplier because this starts before Chain of Custody loads,
+         * and it is polled on the metrics thread.
+         */
+        fun start(plugin: JavaPlugin, trackedMaterialCount: () -> Int): MetricsService? {
             val config = plugin.config
+            // A /reload keeps this object and its counts; start each run from zero.
+            DetectionCounters.reset()
             if (!config.getBoolean("metrics.enabled", true)) {
                 plugin.logger.info("Metrics disabled in config — sending nothing")
                 return null
             }
 
             return try {
-                // Read every value up front. Metric suppliers are polled on a background thread
-                // and must be cheap, thread-safe and pure, so none of them touch the live config.
+                // Metric suppliers run on a background thread, so read every value up front
+                // rather than touching the live config from inside one.
                 val backend = (config.getString("storage.backend", "SQLITE") ?: "SQLITE").uppercase()
                 val language = config.getString("language", "en") ?: "en"
                 val shadowMode = config.getBoolean("shadow_mode", true)
@@ -82,12 +88,24 @@ class MetricsService private constructor(
                             .addMetric(Metric.bool("auto_delete_dupes") { autoDelete })
                             .addMetric(Metric.bool("hide_tag_from_clients") { hideTag })
                             .addMetric(Metric.stringArray("duper_prevention") { prevention })
-                            .addMetric(Metric.number("tracked_materials") { trackedMaterialCount })
+                            .addMetric(Metric.number("tracked_materials") { trackedMaterialCount() })
+                            // Aggregate counts only, nothing that identifies a server or a player.
+                            .addMetric(Metric.number("detections") { DetectionCounters.detections() })
+                            .addMetric(Metric.numberMap("detections_by_type") { DetectionCounters.byType() })
+                            .addMetric(Metric.numberMap("detections_by_severity") { DetectionCounters.bySeverity() })
+                            .addMetric(Metric.numberMap("detections_by_material") { DetectionCounters.byMaterial() })
+                            .addMetric(Metric.number("items_removed") { DetectionCounters.itemsRemoved() })
+                            .addMetric(Metric.numberMap("items_removed_by_material") { DetectionCounters.itemsRemovedByMaterial() })
+                            .addMetric(Metric.numberMap("prevention_blocks") { DetectionCounters.preventionBlocks() })
+                            // Only runs after an upload the server accepted, so a failed send
+                            // carries its counts into the next cycle.
+                            .onFlush { DetectionCounters.reset() }
                             .create()
                     }
 
-                val errorReporting = config.getBoolean("metrics.error_reporting", false)
-                if (errorReporting) factory.errorTrackerService(buildErrorTracker())
+                val errorReporting = config.getBoolean("metrics.error_reporting", true)
+                val errorTracker = if (errorReporting) buildErrorTracker() else null
+                if (errorTracker != null) factory.errorTrackerService(errorTracker)
 
                 val context = factory.create()
                 context.ready()
@@ -96,21 +114,14 @@ class MetricsService private constructor(
                     "✓ Metrics enabled (anonymous)" +
                         if (errorReporting) " with error reporting" else ""
                 )
-                MetricsService(context, plugin.logger)
+                MetricsService(context, errorTracker, plugin.logger)
             } catch (e: Throwable) {
-                // A telemetry outage, a repo hiccup or an SDK change must not take the plugin
-                // down with it — log at FINE and carry on without metrics.
                 plugin.logger.log(Level.FINE, "FastStats unavailable — metrics disabled", e)
                 null
             }
         }
 
-        /**
-         * Scrubs anything that could tie a report back to a person or a machine before it leaves
-         * the server. Stack traces are far likelier than counters to carry incidental data —
-         * a player UUID in an exception message, a home directory in a file path — so the tracker
-         * is only ever built when the owner has opted in, and even then it redacts.
-         */
+        /** Scrubs anything that could tie a report back to a person or a machine before it leaves the server. */
         private fun buildErrorTracker(): ErrorTracker = ErrorTracker.contextAware()
             .anonymize("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", "[uuid hidden]")
             .anonymize("(?i)[A-Z]:\\\\Users\\\\[^\\\\]+", "[path hidden]")

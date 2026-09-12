@@ -61,6 +61,12 @@ class BetterAntiDupe : JavaPlugin() {
             validateConfiguration()
             logger.info("✓ Configuration loaded")
 
+            // Anonymous usage metrics and (opt-in) error reporting. Started here, before the
+            // risky init below, so a crash in Chain of Custody or the tag stripper can be
+            // reported. start() swallows every failure of its own, so this can't delay startup.
+            // The tracked-material count isn't known yet, hence the supplier.
+            metrics = com.esmpfun.antidupe.metrics.MetricsService.start(this) { trackedMaterialCount }
+
             adpCommand = AdpCommand(this, pluginScope, scheduler)
             getCommand("antidupe")?.let { cmd ->
                 cmd.setExecutor(adpCommand)
@@ -77,13 +83,10 @@ class BetterAntiDupe : JavaPlugin() {
             // can override mode/interval via an `update:` block in config.yml.
             io.github.darkstarworks.pluginpulse.PluginPulse.bootstrap(this)
 
-            // Anonymous usage metrics. Started last so a telemetry problem can never delay or
-            // break the parts of startup that actually protect the server.
-            metrics = com.esmpfun.antidupe.metrics.MetricsService.start(this, trackedMaterialCount)
-
             logger.info("=== BetterAntiDupe enabled successfully ===")
         } catch (e: Exception) {
             logger.log(Level.SEVERE, "Failed to initialize BetterAntiDupe", e)
+            metrics?.report("plugin-enable", e)
             server.pluginManager.disablePlugin(this)
         }
     }
@@ -339,6 +342,8 @@ class BetterAntiDupe : JavaPlugin() {
             enforcement.setChainOfCustody(coc)
 
             chainOfCustody?.onDupeAlert { alert ->
+                com.esmpfun.antidupe.metrics.DetectionCounters
+                    .recordDetection(alert.type.name, alert.severity.name, alert.material.name)
                 notifier.handle(alert)
                 enforcement.handle(alert)
 
@@ -376,6 +381,7 @@ class BetterAntiDupe : JavaPlugin() {
             logger.info("  Tracking ${trackedMaterials.size} materials, ${tmarLimits.size} TMAR limits")
         } catch (e: Exception) {
             logger.log(Level.SEVERE, "Failed to initialize Chain of Custody", e)
+            metrics?.report("chain-of-custody-init", e)
         }
     }
 
@@ -486,6 +492,7 @@ class BetterAntiDupe : JavaPlugin() {
             logger.info("✓ Client-side tag concealment enabled (hide_tag_from_clients)")
         } catch (e: Throwable) {
             logger.log(Level.WARNING, "Tag stripper unavailable on this server build — feature disabled", e)
+            metrics?.report("tag-stripper-init", e)
             tagStripper = null
         }
     }
