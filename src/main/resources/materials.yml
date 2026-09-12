@@ -1,5 +1,5 @@
 # =============================================================================
-# BetterAntiDupe — Tracked Materials
+# BetterAntiDupe - Tracked Materials
 # =============================================================================
 # This file is intentionally separate from config.yml so it can grow long
 # without cluttering the main configuration. Edit freely; restart or reload
@@ -13,11 +13,11 @@
 # -----------------------------------------------------------------------------
 # tracked_materials
 # Items that the protection engine watches. Shulker boxes of every colour are
-# always tracked regardless of this list — they're the primary laundering
+# always tracked regardless of this list - they're the primary laundering
 # vector and stay hardcoded.
 #
 # You do NOT need to add rails, carpets, TNT, sand/gravel/concrete powder here
-# to stop the classic block dupers — those contraptions are blocked directly by
+# to stop the classic block dupers - those contraptions are blocked directly by
 # the prevent-*-dupers toggles in config.yml. Only list items whose quantity
 # you want audited by the ledger (tracking very common blocks is noisy and
 # grows the database quickly).
