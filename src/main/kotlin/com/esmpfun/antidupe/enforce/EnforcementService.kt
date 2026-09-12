@@ -125,6 +125,7 @@ class EnforcementService(
 
     /** Console line, optional player notice, and an audit entry so the removal is on the record. */
     private fun report(player: Player, alert: DupeAlert, removed: Int, wanted: Int) {
+        com.esmpfun.antidupe.metrics.DetectionCounters.recordItemsRemoved(alert.material.name, removed)
         logger.warning(
             "[Enforce] Removed $removed x ${alert.material.name} from ${player.name}" +
                 " (surplus ${alert.excess}, severity ${alert.severity})"

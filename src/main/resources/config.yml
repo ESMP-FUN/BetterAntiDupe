@@ -328,6 +328,13 @@ console_log_level: INFO
 # hiding are on. FastStats adds your server software, Minecraft version, Java
 # version and plugin version.
 #
+# Also sent, as plain running totals since the last report: how many times the
+# plugin flagged a suspect, grouped by the kind of check, how serious it was, and
+# which item; how many surplus items it removed, by item; and how many duper
+# contraptions it blocked, by type. These are just counts - they show whether the
+# plugin is catching anything and which items dupers go for, and they carry no
+# player, location or server detail.
+#
 # Never sent: addresses, server names, player names, item data, or anything
 # else that could identify you or a player.
 metrics:
@@ -335,8 +342,7 @@ metrics:
   enabled: true
 
   # Send the error details when the plugin goes wrong, so bugs can be fixed
-  # without you having to report them by hand. Off by default, because an
-  # error report can carry incidental detail that plain counts cannot.
-  # Anything resembling a password, a token, an id or a home folder is removed
-  # before a report leaves your server.
-  error_reporting: false
+  # without you having to report them by hand. Anything resembling a password,
+  # a token, an id or a home folder is removed before a report leaves your
+  # server. Set to false to keep error details to yourself.
+  error_reporting: true

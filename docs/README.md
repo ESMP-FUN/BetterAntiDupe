@@ -155,7 +155,8 @@ The settings people ask about most:
 | `ledger.reconciliation.interval_minutes` | `15` | How often everyone online is checked. `0` turns the timer off. |
 | `storage.backend` | `SQLITE` | `SQLITE`, `REDIS` or `MEMORY`. |
 | `console_log_level` | `INFO` | `CRITICAL`, `ERROR`, `WARNING`, `INFO` or `DEBUG`. |
-| `metrics.enabled` | `true` | Anonymous statistics. `false` sends nothing. |
+| `metrics.enabled` | `true` | Anonymous statistics (config snapshot plus running detection/removal/blocked-contraption counts, broken down by check type, severity and item). `false` sends nothing. |
+| `metrics.error_reporting` | `true` | Send redacted stack traces when the plugin errors. `false` keeps them to yourself. |
 
 Upgrading from 4.2.0 or earlier keeps working without you editing anything.
 Two settings moved to where a reader would look for them, and the old

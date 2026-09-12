@@ -46,14 +46,24 @@ class DuperPreventionListener(
 ) : Listener {
 
     // Contraptions clock piston dupers several times a second; log at most one line per
-    // location-agnostic 10s window so a running duper can't flood the console.
+    // location-agnostic 10s window so a running duper can't flood the console. The anonymous
+    // counter is bumped every time (it's just an atomic add), only the console line is throttled.
     private val lastLogAt = AtomicLong(0)
     private fun logBlocked(reason: String, block: Block) {
+        com.esmpfun.antidupe.metrics.DetectionCounters.recordPreventionBlock(counterKey(reason))
         val now = System.currentTimeMillis()
         val prev = lastLogAt.get()
         if (now - prev < 10_000 || !lastLogAt.compareAndSet(prev, now)) return
         logger.info("[DuperPrevention] Cancelled piston movement ($reason) at " +
             "${block.world.name},${block.x},${block.y},${block.z}")
+    }
+
+    /** Maps the human reason string onto the stable short tag the metrics counter uses. */
+    private fun counterKey(reason: String) = when {
+        reason.startsWith("rail") -> "rail"
+        reason.startsWith("carpet") -> "carpet"
+        reason.startsWith("TNT") -> "tnt"
+        else -> "other"
     }
 
     private fun isCarpet(m: Material) = m.name.endsWith("_CARPET")
@@ -166,6 +176,7 @@ class DuperPreventionListener(
         val viewers = container.inventory.viewers.toList()
         if (viewers.isEmpty()) return
         for (viewer in viewers) viewer.closeInventory()
+        com.esmpfun.antidupe.metrics.DetectionCounters.recordPreventionBlock("container_desync")
         logger.info("[DuperPrevention] Closed ${viewers.size} viewer(s) of ${block.type} $how at " +
             "${block.world.name},${block.x},${block.y},${block.z}")
     }
@@ -183,6 +194,7 @@ class DuperPreventionListener(
             val viewers = holder.inventory.viewers
             if (viewers.isEmpty()) continue
             for (viewer in viewers.toList()) viewer.closeInventory()
+            com.esmpfun.antidupe.metrics.DetectionCounters.recordPreventionBlock("container_desync")
             logger.info("[DuperPrevention] Closed viewer(s) of ${entity.type} inventory on chunk unload")
         }
     }
@@ -192,6 +204,7 @@ class DuperPreventionListener(
         if (!preventGravity) return
         if (event.entity !is FallingBlock) return
         event.isCancelled = true
+        com.esmpfun.antidupe.metrics.DetectionCounters.recordPreventionBlock("gravity")
         val loc = event.entity.location
         logger.info("[DuperPrevention] Cancelled falling-block portal travel (gravity duper) at " +
             "${loc.world?.name},${loc.blockX},${loc.blockY},${loc.blockZ}")
