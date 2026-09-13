@@ -18,7 +18,7 @@ import java.util.logging.Logger
  * or bundle are counted by reconciliation but deliberately left alone; the shortfall is logged.
  */
 class EnforcementService(
-    private val settings: Settings,
+    @Volatile var settings: Settings,
     private val ownershipManager: OwnershipManager,
     private val scheduler: PlatformScheduler,
     private val scope: CoroutineScope,
@@ -43,6 +43,7 @@ class EnforcementService(
     }
 
     fun handle(alert: DupeAlert) {
+        val settings = settings
         if (!settings.active) return
         if (alert.excess <= 0) return
         if (alert.severity.ordinal < settings.minSeverity.ordinal) return
@@ -62,9 +63,26 @@ class EnforcementService(
                     return@Runnable
                 }
                 if (removed <= 0) return@Runnable
-                report(player, alert, removed, wanted)
+                logger.warning(
+                    "[Enforce] Removed $removed x ${alert.material.name} from ${player.name}" +
+                        " (surplus ${alert.excess}, severity ${alert.severity})"
+                )
+                report(player, alert.material, removed, wanted, alert.severity.name)
             })
         })
+    }
+
+    /**
+     * Admin-ordered removal, deliberately not gated by shadow mode or the severity floor.
+     * Must run on [player]'s own thread. Returns how many were actually taken.
+     */
+    fun removeSurplusNow(player: Player, material: Material, amount: Int, admin: String): Int {
+        if (amount <= 0) return 0
+        val removed = removeOwned(player, material, amount)
+        if (removed <= 0) return 0
+        logger.warning("[Enforce] $admin removed $removed x ${material.name} from ${player.name} by hand")
+        report(player, material, removed, amount, "MANUAL")
+        return removed
     }
 
     private fun removeOwned(player: Player, material: Material, wanted: Int): Int {
@@ -95,15 +113,11 @@ class EnforcementService(
             word.lowercase().replaceFirstChar { it.uppercase() }
         }
 
-    private fun report(player: Player, alert: DupeAlert, removed: Int, wanted: Int) {
-        com.esmpfun.antidupe.metrics.DetectionCounters.recordItemsRemoved(alert.material.name, removed)
-        logger.warning(
-            "[Enforce] Removed $removed x ${alert.material.name} from ${player.name}" +
-                " (surplus ${alert.excess}, severity ${alert.severity})"
-        )
+    private fun report(player: Player, material: Material, removed: Int, wanted: Int, reason: String) {
+        com.esmpfun.antidupe.metrics.DetectionCounters.recordItemsRemoved(material.name, removed)
         if (removed < wanted) {
             logger.warning(
-                "[Enforce] ${wanted - removed} x ${alert.material.name} of ${player.name}'s surplus" +
+                "[Enforce] ${wanted - removed} x ${material.name} of ${player.name}'s surplus" +
                     " could not be reached: it is stored inside a shulker box or bundle." +
                     " Review it by hand with /adp ledger balance ${player.name}"
             )
@@ -113,14 +127,14 @@ class EnforcementService(
             player.sendMessage(Messages.msg(
                 "enforcement.items-removed",
                 "amount" to "$removed",
-                "material" to friendlyName(alert.material)
+                "material" to friendlyName(material)
             ))
         }
 
         val coc = chainOfCustody ?: return
         scope.launch {
             try {
-                coc.recordEnforcement(player.uniqueId, alert.material, removed, alert.severity.name)
+                coc.recordEnforcement(player.uniqueId, material, removed, reason)
             } catch (e: Exception) {
                 logger.warning("[Enforce] Audit entry failed: ${e.message}")
             }

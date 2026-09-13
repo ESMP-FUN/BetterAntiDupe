@@ -72,12 +72,13 @@ class ReconciliationEngine(
     suspend fun snapshotOwned(player: Player): Map<Material, Int> =
         snapshotInventory(player).ownedCounts
 
-    suspend fun reconcile(player: Player): ReconciliationResult {
+    /** [ignoreCooldown] is for admin commands, which must always see a fresh count. */
+    suspend fun reconcile(player: Player, ignoreCooldown: Boolean = false): ReconciliationResult {
         val playerId = player.uniqueId
         val now = System.currentTimeMillis()
 
         val lastReconcile = activeReconciliations[playerId]
-        if (lastReconcile != null && now - lastReconcile < reconciliationCooldown) {
+        if (!ignoreCooldown && lastReconcile != null && now - lastReconcile < reconciliationCooldown) {
             return ReconciliationResult(
                 player = playerId,
                 timestamp = now,
@@ -221,9 +222,13 @@ class ReconciliationEngine(
         suspects.remove(playerId)
     }
 
-    fun reconcileAsync(player: Player, callback: ((ReconciliationResult) -> Unit)? = null) {
+    fun reconcileAsync(
+        player: Player,
+        ignoreCooldown: Boolean = false,
+        callback: ((ReconciliationResult) -> Unit)? = null
+    ) {
         scope.launch {
-            val result = reconcile(player)
+            val result = reconcile(player, ignoreCooldown)
             callback?.invoke(result)
         }
     }
@@ -372,7 +377,8 @@ data class DupeAlert(
     // The display layer formats messageKey plus placeholders through messages.yml, while
     // `details` stays English so console logs remain searchable.
     val messageKey: String = "",
-    val placeholders: Map<String, String> = emptyMap()
+    val placeholders: Map<String, String> = emptyMap(),
+    val afterUncleanShutdown: Boolean = false
 )
 
 enum class AlertType {

@@ -25,10 +25,22 @@ alerts:
   balance-discrepancy: "Has {actual} but ledger shows {expected} (excess: {excess})"
   entity-dupe: "Chunk-load / drop-race dupe: entity-UUID re-used {seconds}s after original pickup"
   drop-excess: "{excess} {material} picked up beyond nearby source output ({source})"
+  # Added to an alert about an item picked up twice when the server crashed shortly before,
+  # because a crash can cause that alert on its own.
+  after-crash-suffix: " &6(the server did not shut down cleanly shortly before this, which can cause this alert by itself)"
+  # The details text of the alert sent by /adp test alert.
+  test: "This is a test alert. Nothing happened and nobody is suspected."
+  # Clickable buttons after an alert, shown only to staff who can use the ledger commands.
+  buttons:
+    history: "&7[&bHistory&7]"
+    history-hover: "Show {player}'s recent history"
+    stash: "&7[&bStash&7]"
+    stash-hover: "Show where {player} put tracked items"
 
 commands:
   no-permission: "&cYou don't have permission to use ledger commands."
   no-permission-update: "&cYou don't have permission to manage plugin updates."
+  no-permission-admin: "&cYou don't have permission to do that."
   not-initialized: "&cChain of Custody is not initialized."
   unknown-subcommand: "&cUnknown subcommand. Use &e/adp help&c for available commands."
   unknown-ledger-subcommand: "&cUnknown ledger subcommand. Use &e/adp ledger help"
@@ -47,8 +59,12 @@ commands:
       - "&e/adp ledger suspects &7- List suspects"
       - "&e/adp ledger stash <player> &7- Where they stashed items (clickable)"
       - "&e/adp ledger reconcile <player> &7- Force reconciliation"
+      - "&e/adp ledger remove <player> &7- Take back what they carry extra"
       - "&e/adp ledger trust <player> &7- Trust score"
       - "&e/adp ledger verify &7- Verify chain integrity"
+    admin-only-lines:
+      - "&e/adp reload &7- Reload messages, alerts and removal settings"
+      - "&e/adp test alert &7- Send a test alert to chat and your channels"
     user-line: "&e/adp help &7- Show this help message"
 
   ledger-help:
@@ -60,6 +76,7 @@ commands:
     - "&e/adp ledger suspects &7- List current suspects"
     - "&e/adp ledger stash <player> &7- Where the player stashed items (clickable)"
     - "&e/adp ledger reconcile <player> &7- Force reconciliation"
+    - "&e/adp ledger remove <player> &7- Take back what they carry extra"
     - "&e/adp ledger trust <player> &7- Trust score details"
     - "&e/adp ledger confirm <player> &7- Confirm a real duper (pins suspicion)"
     - "&e/adp ledger clear <player> &7- Mark a false positive (resets suspicion)"
@@ -130,6 +147,27 @@ commands:
     discrepancy: "  &c{material}: has {actual}, should have {expected} (excess: {excess})"
     tmar: "  &e{material}: {acquired}/{limit} in {window}min"
     clean: "&aNo discrepancies found - player balances verified"
+
+  remove:
+    nothing: "&a{player} is not carrying anything extra. Nothing to remove."
+    preview-header: "&6&l{player} is carrying more than their record explains:"
+    preview-line: "  &f{excess}x {material} &7(has {actual}, should have {expected})"
+    preview-confirm: "&7Take back only these extra items? "
+    confirm-button: "&c&n[Remove]"
+    confirm-hover: "Counts again and removes only what is extra right now"
+    removed: "  &aRemoved {removed}x {material}"
+    unreachable: "  &e{amount}x {material} is inside a shulker box or bundle and was left alone"
+
+  reload:
+    done: "&aReloaded messages, alerts and removal settings."
+    restart-needed: "&eThese changes only take effect after a restart: &f{settings}"
+    failed: "&cReload failed: {error}. Check the console."
+
+  test:
+    no-channels: "&7No Discord, Telegram, Slack or webhook is turned on, so the test only went to chat."
+    sending: "&7Sending a test alert to: &f{targets}"
+    delivered: "&a  {target}: delivered"
+    failed: "&c  {target}: failed ({reason})"
 
   trust:
     header: "&6&lTrust Score for {player}"

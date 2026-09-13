@@ -196,8 +196,12 @@ class ChainOfCustody private constructor(
 
     suspend fun reconcile(player: Player): ReconciliationResult = reconciliationEngine.reconcile(player)
 
-    fun reconcileAsync(player: Player, callback: ((ReconciliationResult) -> Unit)? = null) {
-        reconciliationEngine.reconcileAsync(player, callback)
+    fun reconcileAsync(
+        player: Player,
+        ignoreCooldown: Boolean = false,
+        callback: ((ReconciliationResult) -> Unit)? = null
+    ) {
+        reconciliationEngine.reconcileAsync(player, ignoreCooldown, callback)
     }
 
     suspend fun quickCheck(player: Player, material: Material): QuickCheckResult =
