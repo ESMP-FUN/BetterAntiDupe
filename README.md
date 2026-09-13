@@ -79,12 +79,13 @@ folder is stripped. Turn it off with `metrics.error_reporting: false`.
 
 ## Documentation
 
-The complete guide - configuration reference, commands, permissions, common
-scenarios, troubleshooting and FAQ - lives in **[docs/README.md](docs/README.md)**,
-also published at
+The full guide lives in **[docs/](docs/README.md)**, also published at
 [esmp-fun.gitbook.io](https://esmp-fun.gitbook.io/plugins/better-anti-dupe).
 
-- [Notifications & translation](docs/notifications-and-translation.md) - webhooks, messages.yml
+- [Install](docs/getting-started/install.md)
+- [When an alert comes in](docs/using-it/when-an-alert-comes-in.md)
+- [Testing in-game](docs/help/testing-in-game.md)
+- [Troubleshooting](docs/help/troubleshooting.md)
 - [Changelog](CHANGELOG.md)
 - [Report a bug](https://github.com/ESMP-FUN/BetterAntiDupe/issues)
 

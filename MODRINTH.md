@@ -1,179 +1,111 @@
 <img width="1000" alt="betterantidupebanner" src="https://github.com/user-attachments/assets/fe09ded7-0db9-44cb-90ad-eff69e9b6b64" />
 
-**A forensic-grade item-duplication detector for Paper, Folia and Spigot servers.**
+**Stops item duplication on your Minecraft server, and tells you who tried.**
 
-Most anti-cheat plugins focus on movement, reach and combat exploits. BetterAntiDupe
-focuses on a category they usually ignore: the steady drip of duped items that
-silently inflates your server's economy. It does this by writing an append-only,
-tamper-evident ledger of every item movement and reconciling each player's
-actual inventory against what the ledger says they should hold.
+Most anti-cheat plugins watch movement and combat. BetterAntiDupe watches the items themselves. It keeps a record of every valuable item a player gains and loses, and when someone is carrying more than their record can explain, you get an alert, a list of where they put the items, and a click to teleport there.
 
-If something doesn't add up, you get an alert before the dupe spreads.
+Install it and you are protected. The defaults are sensible, and nothing is ever taken from a player until you decide it should be.
 
 ---
 
-## Compatibility
+## Will it work on my server?
 
 | | |
 |---|---|
-| **Server software** | Paper, Folia, Spigot, and Paper-compatible forks (Purpur, Pufferfish, etc.) |
-| **Minecraft versions** | 1.21.x (plain jar), 26.x (`-mc26` jar) |
-| **Java** | 21+ for 1.21.x, 25+ for 26.x |
-| **External services** | None required (SQLite is bundled). Redis is optional for multi-server networks. |
+| **Server software** | Paper, Folia, Spigot, or a Paper fork like Purpur |
+| **Minecraft** | 1.21.x with the plain download, 26.x with the `-mc26` download |
+| **Java** | 21 or newer for 1.21.x, 25 or newer for 26.x |
+| **Anything else** | Nothing. Redis is only needed if several servers share records. |
 
 ---
+
+## What it blocks
+
+The classic dupe machines are simply not allowed to work, so the extra item never exists. Each one has its own switch.
+
+- **Rail and carpet dupers**
+- **TNT dupers**
+- **Sand and gravel portal dupers**
+- **Ghost chest windows**: a window closes when its chest, shulker box, donkey or chest boat disappears
+- **Restart dupes**: every open window closes the moment the server starts shutting down
 
 ## What it catches
 
-A non-exhaustive list of dupe families BetterAntiDupe detects:
+Everything else is caught by noticing a player holds more than they could have:
 
-- **Rail / carpet / TNT / gravity dupers** - the classic piston and end-portal contraptions are *blocked outright*, not just detected (each toggleable in config)
-- **Phantom-GUI container dupes** - open GUIs are force-closed when their shulker/chest is destroyed or their donkey/chest-boat unloads
-- **Restart dupers** - moving items during a server shutdown can save them to player data *and* world data; all inventories are closed before those writes, so there's nothing in flight to duplicate
-- **Stack-clone exploits** - click-timing, cursor desync, drag-and-place tricks
-- **Shulker / bundle laundering** - recursive content scan at any nesting depth
-- **Item frame dupes** - piston-into-frame, chunk-race, end-crystal interaction variants
-- **Entity inventory dupes** - horses, donkeys, llamas, chest boats, chest minecarts
-- **Hopper laundering**: hoppers, droppers and crafters moving a tracked item
-  on their own get the route written into that item's history, so goods washed
-  through a chest network can still be traced (or blocked outright)
-- **Workstation outputs** - smithing, anvil, loom, stonecutter, cartography, grindstone, furnaces
-- **Container transfers** - chests (single *and* double), barrels, ender chests, lecterns, decorated pots - recorded by what *actually* moved, so shift-clicks, number-key swaps, double-click gathering and drags are all measured exactly
-- **Villager trades & enchanting** - buying a tracked item or enchanting a book is credited properly
-- **Chunk-load entity respawn** - the "same item entity picked up twice" family
-- **Drop-pickup race** - same-NBT dupes via item-entity persistence
-- **Acquisition-rate abuse** - TMAR (Theoretical Max Acquisition Rate) thresholds per material
-- **Witness-less acquisitions** - Proof of Witness flags players whose actions are never seen by others (vanished staff are correctly ignored, so invisible patrols can't skew trust)
+- **Carrying more than they earned**, counted inside shulker boxes and bundles too
+- **The same dropped item picked up twice**
+- **More drops than a block or item frame gave**
+- **Items washed through hoppers**, with the route written into the item's history (or hoppers blocked from moving tracked items at all)
+- **Gaining things impossibly fast**, with a limit you set per item
+- **Nobody ever seeing them get anything**, on a busy server
+- **Someone editing the records** by hand, even an admin
 
-Full coverage matrix and the rare edge cases are documented in the
-[user guide](https://esmp-fun.gitbook.io/plugins/better-anti-dupe).
+Crafting, anvils, smithing tables, furnaces, villager trades, enchanting, chests, barrels, ender chests, item frames and animal chests are all counted by what actually moved.
 
 ---
 
-## How it works
+## Made for staff, not just for detection
 
-Every tracked item carries the owner's UUID in NBT - items still stack vanilla-style.
-Every gain and loss event (mine, craft, pickup, container put/take, frame put/take,
-workstation output, etc.) is recorded as a SHA-256-linked ledger entry. The chain
-is tamper-evident: editing the database directly breaks the hash chain and
-`/adp ledger verify` reports exactly where.
-
-Reconciliation walks the player's inventory recursively - including the contents
-of held shulkers and bundles - and compares the total to the ledger balance.
-A surplus is a dupe.
-
-**Invisible to players.** The ownership tag is stripped from the packets sent to
-clients (on by default), so even players running NBT-viewer mods can't see it,
-test it, or tell a tracked item from an untracked one - while the server-side
-data stays fully intact for detection. The tag's very name is configurable, so
-nothing in a leaked screenshot or stream frame reveals which plugin wrote it -
-and renaming is safe: previously tagged items stay tracked and migrate to the
-new name automatically. A strict mode can go further and strip *every* plugin's
-custom item data from outbound packets, with a whitelist for the namespaces
-your resource pack or client mods need. Staff with `antidupe.tag.view` keep
-the tag visible in their own client.
-
-Built to be **false-alarm shy**: actions are verified one tick after they happen
-(so other plugins cancelling a pickup or block place can't skew the books),
-items handed out by shop/kit/vault plugins are never held against the player,
-and every alert is gated through per-material thresholds you control.
-
----
-
-## Storage backends
-
-Pick one, configurable in `config.yml`:
-
-- **SQLite** *(default)* - file-based, persistent, zero ops. Perfect for single-server setups.
-- **Redis** - fast and shareable across multiple servers behind a proxy.
-- **Memory** - in-process only, lost on restart. Dev/testing only.
+- **Find the stash.** `/adp ledger stash <player>` lists where they put tracked items. Click the coordinates to teleport there, even in another world.
+- **Decide in five minutes.** Every alert has **[History]** and **[Stash]** buttons. Then `confirm`, `clear`, or take the extras back with one click.
+- **Alerts on your phone.** Discord, Telegram, Slack, or your own webhook, with only the serious ones sent and repeats held back. `/adp test alert` checks your setup in seconds.
+- **Watch first, act later.** Out of the box it only alerts. Turn on automatic removal when you trust it, and it takes back only the extra, never a whole stack.
+- **Items stack normally.** Players notice nothing.
+- **Hidden from players.** The plugin's mark on items is kept out of what players' games receive, so mods cannot see it.
+- **Speaks your language.** English, Português do Brasil, Español, Deutsch, Русский and Polski are built in.
+- **Several servers?** Share records through Redis, so an item duped on one server is spotted on another.
 
 ---
 
 ## Installation
 
-1. Download the jar that matches your server: plain for Minecraft 1.21.x, `-mc26` for 26.x.
-2. Drop it into `plugins/`.
-3. Start the server. Defaults are sensible; the plugin generates `config.yml`
-   and `materials.yml` on first launch.
-4. Done. Run `/adp help` in-game to see admin commands.
+1. Download the jar for your Minecraft version: plain for 1.21.x, `-mc26` for 26.x.
+2. Drop it into `plugins/` and restart.
+3. That's it. [Testing in-game](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/help/testing-in-game) shows you it working.
 
 ---
 
 ## Commands
 
-All commands live under `/antidupe` (aliases: `/adp`, `/betterantidupe`).
+Every command starts with `/adp`.
 
 | Command | What it does |
 |---|---|
-| `/adp ledger status` | Chain tip, current suspects, system health |
-| `/adp ledger balance <player>` | Expected balances for each tracked material |
-| `/adp ledger history <player>` | Recent ledger entries |
-| `/adp ledger witness <player>` | Witness statistics and suspicion analysis |
-| `/adp ledger suspects` | List all currently flagged players |
-| `/adp ledger reconcile <player>` | Force a balance check on an online player |
-| `/adp ledger trust <player>` | Show accumulated trust score |
-| `/adp ledger verify` | Verify the entire hash chain |
+| `/adp ledger suspects` | Everyone currently suspected, worst first |
+| `/adp ledger reconcile <player>` | Check what an online player carries right now |
+| `/adp ledger history <player>` | Their last 15 records |
+| `/adp ledger stash <player>` | Where they put tracked items, with click-to-teleport |
+| `/adp ledger remove <player>` | Take back only what they carry extra, after you confirm |
+| `/adp ledger confirm <player>` | Mark a real duper, and run your punishment command if you set one |
+| `/adp ledger clear <player>` | Mark a false alarm |
+| `/adp ledger verify` | Check nobody has edited the records |
 
-Permissions are split so staff roles can be scoped: `antidupe.alerts` receives
-dupe alerts in chat (no command access), `antidupe.ledger` grants the commands
-above, and `antidupe.admin` includes both. `antidupe.witness.exempt` keeps
-invisibly-monitoring staff out of the witness pool, and `antidupe.tag.view`
-lets a trusted admin see the (otherwise hidden) ownership tag in their own client.
+`antidupe.alerts` sees alerts only, `antidupe.ledger` uses the commands, and `antidupe.admin` gets both. The [full list](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/reference/commands-and-permissions) is in the guide.
 
 ---
 
-## Configuration
+## Free and source available
 
-Three YAML files in `plugins/BetterAntiDupe/`:
+No licence key and nothing locked behind a premium version. The source is on [GitHub](https://github.com/ESMP-FUN/BetterAntiDupe), and issues and pull requests are welcome.
 
-- `config.yml` - storage backend, modes (shadow / auto-delete), ledger settings
-- `materials.yml` - tracked materials, rate limits, alert thresholds
-- `messages.yml` - every in-game message; **fully translatable** (missing keys fall back to English)
+### Anonymous statistics
 
-**Speaks your language**: English, Português do Brasil, Español, Deutsch, Русский
-and Polski are built in - one `language:` line in config.yml switches everything.
+The plugin works quietly, so almost nobody opens a ticket. That leaves no way to know which Minecraft versions it actually runs on, and knowing that is what makes it possible to fight dupes on those versions first.
 
-Alerts can also be pushed **outside the game**: Discord, Telegram, Slack, or any
-custom JSON webhook (n8n, Zapier, your own bot) - with severity filtering and
-burst protection built in. See the `notifications` section of `config.yml`.
+- **Sent:** which storage you use, which switches are on, how many items you track, your language, your server software and versions, and plain counts of how many dupes were caught, removed and blocked, by item and type.
+- **Never sent:** addresses, server names, player names, item data, or anything from your records.
+- **Kept private.** While few servers run this, public numbers would tell dupers how likely a server is to be protected.
+- **Error reports** send what went wrong when the plugin errors, with anything resembling a password, token or id removed first.
 
-Both are documented inline. Sensible defaults; you can add your own materials to
-the list at any time and restart.
-
----
-
-## 100% Free & Source Available
-
-No license key, no "premium" gating. The source is on
-[GitHub](https://github.com/ESMP-FUN/BetterAntiDupe). Issues and pull requests
-are welcome.
-
-### Anonymous metrics
-
-Since 4.2.0 the plugin reports anonymous usage statistics. Here's why, plainly:
-BetterAntiDupe works quietly and the docs are thorough, so almost nobody opens a
-ticket - which leaves no way to know which Minecraft versions are actually
-running it. Knowing that is what makes it possible to fight duplication exploits
-for those versions **first**, instead of guessing.
-
-What's sent: storage backend, which prevention toggles are on, how many
-materials you track, your language, and whether shadow mode, auto-delete and tag
-hiding are enabled - plus server software, Minecraft version, Java version and
-plugin version.
-
-What's never sent: IP addresses, server names, player names or UUIDs, item data,
-or anything from your ledger. The statistics are kept **private**, not published
-on a public page - while the install base is small, public numbers would tell
-dupers how likely any given server is to be protected.
-
-Set `metrics.enabled: false` in config.yml to send nothing at all. Error
-reporting (stack traces) is separate and **off by default**.
+Set `metrics.enabled: false` to send nothing at all, or `metrics.error_reporting: false` to keep error details to yourself.
 
 ---
 
 ## Links
 
-- **Source / issues**: [github.com/ESMP-FUN/BetterAntiDupe](https://github.com/ESMP-FUN/BetterAntiDupe)
-- **User guide**: [gitbook/user-guide](https://esmp-fun.gitbook.io/plugins/better-anti-dupe)
-- **Notifications & translation guide**: [gitbook/notifications-and-translation](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/notifications-and-translation)
+- **Guide**: [esmp-fun.gitbook.io/plugins/better-anti-dupe](https://esmp-fun.gitbook.io/plugins/better-anti-dupe)
+- **When an alert comes in**: [step by step](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/when-an-alert-comes-in)
+- **Troubleshooting**: [common problems](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/help/troubleshooting)
+- **Source and issues**: [github.com/ESMP-FUN/BetterAntiDupe](https://github.com/ESMP-FUN/BetterAntiDupe)
+- **Changelog**: [CHANGELOG.md](https://github.com/ESMP-FUN/BetterAntiDupe/blob/master/CHANGELOG.md)
