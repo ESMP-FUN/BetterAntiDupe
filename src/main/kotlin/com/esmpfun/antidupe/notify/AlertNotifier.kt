@@ -40,12 +40,6 @@ class AlertNotifier(
         telegramToken = if (tgEnabled) tg.getString("bot_token")?.takeIf { it.isNotBlank() } else null
         telegramChatId = if (tgEnabled) tg.getString("chat_id")?.takeIf { it.isNotBlank() } else null
 
-        val targets = listOfNotNull(
-            discordUrl?.let { "Discord" },
-            telegramToken?.let { "Telegram" },
-            slackUrl?.let { "Slack" },
-            genericUrl?.let { "generic webhook" }
-        )
         if (targets.isNotEmpty()) {
             logger.info("[Notify] Alert notifications enabled: ${targets.joinToString(", ")} (min severity $minSeverity)")
         }
@@ -56,6 +50,14 @@ class AlertNotifier(
         if (!s.getBoolean("enabled", false)) return null
         return s.getString(key)?.takeIf { it.isNotBlank() }
     }
+
+    /** Display names of every channel that is switched on and filled in. */
+    val targets: List<String> get() = listOfNotNull(
+        discordUrl?.let { "Discord" },
+        if (telegramToken != null && telegramChatId != null) "Telegram" else null,
+        slackUrl?.let { "Slack" },
+        genericUrl?.let { "generic webhook" }
+    )
 
     private val anyEnabled =
         discordUrl != null || slackUrl != null || genericUrl != null ||
@@ -83,22 +85,37 @@ class AlertNotifier(
         if (!allowed) return
         if (lastSent.size > 1000) lastSent.entries.removeIf { now - it.value >= rateLimitMs }
 
+        scope.launch { sendAll(alert) }
+    }
+
+    /**
+     * Skips the severity floor and the repeat limit, so a test always goes out. [onResult] is
+     * called once per channel with null for success or the reason it failed.
+     */
+    fun sendTest(alert: DupeAlert, onResult: (target: String, failure: String?) -> Unit) {
+        scope.launch { sendAll(alert, onResult) }
+    }
+
+    private suspend fun sendAll(alert: DupeAlert, onResult: ((String, String?) -> Unit)? = null) {
         val text = plainText(alert)
-        scope.launch {
-            discordUrl?.let { post("Discord", it, discordPayload(alert, text)) }
-            slackUrl?.let { post("Slack", it, JSONObject().put("text", text).toString()) }
-            if (telegramToken != null && telegramChatId != null) {
-                post("Telegram", "https://api.telegram.org/bot$telegramToken/sendMessage",
-                    JSONObject().put("chat_id", telegramChatId).put("text", text).toString())
-            }
-            genericUrl?.let { post("generic webhook", it, genericPayload(alert)) }
+        suspend fun send(target: String, url: String, body: String) {
+            val failure = post(target, url, body)
+            onResult?.invoke(target, failure)
         }
+        discordUrl?.let { send("Discord", it, discordPayload(alert, text)) }
+        if (telegramToken != null && telegramChatId != null) {
+            send("Telegram", "https://api.telegram.org/bot$telegramToken/sendMessage",
+                JSONObject().put("chat_id", telegramChatId).put("text", text).toString())
+        }
+        slackUrl?.let { send("Slack", it, JSONObject().put("text", text).toString()) }
+        genericUrl?.let { send("generic webhook", it, genericPayload(alert)) }
     }
 
     private fun plainText(alert: DupeAlert): String {
         val details = if (alert.messageKey.isNotEmpty())
             Messages.msg(alert.messageKey, alert.placeholders) else alert.details
-        return stripColors("[DUPE] ${alert.playerName} (${alert.type.name}) ${alert.material.name}: $details [${alert.severity.name}]")
+        val crashNote = if (alert.afterUncleanShutdown) Messages.msg("alerts.after-crash-suffix") else ""
+        return stripColors("[DUPE] ${alert.playerName} (${alert.type.name}) ${alert.material.name}: $details$crashNote [${alert.severity.name}]")
     }
 
     private fun stripColors(s: String): String = s.replace(COLOR_CODES, "")
@@ -126,9 +143,11 @@ class AlertNotifier(
         .put("material", alert.material.name)
         .put("details", alert.details)
         .put("timestamp", alert.timestamp)
+        .put("afterUncleanShutdown", alert.afterUncleanShutdown)
         .toString()
 
-    private suspend fun post(target: String, url: String, body: String) = withContext(Dispatchers.IO) {
+    /** Returns null on success, or why it failed. */
+    private suspend fun post(target: String, url: String, body: String): String? = withContext(Dispatchers.IO) {
         try {
             val request = HttpRequest.newBuilder(URI.create(url))
                 .timeout(Duration.ofSeconds(10))
@@ -137,10 +156,10 @@ class AlertNotifier(
                 .build()
             val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
             if (response.statusCode() !in 200..299) {
-                warnThrottled(target, "HTTP ${response.statusCode()}")
-            }
+                "HTTP ${response.statusCode()}".also { warnThrottled(target, it) }
+            } else null
         } catch (e: Exception) {
-            warnThrottled(target, e.message ?: e.javaClass.simpleName)
+            (e.message ?: e.javaClass.simpleName).also { warnThrottled(target, it) }
         }
     }
 

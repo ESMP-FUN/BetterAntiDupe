@@ -24,6 +24,13 @@ class BetterAntiDupe : JavaPlugin() {
 
     private companion object {
         const val SHUTDOWN_DRAIN_MS = 5_000L
+        const val CRASH_NOTE_MINUTES = 30L
+
+        /** Settings `/adp reload` applies on the spot; any other changed key needs a restart. */
+        val LIVE_KEYS = listOf(
+            "language", "notifications", "shadow_mode", "auto_delete_dupes", "enforcement",
+            "on_confirm_command", "detection.on_confirm_command", "console_log_level"
+        )
     }
 
     lateinit var pluginScope: CoroutineScope
@@ -41,12 +48,16 @@ class BetterAntiDupe : JavaPlugin() {
     private var tagStripper: com.esmpfun.antidupe.net.TagStripAdapter? = null
     private var ownershipKeys: com.esmpfun.antidupe.ledger.OwnershipKeys? = null
     private lateinit var adpCommand: AdpCommand
+    @Volatile private var notifier: AlertNotifier? = null
+    @Volatile private var enforcement: com.esmpfun.antidupe.enforce.EnforcementService? = null
+    private var uncleanStartAt = 0L
 
     override fun onEnable() {
         migrateLegacyDataFolder()
         @Suppress("DEPRECATION")
         logger.info("=== BetterAntiDupe v${description.version} ===")
         logger.info("Initializing Chain of Custody...")
+        checkUncleanShutdown()
 
         try {
             pluginScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -66,6 +77,8 @@ class BetterAntiDupe : JavaPlugin() {
             metrics = com.esmpfun.antidupe.metrics.MetricsService.start(this) { trackedMaterialCount }
 
             adpCommand = AdpCommand(this, pluginScope, scheduler)
+            adpCommand.onReload = ::reloadSettings
+            adpCommand.onTestAlert = ::sendTestAlert
             getCommand("antidupe")?.let { cmd ->
                 cmd.setExecutor(adpCommand)
                 cmd.tabCompleter = adpCommand
@@ -106,6 +119,7 @@ class BetterAntiDupe : JavaPlugin() {
             chainOfCustody?.shutdown()
             chainOfCustody = null
             if (::pluginScope.isInitialized) pluginScope.cancel()
+            runningMarker().delete()
         } catch (e: Exception) {
             logger.warning("Error during shutdown: ${e.message}")
         }
@@ -314,7 +328,7 @@ class BetterAntiDupe : JavaPlugin() {
                 )
             }
 
-            val notifier = AlertNotifier(config.getConfigurationSection("notifications"), pluginScope, logger)
+            notifier = AlertNotifier(config.getConfigurationSection("notifications"), pluginScope, logger)
             val coc = chainOfCustody ?: throw IllegalStateException("Chain of Custody was not created")
             val enforcement = com.esmpfun.antidupe.enforce.EnforcementService(
                 settings = enforcementSettings(),
@@ -324,35 +338,26 @@ class BetterAntiDupe : JavaPlugin() {
                 logger = logger
             )
             enforcement.setChainOfCustody(coc)
+            this.enforcement = enforcement
+            adpCommand.setEnforcement(enforcement)
 
-            chainOfCustody?.onDupeAlert { alert ->
+            chainOfCustody?.onDupeAlert { raw ->
+                // A crash rolls the world back past pickups the ledger already saw, so the same
+                // item entity really is picked up twice. Say so rather than suppress the alert.
+                val alert = if (raw.messageKey == "alerts.entity-dupe" && recentlyCrashed())
+                    raw.copy(afterUncleanShutdown = true) else raw
                 com.esmpfun.antidupe.metrics.DetectionCounters
                     .recordDetection(alert.type.name, alert.severity.name, alert.material.name)
-                notifier.handle(alert)
-                enforcement.handle(alert)
+                notifier?.handle(alert)
+                this.enforcement?.handle(alert)
 
-                // In-game text comes from messages.yml; the console log below stays English.
-                val details = if (alert.messageKey.isNotEmpty())
-                    Messages.msg(alert.messageKey, alert.placeholders) else alert.details
-                val message = Messages.msg("alerts.broadcast",
-                    "player" to alert.playerName,
-                    "type" to alert.type.name,
-                    "material" to alert.material.name,
-                    "details" to details
-                ) + if (alert.severity == com.esmpfun.antidupe.ledger.Severity.CRITICAL)
-                    Messages.msg("alerts.critical-suffix") else ""
-
+                val message = formatAlert(alert)
                 // Alerts can be emitted from reconciliation coroutines; hop to the main (global
                 // region) thread before touching the online-player roster.
-                scheduler.runMain(Runnable {
-                    // antidupe.admin inherits antidupe.alerts, while the ledger command is gated
-                    // separately on antidupe.ledger, so a mod can be alerts-only.
-                    Bukkit.getOnlinePlayers()
-                        .filter { it.hasPermission("antidupe.alerts") }
-                        .forEach { it.sendMessage(message) }
-                })
+                scheduler.runMain(Runnable { broadcastAlert(alert, message) })
 
-                logger.warning("[DUPE] ${alert.playerName}: ${alert.details}")
+                logger.warning("[DUPE] ${alert.playerName}: ${alert.details}" +
+                    if (alert.afterUncleanShutdown) " (the server did not shut down cleanly shortly before this)" else "")
             }
 
             chainOfCustody?.let {
@@ -369,6 +374,125 @@ class BetterAntiDupe : JavaPlugin() {
     }
 
     fun getChainOfCustody(): ChainOfCustody? = chainOfCustody
+
+    /** In-game text comes from messages.yml; console logs stay English. */
+    private fun formatAlert(alert: com.esmpfun.antidupe.ledger.DupeAlert): String {
+        val details = if (alert.messageKey.isNotEmpty())
+            Messages.msg(alert.messageKey, alert.placeholders) else alert.details
+        return Messages.msg("alerts.broadcast",
+            "player" to alert.playerName,
+            "type" to alert.type.name,
+            "material" to alert.material.name,
+            "details" to details
+        ) + (if (alert.afterUncleanShutdown) Messages.msg("alerts.after-crash-suffix") else "") +
+            if (alert.severity == com.esmpfun.antidupe.ledger.Severity.CRITICAL)
+                Messages.msg("alerts.critical-suffix") else ""
+    }
+
+    /**
+     * antidupe.admin inherits antidupe.alerts, while the ledger commands are gated separately,
+     * so an alerts-only mod gets the plain line without buttons they could not use.
+     */
+    private fun broadcastAlert(alert: com.esmpfun.antidupe.ledger.DupeAlert, message: String) {
+        val name = alert.playerName
+        val withButtons = com.esmpfun.antidupe.util.Chat.line()
+            .text(message).text(" ")
+            .clickRunCommand(Messages.msg("alerts.buttons.history"), "/adp ledger history $name",
+                hover = Messages.msg("alerts.buttons.history-hover", "player" to name))
+            .text(" ")
+            .clickRunCommand(Messages.msg("alerts.buttons.stash"), "/adp ledger stash $name",
+                hover = Messages.msg("alerts.buttons.stash-hover", "player" to name))
+            .build()
+        Bukkit.getOnlinePlayers()
+            .filter { it.hasPermission("antidupe.alerts") }
+            .forEach { player ->
+                if (player.hasPermission("antidupe.ledger")) {
+                    with(com.esmpfun.antidupe.util.Chat) { player.sendChat(withButtons) }
+                } else {
+                    player.sendMessage(message)
+                }
+            }
+    }
+
+    /** Shown to the sender and pushed to every enabled channel; never counted or enforced. */
+    fun sendTestAlert(sender: org.bukkit.command.CommandSender) {
+        val alert = com.esmpfun.antidupe.ledger.DupeAlert(
+            type = com.esmpfun.antidupe.ledger.AlertType.BALANCE_DISCREPANCY,
+            player = (sender as? org.bukkit.entity.Player)?.uniqueId ?: java.util.UUID(0L, 0L),
+            playerName = sender.name,
+            material = Material.DIAMOND_BLOCK,
+            details = "Test alert sent with /adp test alert. Nothing happened and nobody is suspected.",
+            severity = com.esmpfun.antidupe.ledger.Severity.HIGH,
+            timestamp = System.currentTimeMillis(),
+            messageKey = "alerts.test"
+        )
+        sender.sendMessage(formatAlert(alert))
+        val n = notifier
+        val targets = n?.targets.orEmpty()
+        if (n == null || targets.isEmpty()) {
+            sender.sendMessage(Messages.msg("commands.test.no-channels"))
+            return
+        }
+        sender.sendMessage(Messages.msg("commands.test.sending", "targets" to targets.joinToString(", ")))
+        n.sendTest(alert) { target, failure ->
+            val line = if (failure == null) Messages.msg("commands.test.delivered", "target" to target)
+                else Messages.msg("commands.test.failed", "target" to target, "reason" to failure)
+            scheduler.runMain(Runnable { sender.sendMessage(line) })
+        }
+    }
+
+    /**
+     * Re-reads config.yml, messages.yml and the alert and removal settings. Returns the
+     * changed settings that only take effect after a restart.
+     */
+    fun reloadSettings(): List<String> {
+        val before = restartOnlySnapshot()
+        val materials = File(dataFolder, "materials.yml")
+        val materialsBefore = if (materials.exists()) materials.readText() else null
+
+        reloadConfig()
+        Messages.init(this, config.getString("language", "en") ?: "en")
+        applyLogLevel()
+        notifier = AlertNotifier(config.getConfigurationSection("notifications"), pluginScope, logger)
+        enforcement?.settings = enforcementSettings()
+        chainOfCustody?.reconciliationEngine?.healLogLevel = healLogLevelFor()
+
+        val after = restartOnlySnapshot()
+        val changed = (before.keys + after.keys).filter { before[it] != after[it] }.toMutableList()
+        val materialsAfter = if (materials.exists()) materials.readText() else null
+        if (materialsAfter != materialsBefore) changed += "materials.yml"
+        logger.info("Reloaded settings" +
+            if (changed.isNotEmpty()) "; restart needed for: ${changed.joinToString()}" else "")
+        return changed
+    }
+
+    private fun restartOnlySnapshot(): Map<String, String> =
+        config.getValues(true)
+            .filterValues { it !is org.bukkit.configuration.ConfigurationSection }
+            .filterKeys { key -> LIVE_KEYS.none { key == it || key.startsWith("$it.") } }
+            .mapValues { it.value.toString() }
+
+    private fun runningMarker() = File(dataFolder, "server-running")
+
+    /** The marker is deleted on a clean stop, so finding it at startup means the last run crashed. */
+    private fun checkUncleanShutdown() {
+        try {
+            dataFolder.mkdirs()
+            val marker = runningMarker()
+            if (marker.exists()) {
+                uncleanStartAt = System.currentTimeMillis()
+                logger.warning("The server did not shut down cleanly last time. For the next " +
+                    "$CRASH_NOTE_MINUTES minutes, alerts about an item being picked up twice are " +
+                    "marked as possibly caused by that.")
+            }
+            marker.writeText("Present while the server runs. Still here at startup means the last stop was not clean.")
+        } catch (e: Exception) {
+            logger.warning("Could not write the running marker: ${e.message}")
+        }
+    }
+
+    private fun recentlyCrashed(): Boolean =
+        uncleanStartAt > 0 && System.currentTimeMillis() - uncleanStartAt < CRASH_NOTE_MINUTES * 60_000L
 
     /** Covers droppers and the crafter too, not only hoppers. */
     private fun parseHopperMode(): com.esmpfun.antidupe.ledger.LedgerEventHandler.HopperMode {

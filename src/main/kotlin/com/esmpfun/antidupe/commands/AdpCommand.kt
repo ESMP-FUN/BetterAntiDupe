@@ -1,5 +1,6 @@
 package com.esmpfun.antidupe.commands
 
+import com.esmpfun.antidupe.enforce.EnforcementService
 import com.esmpfun.antidupe.ledger.ChainOfCustody
 import com.esmpfun.antidupe.platform.PlatformScheduler
 import com.esmpfun.antidupe.util.Chat
@@ -26,7 +27,18 @@ class AdpCommand(
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
     private var chainOfCustody: ChainOfCustody? = null
 
+    private var enforcement: EnforcementService? = null
+    var onReload: (() -> List<String>)? = null
+    var onTestAlert: ((CommandSender) -> Unit)? = null
+
     fun setChainOfCustody(coc: ChainOfCustody) { this.chainOfCustody = coc }
+    fun setEnforcement(service: EnforcementService) { this.enforcement = service }
+
+    private fun requireAdmin(sender: CommandSender): Boolean {
+        if (sender.hasPermission("antidupe.admin")) return true
+        sender.sendMessage(Messages.msg("commands.no-permission-admin"))
+        return false
+    }
 
     /** getOfflinePlayer can hit Mojang, so an unknown name is resolved off the calling thread. */
     private fun resolvePlayer(name: String, sender: CommandSender, onResolved: (UUID) -> Unit) {
@@ -56,6 +68,11 @@ class AdpCommand(
                         plugin, sender, args.copyOfRange(1, args.size))
                 }
             }
+            "reload" -> if (requireAdmin(sender)) reload(sender)
+            "test" -> if (requireAdmin(sender)) {
+                if (args.size < 2 || args[1].equals("alert", ignoreCase = true)) onTestAlert?.invoke(sender)
+                else usage(sender, "/adp test alert")
+            }
             "help", "?" -> showHelp(sender)
             else -> sender.sendMessage(Messages.msg("commands.unknown-subcommand"))
         }
@@ -66,9 +83,12 @@ class AdpCommand(
         if (args.size == 1) {
             val subs = mutableListOf<String>()
             if (sender.hasPermission("antidupe.ledger") && chainOfCustody != null) subs.add("ledger")
-            if (sender.hasPermission("antidupe.admin")) subs.add("update")
+            if (sender.hasPermission("antidupe.admin")) subs.addAll(listOf("reload", "test", "update"))
             subs.add("help")
             return subs.filter { it.startsWith(args[0].lowercase()) }
+        }
+        if (args.size == 2 && args[0].lowercase() == "test" && sender.hasPermission("antidupe.admin")) {
+            return listOf("alert").filter { it.startsWith(args[1].lowercase()) }
         }
         if (args.size >= 2 && args[0].lowercase() == "update") {
             if (!sender.hasPermission("antidupe.admin")) return emptyList()
@@ -80,15 +100,17 @@ class AdpCommand(
             if (!sender.hasPermission("antidupe.ledger") || chainOfCustody == null) return emptyList()
             return when (args.size) {
                 2 -> listOf("status", "balance", "history", "witness", "suspects", "stash",
-                            "reconcile", "trust", "confirm", "clear", "verify", "help")
+                            "reconcile", "remove", "trust", "confirm", "clear", "verify", "help")
                     .filter { it.startsWith(args[1].lowercase()) }
                 3 -> when (args[1].lowercase()) {
                     // reconcile needs the player online; the rest accept offline names too.
-                    "reconcile" -> onlineNames(args[2])
+                    "reconcile", "remove" -> onlineNames(args[2])
                     "balance", "history", "witness", "trust", "stash", "confirm", "clear" ->
                         suspectAndOnlineNames(args[2])
                     else -> emptyList()
                 }
+                4 -> if (args[1].equals("remove", ignoreCase = true))
+                    listOf("confirm").filter { it.startsWith(args[3].lowercase()) } else emptyList()
                 else -> emptyList()
             }
         }
@@ -114,6 +136,9 @@ class AdpCommand(
         sender.sendMessage("")
         if (sender.hasPermission("antidupe.ledger") && chainOfCustody != null) {
             Messages.list("commands.help.admin-lines").forEach { sender.sendMessage(it) }
+        }
+        if (sender.hasPermission("antidupe.admin")) {
+            Messages.list("commands.help.admin-only-lines").forEach { sender.sendMessage(it) }
         }
         sender.sendMessage(Messages.msg("commands.help.user-line"))
         sender.sendMessage(Messages.msg("commands.help.header"))
@@ -147,6 +172,8 @@ class AdpCommand(
                        else ledgerVerdict(sender, coc, args[1], confirm = false)
             "reconcile" -> if (args.size < 2) usage(sender, "/adp ledger reconcile <player>")
                            else ledgerReconcile(sender, coc, args[1])
+            "remove" -> if (args.size < 2) usage(sender, "/adp ledger remove <player>")
+                        else ledgerRemove(sender, coc, args[1], args.getOrNull(2).equals("confirm", ignoreCase = true))
             "trust" -> if (args.size < 2) usage(sender, "/adp ledger trust <player>")
                        else ledgerTrust(sender, coc, args[1])
             "verify" -> ledgerVerify(sender, coc)
@@ -387,6 +414,78 @@ class AdpCommand(
                 } else {
                     sender.sendMessage(Messages.msg("commands.reconcile.clean"))
                 }
+            })
+        }
+    }
+
+    private fun reload(sender: CommandSender) {
+        val changed = try {
+            onReload?.invoke() ?: return
+        } catch (e: Exception) {
+            plugin.logger.warning("Reload failed: ${e.message}")
+            sender.sendMessage(Messages.msg("commands.reload.failed", "error" to (e.message ?: e.javaClass.simpleName)))
+            return
+        }
+        sender.sendMessage(Messages.msg("commands.reload.done"))
+        if (changed.isNotEmpty()) {
+            sender.sendMessage(Messages.msg("commands.reload.restart-needed", "settings" to changed.joinToString(", ")))
+        }
+    }
+
+    /**
+     * Without `confirm` this only lists the surplus, with a click to confirm. The confirmed run
+     * counts again, so it removes what is extra at that moment, not what the preview showed.
+     */
+    private fun ledgerRemove(sender: CommandSender, coc: ChainOfCustody, playerName: String, confirmed: Boolean) {
+        val service = enforcement ?: run {
+            sender.sendMessage(Messages.msg("commands.not-initialized")); return
+        }
+        val target = Bukkit.getPlayer(playerName) ?: run {
+            sender.sendMessage(Messages.msg("commands.reconcile.must-be-online")); return
+        }
+        coc.reconcileAsync(target, ignoreCooldown = true) { result ->
+            val surplus = result.discrepancies.filter { it.excess > 0 }
+            if (surplus.isEmpty()) {
+                scheduler.runMain(Runnable {
+                    sender.sendMessage(Messages.msg("commands.remove.nothing", "player" to target.name))
+                })
+                return@reconcileAsync
+            }
+            if (!confirmed) {
+                scheduler.runMain(Runnable {
+                    sender.sendMessage(Messages.msg("commands.remove.preview-header", "player" to target.name))
+                    surplus.forEach { d ->
+                        sender.sendMessage(Messages.msg("commands.remove.preview-line",
+                            "excess" to d.excess, "material" to d.material.name,
+                            "actual" to d.actual, "expected" to d.expected))
+                    }
+                    sender.sendChat(Chat.line()
+                        .text(Messages.msg("commands.remove.preview-confirm"))
+                        .clickRunCommand(Messages.msg("commands.remove.confirm-button"),
+                            "/adp ledger remove ${target.name} confirm",
+                            hover = Messages.msg("commands.remove.confirm-hover"))
+                        .build())
+                })
+                return@reconcileAsync
+            }
+            scheduler.runForEntity(target, Runnable {
+                val outcome = surplus.map { d ->
+                    val removed = try {
+                        service.removeSurplusNow(target, d.material, d.excess, sender.name)
+                    } catch (e: Exception) {
+                        plugin.logger.warning("[Enforce] Manual removal failed for ${target.name}: ${e.message}")
+                        0
+                    }
+                    d to removed
+                }
+                scheduler.runMain(Runnable {
+                    for ((d, removed) in outcome) {
+                        if (removed > 0) sender.sendMessage(Messages.msg("commands.remove.removed",
+                            "removed" to removed, "material" to d.material.name))
+                        if (removed < d.excess) sender.sendMessage(Messages.msg("commands.remove.unreachable",
+                            "amount" to (d.excess - removed), "material" to d.material.name))
+                    }
+                })
             })
         }
     }
