@@ -6,8 +6,9 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Seeds a never-seen player's ledger from what they carry, so pre-existing or externally granted
- * items do not read as a surplus. Only one run per player at a time, and the marker is written
- * before the inventory snapshot, so a fast rejoin cannot credit the same inventory twice.
+ * items do not read as a surplus. Only one run per player at a time, the storage has to grant a
+ * claim first (servers sharing Redis race on a proxy switch), and the marker is written before
+ * the inventory snapshot, so neither a fast rejoin nor a second server can credit it twice.
  */
 class JoinBaseline(private val storage: LedgerStorage) {
 
@@ -18,6 +19,7 @@ class JoinBaseline(private val storage: LedgerStorage) {
         if (!inFlight.add(player)) return false
         try {
             if (storage.getPlayerEntries(player, limit = 1).isNotEmpty()) return false
+            if (!storage.claimBaseline(player)) return false
             // The marker also stops an empty-inventory new player being re-baselined every join.
             storage.appendBuilt(
                 player = player,

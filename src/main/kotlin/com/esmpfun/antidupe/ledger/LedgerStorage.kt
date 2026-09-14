@@ -90,6 +90,12 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
 
     open suspend fun prunePickupHistory(olderThanMs: Long) { /* default: backend handles TTL */ }
 
+    /**
+     * Claims the right to write [player]'s join baseline for every server sharing this storage.
+     * A single server's own in-flight guard is enough, so only a shared backend overrides this.
+     */
+    open suspend fun claimBaseline(player: UUID): Boolean = true
+
     abstract fun close()
 
     /**

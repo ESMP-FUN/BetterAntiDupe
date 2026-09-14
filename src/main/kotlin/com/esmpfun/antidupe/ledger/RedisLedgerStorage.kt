@@ -38,6 +38,9 @@ class RedisLedgerStorage internal constructor(
         private const val KEY_PLAYER_TIP = "ledger:tip:"           // {uuid} -> per-player chain tip
         private const val KEY_BALANCE = "balance:"
         private const val KEY_RECENT = "ledger:recent:"
+        private const val KEY_BASELINE_CLAIM = "ledger:baseline-claim:"
+        /** Long enough for the snapshot and the marker write; the marker guards every later join. */
+        private const val BASELINE_CLAIM_SECONDS = 60L
         private const val SCAN_BATCH = 500L
         private const val RECENT_WINDOW_MS = 5 * 60 * 1000L
 
@@ -65,6 +68,9 @@ class RedisLedgerStorage internal constructor(
             return RedisLedgerStorage(client, connection, txConnection, coroutines, logger)
         }
     }
+
+    override suspend fun claimBaseline(player: UUID): Boolean =
+        redis.set(KEY_BASELINE_CLAIM + player, "1", SetArgs().nx().ex(BASELINE_CLAIM_SECONDS)) == "OK"
 
     override fun close() {
         try { connection.close() } catch (e: Exception) { logger.warning("[Ledger] connection close: ${e.message}") }
