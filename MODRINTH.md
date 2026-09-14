@@ -1,10 +1,16 @@
-<img width="1000" alt="Better Anti-Dupe" src="https://raw.githubusercontent.com/ESMP-FUN/BetterAntiDupe/master/brand/bad-banner-animated.webp" />
+<img width="1000" alt="Better Anti-Dupe" src="https://raw.githubusercontent.com/ESMP-FUN/BetterAntiDupe/refs/heads/master/brand/bad-banner-animated.webp" />
+
+<center><br>
 
 **Stops item duplication on your Minecraft server, and tells you who tried.**
 
-Most anti-cheat plugins watch movement and combat. BetterAntiDupe watches the items themselves. It keeps a record of every valuable item a player gains and loses, and when someone is carrying more than their record can explain, you get an alert, a list of where they put the items, and a click to teleport there.
+Better Anti-Dupe watches the items themselves. <br>
+It keeps a record of every valuable item a player gains and loses.
 
-Install it and you are protected. The defaults are sensible, and nothing is ever taken from a player until you decide it should be.
+When something's up, you are notified with a list of where <br>
+they put the items, and a **[click to teleport]** there.
+
+Install it and you are protected.<br>The defaults are sensible, and nothing is ever taken from a player until you decide it should be.</center>
 
 ---
 
@@ -21,7 +27,8 @@ Install it and you are protected. The defaults are sensible, and nothing is ever
 
 ## What it blocks
 
-The classic dupe machines are simply not allowed to work, so the extra item never exists. Each one has its own switch.
+The classic dupe machines are stopped from the moment you install it. <br>
+Each one has its own switch in `config.yml` if you want to allow it on your server.
 
 - **Rail and carpet dupers**
 - **TNT dupers**
@@ -101,6 +108,9 @@ The plugin works quietly, so almost nobody opens a ticket. That leaves no way to
 - **Error reports** send what went wrong when the plugin errors, with anything resembling a password, token or id removed first.
 
 Set `metrics.enabled: false` to send nothing at all, or `metrics.error_reporting: false` to keep error details to yourself.
+Nothing is ever shared, sold, or made public. <br>
+
+> I take your privacy very seriously -> [company privacy policy](https://esmp.fun/plugins/privacy.php)
 
 ---
 
