@@ -36,6 +36,7 @@ Everything else is caught by noticing a player holds more than they could have:
 - **Carrying more than they earned**, counted inside shulker boxes and bundles too
 - **The same dropped item picked up twice**
 - **More drops than a block or item frame gave**
+- **Small dupes hidden by storing them away**, remembered for a day and added up
 - **Copies made inside a chest**, by counting each player's stored items and alerting when more come out than went in
 - **Items washed through hoppers**, with the route written into the item's history (or hoppers blocked from moving tracked items at all)
 - **Gaining things impossibly fast**, with a limit you set per item

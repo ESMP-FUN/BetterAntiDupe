@@ -42,6 +42,22 @@ No. The plugin does not see the item being given, but the next check notices the
 
 <details>
 
+<summary><strong>Does one false alarm follow a player forever?</strong></summary>
+
+No. Every alert makes the plugin a little stricter with that player, but that extra strictness halves after each full day without a new alert. Only a duper you confirm with `/adp ledger confirm` stays under close watch until you clear them.
+
+</details>
+
+<details>
+
+<summary><strong>Do hoppers or copper golems cause alerts?</strong></summary>
+
+No. They only move items between containers, and the plugin measures chest moves from each player's own inventory, so a hopper draining a chest someone has open changes nothing. Copper golems also leave a chest alone while a player has it open.
+
+</details>
+
+<details>
+
 <summary><strong>Can a staff member cheat by editing the records?</strong></summary>
 
 Not without it showing. Every record is sealed to the one before it, so editing the database by hand breaks the seal, and `/adp ledger verify` shows exactly where.

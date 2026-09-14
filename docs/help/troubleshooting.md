@@ -89,6 +89,16 @@ The player who took the items may simply have been given them by a duper, so the
 
 <details>
 
+<summary><strong>An alert says items were "stored away and written off"</strong></summary>
+
+**What it means:** the player carried more of an item than their record explains, then stored those items so their record dropped below zero and was written off. The plugin adds these up over a day and alerts once they reach the item's alert threshold.
+
+**Is it a false alarm?** Unlikely. Items from shops, kits and `/give` carry no ownership mark, so they never count here. Check `/adp ledger history <player>` and `/adp ledger stash <player>` around the time of the alert.
+
+</details>
+
+<details>
+
 <summary><strong>Nothing is being recorded for me</strong></summary>
 
 **The likely cause:** you are in creative or spectator mode. Nothing done in those modes is recorded. Switch to survival and try [the tracking test](testing-in-game.md#are-items-being-tracked).
@@ -118,6 +128,16 @@ Check these in order:
 
 </details>
 
+<details>
+
+<summary><strong>The console says "The server sends item data in a way this version does not recognise"</strong></summary>
+
+**What it means:** a server update changed how item data is sent to players, and the plugin cannot hide its ownership mark in that part yet. Players with a mod that shows hidden item data might see the mark there. Detection is not affected.
+
+**What to do:** nothing urgent. Report it on [GitHub](https://github.com/ESMP-FUN/BetterAntiDupe/issues) with your server version and the packet name in brackets. With `strip_all_custom_data` turned on, this warning also appears once when someone opens a villager trade, because trade offers are not stripped yet.
+
+</details>
+
 ## Commands
 
 <details>
@@ -125,6 +145,14 @@ Check these in order:
 <summary><strong>"Reconciliation skipped: Cooldown active"</strong></summary>
 
 That player was checked a few seconds ago. Wait five seconds and run it again.
+
+</details>
+
+<details>
+
+<summary><strong>"Reconciliation skipped: Player is still moving items"</strong></summary>
+
+The plugin only counts a player when nothing they just moved is still being written down, so a check never mistakes items in transit for extras. This player kept moving items for 10 seconds straight. Wait until they stop and run it again. The automatic checks catch up on their own.
 
 </details>
 
