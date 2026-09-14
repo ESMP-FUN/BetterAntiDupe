@@ -1,6 +1,7 @@
 package com.esmpfun.antidupe.ledger
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.coroutineScope
@@ -28,9 +29,11 @@ class RedisLedgerStorageIntegrationTest {
     private val logger: Logger = Logger.getLogger("RedisLedgerStorageIntegrationTest")
     private val stores = mutableListOf<LedgerStorage>()
 
-    private fun redisReachable(): Boolean = try {
-        Socket().use { it.connect(InetSocketAddress(host, port), 200); true }
-    } catch (e: Exception) { false }
+    /** Null when Redis answers, otherwise why it could not be reached. */
+    private fun redisUnreachableReason(): String? = try {
+        Socket().use { it.connect(InetSocketAddress(host, port), 200) }
+        null
+    } catch (e: Exception) { e.toString() }
 
     private fun newStore(): RedisLedgerStorage = runBlocking {
         RedisLedgerStorage.create(host, port, null, db, 5, logger).also { stores += it }
@@ -38,7 +41,8 @@ class RedisLedgerStorageIntegrationTest {
 
     @BeforeTest
     fun requireRedis() {
-        org.junit.jupiter.api.Assumptions.assumeTrue(redisReachable(), "no Redis on $host:$port")
+        val reason = redisUnreachableReason()
+        org.junit.jupiter.api.Assumptions.assumeTrue(reason == null, "no Redis on $host:$port: $reason")
     }
 
     @AfterTest
@@ -49,6 +53,24 @@ class RedisLedgerStorageIntegrationTest {
             val client = RedisClient.create("redis://$host:$port/$db")
             try { client.connect().use { it.sync().flushdb() } } finally { client.shutdown() }
         }
+    }
+
+    @Test
+    fun `two servers baselining the same new player credit it once`() = runBlocking {
+        val serverA = JoinBaseline(newStore())
+        val serverB = JoinBaseline(newStore())
+        val player = UUID.randomUUID()
+        val snapshot: suspend () -> Map<Material, Int> = { kotlinx.coroutines.delay(50); mapOf(Material.DIAMOND_BLOCK to 10) }
+
+        val results = coroutineScope {
+            val scope = this
+            listOf(serverA, serverB, serverA, serverB).map { server ->
+                scope.async(Dispatchers.IO) { server.run(player, snapshot) }
+            }.map { it.await() }
+        }
+
+        assertEquals(1, results.count { it })
+        assertEquals(10, stores.first().getBalance(player, Material.DIAMOND_BLOCK))
     }
 
     @Test
