@@ -18,60 +18,282 @@ Install it and you are protected.<br>The defaults are sensible, and nothing is e
 
 | | |
 |---|---|
-| **Server software** | Paper, Folia, Spigot, or a Paper fork like Purpur |
-| **Minecraft** | 1.21.x with the plain download, 26.x with the `-mc26` download |
-| **Java** | 21 or newer for 1.21.x, 25 or newer for 26.x |
-| **Anything else** | Nothing. Redis is only needed if several servers share records. |
+| **Server software** | Paper, Folia, Spigot, or a Paper fork |
+| **Minecraft** | 1.21.x, or 26.x with the `-mc26` download |
+| **Java** | 21+ for `1.21.x` or 25+ for `26.x` |
+| **Anything else** | Nothing. Redis is optional. |
+
+<details>
+<summary><b>Which download do I need?</b></summary>
+
+Minecraft 1.21.x: the plain jar. <br>
+Minecraft 26.x: the jar ending in `-mc26`. <br>
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/getting-started/install)
+
+</details>
 
 ---
 
 ## What it blocks
 
-The classic dupe machines are stopped from the moment you install it. <br>
-Each one has its own switch in `config.yml` if you want to allow it on your server.
+The classic dupe machines stop working the moment you install the plugin. <br>
+Each one has its own switch, in case you want to allow it.
 
-- **Rail and carpet dupers**
-- **TNT dupers**
-- **Sand and gravel portal dupers**
-- **Ghost chest windows**: a window closes when its chest, shulker box, donkey or chest boat disappears
-- **Restart dupes**: every open window closes the moment the server starts shutting down
+<details>
+<summary><b>Rail and carpet dupers</b></summary>
+
+One of the oldest dupes in the game. <br>
+All it needs is a piston and a rail or carpet. <br>
+With Better Anti-Dupe, these dupe-machines are disabled by default.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-it-blocks-and-catches)
+
+</details>
+
+<details>
+<summary><b>TNT dupers</b></summary>
+
+TNT dupers power world eaters and flying machines. <br>
+They stop working from day one. <br>
+Running an anarchy or tech server? One switch turns them back on.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-it-blocks-and-catches)
+
+</details>
+
+<details>
+<summary><b>Sand and gravel portal dupers</b></summary>
+
+Sand and gravel can no longer be copied through a portal. <br>
+Farms and flying machines that push sand keep working.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-it-blocks-and-catches)
+
+</details>
+
+<details>
+<summary><b>Ghost chest windows</b></summary>
+
+A player can't keep taking items from a chest that's already gone. <br>
+The window simply closes. <br>
+Nobody playing normally will ever notice.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-it-blocks-and-catches)
+
+</details>
+
+<details>
+<summary><b>Restart dupes</b></summary>
+
+No machine needed, just good timing during a restart. <br>
+Every open window closes as the server shuts down. <br>
+Nothing is left to copy.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-it-blocks-and-catches)
+
+</details>
 
 ## What it catches
 
-Everything else is caught by noticing a player holds more than they could have:
+Everything else. It notices when a player holds more than possible.
 
-- **Carrying more than they earned**, counted inside shulker boxes and bundles too
-- **The same dropped item picked up twice**
-- **More drops than a block or item frame gave**
-- **Small dupes hidden by storing them away**, remembered for a day and added up
-- **Copies made inside a chest**, by counting each player's stored items and alerting when more come out than went in
-- **Items washed through hoppers**, with the route written into the item's history (or hoppers blocked from moving tracked items at all)
-- **Gaining things impossibly fast**, with a limit you set per item
-- **Nobody ever seeing them get anything**, on a busy server
-- **Someone editing the records** by hand, even an admin
+<details>
+<summary><b>Carrying more than they earned</b></summary>
 
-Crafting, anvils, smithing tables, furnaces, villager trades, enchanting, chests, barrels, ender chests, item frames and animal chests are all counted by what actually moved.
+The heart of the plugin. <br>
+It knows what each player earned, and counts what they hold. <br>
+Shulker boxes and bundles included. Holding more? You'll know.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-it-blocks-and-catches)
+
+</details>
+
+<details>
+<summary><b>The same dropped item picked up twice</b></summary>
+
+Every dropped item is one of a kind. <br>
+If the same one is picked up twice, it was copied. <br>
+This is the most certain alert there is.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-it-blocks-and-catches)
+
+</details>
+
+<details>
+<summary><b>More drops than a block or item frame gave</b></summary>
+
+Breaking a block or a frame drops a known amount. <br>
+Picking up more than that nearby means something was copied.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-it-blocks-and-catches)
+
+</details>
+
+<details>
+<summary><b>Small dupes hidden by storing them away</b></summary>
+
+Dupe a few items, hide them in a chest, and hope nobody notices. <br>
+It's an old trick. <br>
+Small amounts are remembered for a day, and they add up to an alert.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-it-blocks-and-catches)
+
+</details>
+
+<details>
+<summary><b>Copies made inside a chest</b></summary>
+
+Some dupes never touch a player's inventory. <br>
+The copies simply appear in a chest. <br>
+You're told whose items they were, who took them, and where.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-it-blocks-and-catches)
+
+</details>
+
+<details>
+<summary><b>Items washed through hoppers</b></summary>
+
+Dupers pass items through hoppers to make them look clean. <br>
+The route is written down, so you can follow it. <br>
+Or block hoppers from moving watched items at all.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-it-blocks-and-catches)
+
+</details>
+
+<details>
+<summary><b>Gaining things impossibly fast</b></summary>
+
+You decide how many of an item anyone could honestly get in a minute. <br>
+Going past it makes a player worth a closer look.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-gets-tracked)
+
+</details>
+
+<details>
+<summary><b>Nobody ever seeing them get anything</b></summary>
+
+Duping usually happens alone. <br>
+A player whose gains nobody ever sees becomes a little more suspicious. <br>
+It never accuses anyone on its own.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-it-blocks-and-catches)
+
+</details>
+
+<details>
+<summary><b>Someone editing the records</b></summary>
+
+Every record is sealed to the one before it. <br>
+Even an admin can't quietly change history. <br>
+One command shows exactly where it was touched.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-it-blocks-and-catches)
+
+</details>
+
+Crafting, anvils, smithing tables, furnaces, villager trades, enchanting, chests, barrels, ender chests, item frames and animal chests. Everything is monitored and monitored well.
 
 ---
 
 ## Made for staff, not just for detection
 
-- **Find the stash.** `/adp ledger stash <player>` lists where they put tracked items. Click the coordinates to teleport there, even in another world.
-- **Decide in five minutes.** Every alert has **[History]** and **[Stash]** buttons. Then `confirm`, `clear`, or take the extras back with one click.
-- **Alerts on your phone.** Discord, Telegram, Slack, or your own webhook, with only the serious ones sent and repeats held back. `/adp test alert` checks your setup in seconds.
-- **Watch first, act later.** Out of the box it only alerts. Turn on automatic removal when you trust it, and it takes back only the extra, never a whole stack.
-- **Items stack normally.** Players notice nothing.
-- **Hidden from players.** The plugin's mark on items is kept out of what players' games receive, so mods cannot see it.
-- **Speaks your language.** English, Português do Brasil, Español, Deutsch, Русский and Polski are built in.
-- **Several servers?** Share records through Redis, so an item duped on one server is spotted on another.
+<details>
+<summary><b>Find the stash</b></summary>
+
+Knowing someone duped is only half the job. <br>
+One command lists where they put the items. <br>
+Click the coordinates and you're there, even in another world.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/when-an-alert-comes-in)
+
+</details>
+
+<details>
+<summary><b>Decide in five minutes</b></summary>
+
+Every alert has **[History]** and **[Stash]** buttons. <br>
+Look, decide, done. <br>
+Confirm a duper, clear a false alarm, or take the extras back.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/when-an-alert-comes-in)
+
+</details>
+
+<details>
+<summary><b>Alerts on your phone</b></summary>
+
+You don't have to be online to know. <br>
+Discord, Telegram, Slack, or your own webhook. <br>
+Only the serious alerts, and no spam. One command tests your setup.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/alerts-outside-the-game)
+
+</details>
+
+<details>
+<summary><b>Watch first, act later</b></summary>
+
+Nothing is taken from anyone until you say so. <br>
+Watch the alerts for a while. Once you trust them, turn on automatic removal. <br>
+It only ever takes the extras, never a whole stack.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/getting-started/watch-or-remove)
+
+</details>
+
+<details>
+<summary><b>Items stack normally</b></summary>
+
+Your players won't notice a thing. <br>
+Watched items stack and trade like any other item.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/help/faq)
+
+</details>
+
+<details>
+<summary><b>Hidden from players</b></summary>
+
+Mods that show hidden item data see nothing. <br>
+A duper testing on two accounts can't tell which items are watched.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/reference/settings)
+
+</details>
+
+<details>
+<summary><b>Available in your language</b></summary>
+
+English, Português do Brasil, Español, Deutsch, Русский and Polski are built in. <br>
+Every message can be changed to your liking.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/language-and-messages)
+
+</details>
+
+<details>
+<summary><b>Several servers?</b></summary>
+
+Items travel between servers on a network. <br>
+Share records through Redis, and a dupe on one server is spotted on another.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/getting-started/storage)
+
+</details>
 
 ---
 
 ## Installation
 
-1. Download the jar for your Minecraft version: plain for 1.21.x, `-mc26` for 26.x.
-2. Drop it into `plugins/` and restart.
+1. Download the jar (`-mc26` for Minecraft 26.x).
+2. Drop it into `plugins/` and restart the server.
 3. That's it. [Testing in-game](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/help/testing-in-game) shows you it working.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/getting-started/install)
 
 ---
 
@@ -84,31 +306,42 @@ Every command starts with `/adp`.
 | `/adp ledger suspects` | Everyone currently suspected, worst first |
 | `/adp ledger reconcile <player>` | Check what an online player carries right now |
 | `/adp ledger history <player>` | Their last 15 records |
-| `/adp ledger stash <player>` | Where they put tracked items, with click-to-teleport |
-| `/adp ledger remove <player>` | Take back only what they carry extra, after you confirm |
-| `/adp ledger confirm <player>` | Mark a real duper, and run your punishment command if you set one |
+| `/adp ledger stash <player>` | Where they put the items, with click-to-teleport |
+| `/adp ledger remove <player>` | Take back only the extras, after you confirm |
+| `/adp ledger confirm <player>` | Mark a real duper |
 | `/adp ledger clear <player>` | Mark a false alarm |
 | `/adp ledger verify` | Check nobody has edited the records |
 
-`antidupe.alerts` sees alerts only, `antidupe.ledger` uses the commands, and `antidupe.admin` gets both. The [full list](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/reference/commands-and-permissions) is in the guide.
+`antidupe.alerts` only sees alerts. <br>
+`antidupe.ledger` can use the commands. <br>
+`antidupe.admin` gets both.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/reference/commands-and-permissions)
 
 ---
 
 ## Free and source available
 
-No licence key and nothing locked behind a premium version. The source is on [GitHub](https://github.com/ESMP-FUN/BetterAntiDupe), and issues and pull requests are welcome.
+No licence key. Nothing locked behind a premium version. <br>
+The source is on [GitHub](https://github.com/ESMP-FUN/BetterAntiDupe), and issues and pull requests are welcome.
 
-### Anonymous statistics
+<details>
+<summary><b>Anonymous statistics</b></summary>
 
-The plugin works quietly, so almost nobody opens a ticket. That leaves no way to know which Minecraft versions it actually runs on, and knowing that is what makes it possible to fight dupes on those versions first.
+Almost nobody opens a ticket, so I cannot tell which Minecraft versions run it. <br>
+Knowing that helps me fight dupes on those versions first.
 
-- **Sent:** which storage you use, which switches are on, how many items you track, your language, your server software and versions, and plain counts of how many dupes were caught, removed and blocked, by item and type.
-- **Never sent:** addresses, server names, player names, item data, or anything from your records.
-- **Kept private.** While few servers run this, public numbers would tell dupers how likely a server is to be protected.
-- **Error reports** send what went wrong when the plugin errors, with anything resembling a password, token or id removed first.
+- **Sent:** your settings, versions, and counts of dupes caught, removed and blocked.
+- **Never sent:** addresses, server names, player names, or anything from your records.
+- **Kept private.** Public numbers would help dupers pick unprotected servers.
+- **Error reports** are cleaned of passwords, tokens and ids before they leave your server.
 
-Set `metrics.enabled: false` to send nothing at all, or `metrics.error_reporting: false` to keep error details to yourself.
-Nothing is ever shared, sold, or made public. <br>
+Set `metrics.enabled: false` to send nothing at all. <br>
+Nothing is ever shared, sold, or made public.
+
+More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/reference/settings)
+
+</details>
 
 > I take your privacy very seriously -> [company privacy policy](https://esmp.fun/plugins/privacy.php)
 
@@ -117,7 +350,6 @@ Nothing is ever shared, sold, or made public. <br>
 ## Links
 
 - **Guide**: [esmp-fun.gitbook.io/plugins/better-anti-dupe](https://esmp-fun.gitbook.io/plugins/better-anti-dupe)
-- **When an alert comes in**: [step by step](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/when-an-alert-comes-in)
 - **Troubleshooting**: [common problems](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/help/troubleshooting)
 - **Source and issues**: [github.com/ESMP-FUN/BetterAntiDupe](https://github.com/ESMP-FUN/BetterAntiDupe)
 - **Changelog**: [CHANGELOG.md](https://github.com/ESMP-FUN/BetterAntiDupe/blob/master/CHANGELOG.md)
