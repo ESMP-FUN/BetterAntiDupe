@@ -36,6 +36,19 @@ class ReconciliationEngine(
 
     @Volatile var healLogLevel: Level = Level.FINE
 
+    private class SurplusMemory(@Volatile var amount: Int, @Volatile var seenAt: Long)
+    private class Washed(@Volatile var amount: Int, @Volatile var since: Long)
+
+    /** The largest unexplained surplus seen per player and material within [WASH_WINDOW_MS]. */
+    private val recentSurplus = ConcurrentHashMap<Pair<UUID, Material>, SurplusMemory>()
+
+    /** Surplus written off by a negative-ledger heal that followed it, summed within the window. */
+    private val washedSurplus = ConcurrentHashMap<Pair<UUID, Material>, Washed>()
+
+    private companion object {
+        const val WASH_WINDOW_MS = 86_400_000L
+    }
+
     fun addAlertListener(listener: (DupeAlert) -> Unit) {
         alertListeners.add(listener)
     }
@@ -97,9 +110,13 @@ class ReconciliationEngine(
             val ledgerBalance = ledgerStorage.getBalance(playerId, material)
             val actualCount = snapshot.ownedCounts[material] ?: 0
 
-            // A negative ledger means an acquisition went unobserved (/give, a shop plugin's
-            // addItem, a tracking gap), never duping, which only ever produces a surplus. Adopt
-            // the real inventory as the new baseline instead of alerting on our own error.
+            val key = playerId to material
+
+            // A negative ledger normally means an acquisition went unobserved (/give, a shop
+            // plugin's addItem), and the real inventory is adopted as the new baseline. Those
+            // items carry no tag, so they never showed up as a surplus first. A heal that follows
+            // a recent tagged surplus is the surplus being stored away and written off, which is
+            // how a small dupe is washed, so that part is counted instead of forgiven.
             if (ledgerBalance < 0) {
                 val correction = actualCount - ledgerBalance
                 ledgerStorage.appendBuilt(
@@ -110,12 +127,17 @@ class ReconciliationEngine(
                     metadata = LedgerMetadata(notes = "BASELINE_HEAL: ledger $ledgerBalance -> $actualCount")
                 )
                 logger.log(healLogLevel, "[CoC] Re-baselined ${player.name}/$material: ledger was $ledgerBalance, adopted actual $actualCount (incomplete-acquisition gap)")
+                checkWashedSurplus(player, material, -ledgerBalance, now)
                 continue
             }
 
             if (actualCount > ledgerBalance) {
                 val excess = actualCount - ledgerBalance
                 discrepancies.add(Discrepancy(material, ledgerBalance, actualCount, excess))
+                recentSurplus.compute(key) { _, memory ->
+                    if (memory == null || now - memory.seenAt > WASH_WINDOW_MS) SurplusMemory(excess, now)
+                    else memory.also { it.amount = maxOf(it.amount, excess); it.seenAt = now }
+                }
 
                 val threshold = suspicion.effectiveThreshold(playerId, getAlertThreshold(material))
                 if (excess >= threshold) {
@@ -284,6 +306,44 @@ class ReconciliationEngine(
         ))
     }
 
+    private fun checkWashedSurplus(player: Player, material: Material, writtenOff: Int, now: Long) {
+        val key = player.uniqueId to material
+        val memory = recentSurplus[key] ?: return
+        if (now - memory.seenAt > WASH_WINDOW_MS) {
+            recentSurplus.remove(key)
+            return
+        }
+        val washedNow = minOf(writtenOff, memory.amount)
+        if (washedNow <= 0) return
+        memory.amount -= washedNow
+        if (memory.amount <= 0) recentSurplus.remove(key)
+
+        val total = washedSurplus.compute(key) { _, w ->
+            if (w == null || now - w.since > WASH_WINDOW_MS) Washed(washedNow, now)
+            else w.also { it.amount += washedNow }
+        }!!.amount
+        logger.fine("[CoC] ${player.name}/$material: $washedNow unexplained surplus written off by a heal ($total within a day)")
+
+        if (total < suspicion.effectiveThreshold(player.uniqueId, getAlertThreshold(material))) return
+        washedSurplus.remove(key)
+        suspicion.bumpFloor(player.uniqueId, SuspicionManager.DETERMINISTIC_FLOOR_BUMP / 2)
+        val profile = suspects.computeIfAbsent(player.uniqueId) { SuspectProfile(player.uniqueId, player.name) }
+        profile.recordViolation(listOf(Discrepancy(material, 0, total, total)), emptyList())
+        // excess stays 0: the items were already stored away and adopted, so there is nothing
+        // in the inventory that removal could safely take.
+        emitAlert(DupeAlert(
+            type = AlertType.BALANCE_DISCREPANCY,
+            player = player.uniqueId,
+            playerName = player.name,
+            material = material,
+            details = "$total ${material.name} carried without explanation, then stored away and written off",
+            severity = calculateSeverity(material, total),
+            timestamp = now,
+            messageKey = "alerts.washed-surplus",
+            placeholders = mapOf("excess" to "$total", "material" to material.name)
+        ))
+    }
+
     fun flagWitnessPattern(player: UUID) = suspicion.addHeat(player)
 
     fun confirmSuspect(player: UUID) = suspicion.confirm(player)
@@ -291,6 +351,8 @@ class ReconciliationEngine(
     fun clearVerdict(player: UUID) {
         suspicion.clear(player)
         suspects.remove(player)
+        recentSurplus.keys.removeIf { it.first == player }
+        washedSurplus.keys.removeIf { it.first == player }
     }
 
     fun suspicionOf(player: UUID): Double = suspicion.suspicion(player)
@@ -311,8 +373,11 @@ class ReconciliationEngine(
     }
 
     fun pruneMaintenance() {
-        val cutoff = System.currentTimeMillis() - 3_600_000L
+        val now = System.currentTimeMillis()
+        val cutoff = now - 3_600_000L
         activeReconciliations.entries.removeIf { it.value < cutoff }
+        recentSurplus.entries.removeIf { now - it.value.seenAt > WASH_WINDOW_MS }
+        washedSurplus.entries.removeIf { now - it.value.since > WASH_WINDOW_MS }
     }
 }
 

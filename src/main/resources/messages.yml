@@ -25,6 +25,7 @@ alerts:
   balance-discrepancy: "Has {actual} but ledger shows {expected} (excess: {excess})"
   entity-dupe: "Chunk-load / drop-race dupe: entity-UUID re-used {seconds}s after original pickup"
   drop-excess: "{excess} {material} picked up beyond nearby source output ({source})"
+  washed-surplus: "{excess} {material} carried without explanation, then stored away and written off"
   # Added to an alert about an item picked up twice when the server crashed shortly before,
   # because a crash can cause that alert on its own.
   after-crash-suffix: " &6(the server did not shut down cleanly shortly before this, which can cause this alert by itself)"
