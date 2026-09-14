@@ -31,9 +31,11 @@ import org.bukkit.event.inventory.CraftItemEvent
 import org.bukkit.event.inventory.FurnaceExtractEvent
 import org.bukkit.event.inventory.InventoryAction
 import org.bukkit.event.inventory.InventoryClickEvent
+import org.bukkit.event.inventory.InventoryCreativeEvent
 import org.bukkit.event.inventory.InventoryDragEvent
 import org.bukkit.event.inventory.InventoryType
 import org.bukkit.event.player.PlayerDropItemEvent
+import org.bukkit.event.player.PlayerGameModeChangeEvent
 import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.event.player.PlayerItemConsumeEvent
 import org.bukkit.event.player.PlayerTakeLecternBookEvent
@@ -74,8 +76,8 @@ class LedgerEventHandler(
     }
 
     private fun isTracked(material: Material): Boolean = material in trackedMaterials
-    private fun shouldSkip(player: Player): Boolean =
-        player.gameMode == GameMode.CREATIVE || player.gameMode == GameMode.SPECTATOR
+    /** Creative is recorded like survival; the record is reset when the player leaves it. */
+    private fun shouldSkip(player: Player): Boolean = player.gameMode == GameMode.SPECTATOR
 
     private fun witnessedMetadata(
         player: Player,
@@ -555,6 +557,52 @@ class LedgerEventHandler(
     }
 
     /**
+     * Two ticks later, so a plugin that keeps a separate creative inventory has put the other one
+     * back before it is counted.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onGameModeChange(event: PlayerGameModeChangeEvent) {
+        val player = event.player
+        if (player.gameMode != GameMode.CREATIVE || event.newGameMode == GameMode.CREATIVE) return
+        val playerId = player.uniqueId
+        reconciliationEngine.beginLeavingCreative(playerId)
+        scheduler.runForEntityLater(player, 2, Runnable {
+            if (!player.isOnline || player.gameMode == GameMode.CREATIVE) {
+                reconciliationEngine.endLeavingCreative(playerId)
+                return@Runnable
+            }
+            // Closing returns a held stack to the inventory, where it is counted.
+            if (player.itemOnCursor.type != Material.AIR) player.closeInventory()
+            claimCarried(player)
+            scope.launch {
+                try {
+                    reconciliationEngine.adoptAfterCreative(player)
+                } catch (e: Exception) {
+                    reconciliationEngine.endLeavingCreative(playerId)
+                    logger.warning("[Ledger] could not reset ${player.name}'s record after creative mode: ${e.message}")
+                }
+            }
+        })
+    }
+
+    /** Everything carried out of creative becomes the player's, including what is packed inside. */
+    private fun claimCarried(player: Player) {
+        val id = player.uniqueId
+        val inv = player.inventory
+        val contents = inv.contents
+        for (slot in contents.indices) {
+            val stack = contents[slot] ?: continue
+            var changed = false
+            if (isTracked(stack.type) && ownershipManager.getOwner(stack) != id) {
+                ownershipManager.setOwner(stack, id)
+                changed = true
+            }
+            if (mightHoldItems(stack.type) && ownershipManager.retagNested(stack, id, ::isTracked).changed) changed = true
+            if (changed) inv.setItem(slot, stack)
+        }
+    }
+
+    /**
      * PlayerDeathEvent extends EntityDeathEvent, so [onEntityDeath] has already authorized these
      * drops; this only adds the debit that keeps re-collecting them net zero.
      */
@@ -600,6 +648,9 @@ class LedgerEventHandler(
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
         if (shouldSkip(player)) return
+        // A creative middle-click copy takes nothing out, and the creative inventory screen never
+        // touches a container.
+        if (event is InventoryCreativeEvent || event.action == InventoryAction.CLONE_STACK) return
 
         val topInv = event.view.topInventory
 

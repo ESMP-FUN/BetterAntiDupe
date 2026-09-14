@@ -101,7 +101,7 @@ The player who took the items may simply have been given them by a duper, so the
 
 <summary><strong>Nothing is being recorded for me</strong></summary>
 
-**The likely cause:** you are in creative or spectator mode. Nothing done in those modes is recorded. Switch to survival and try [the tracking test](testing-in-game.md#are-items-being-tracked).
+**The likely cause:** you are in spectator mode, where nothing is recorded, or in creative, where balance checks wait until you leave it. Switch to survival and try [the tracking test](testing-in-game.md#are-items-being-tracked).
 
 Also check the item is on your `tracked_materials` list.
 

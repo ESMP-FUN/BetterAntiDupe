@@ -2,6 +2,14 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- **`leaving_creative_mode`** decides what happens when someone switches out of creative mode. Whatever they carry becomes their new record, including what is packed inside shulker boxes and bundles, and the change is written into their history as `LEFT_CREATIVE`. `RECORD` (the default) only writes it down. `ALERT` also alerts staff when someone switches back carrying more of an item than their record showed, once it reaches that item's alert threshold. It never removes anything and adds no suspicion. `/adp reload` applies it.
+
+### Fixed
+- **Creative mode no longer causes false alerts or leaves room to dupe.** Nothing a player did in creative was recorded. Items they stored, dropped or placed there never counted as put away, so taking them out later, even in survival, raised "came out of storage beyond what was ever put in". Their record also stayed too high by that amount, which is room to dupe into. A shulker box copied with middle-click in creative raised "Has 12 but ledger shows 0" on the next timed check. Players in creative are now recorded like everyone else, apart from copying a stack with middle-click. Balance checks wait while someone is in creative, since anything can be made there.
+
 ## [4.3.0] - 2026-09-15
 
 > **Note:** four things this plugin's documentation described were never

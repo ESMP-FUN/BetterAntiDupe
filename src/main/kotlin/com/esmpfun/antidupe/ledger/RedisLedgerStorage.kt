@@ -117,7 +117,7 @@ class RedisLedgerStorage internal constructor(
                 sync.set("$KEY_PLAYER_TIP${entry.player}", tipJson)
                 sync.set(KEY_GLOBAL_TIP, tipJson)
                 sync.incrby(balanceKey, entry.quantity.toLong())
-                if (entry.quantity > 0) {
+                if (entry.quantity > 0 && entry.action != LedgerAction.LEFT_CREATIVE) {
                     sync.zadd(recentKey, entry.timestamp.toDouble(), "${entry.quantity}:${entry.id}")
                     val cutoff = System.currentTimeMillis() - RECENT_WINDOW_MS
                     sync.zremrangebyscore(recentKey, Range.create(Double.NEGATIVE_INFINITY, cutoff.toDouble()))
