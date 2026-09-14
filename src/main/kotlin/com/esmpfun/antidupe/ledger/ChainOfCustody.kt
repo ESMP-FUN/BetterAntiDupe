@@ -241,34 +241,11 @@ class ChainOfCustody private constructor(
     /** Current effective suspicion, 0 to 100. */
     fun suspicionOf(player: UUID): Double = reconciliationEngine.suspicionOf(player)
 
-    /**
-     * Seed a never-before-seen player's ledger from their current inventory, so pre-existing
-     * or externally granted items do not read as a surplus.
-     */
+    private val joinBaseline = JoinBaseline(ledgerStorage)
+
+    /** Snapshots on the player's thread; this coroutine runs on Dispatchers.IO. */
     suspend fun baselineIfNew(player: Player) {
-        val already = ledgerStorage.getPlayerEntries(player.uniqueId, limit = 1).isNotEmpty()
-        if (already) return
-        // Snapshots on the player's thread; this coroutine runs on Dispatchers.IO.
-        val owned = reconciliationEngine.snapshotOwned(player)
-        for ((material, actual) in owned) {
-            if (actual > 0) {
-                ledgerStorage.appendBuilt(
-                    player = player.uniqueId,
-                    action = LedgerAction.ADMIN_GIVE,
-                    material = material,
-                    quantity = actual,
-                    metadata = LedgerMetadata(notes = "BASELINE_ON_JOIN")
-                )
-            }
-        }
-        // Always drop a marker so an empty-inventory new player isn't re-baselined every join.
-        ledgerStorage.appendBuilt(
-            player = player.uniqueId,
-            action = LedgerAction.RECONCILE,
-            material = Material.AIR,
-            quantity = 0,
-            metadata = LedgerMetadata(notes = "BASELINE_MARKER")
-        )
+        joinBaseline.run(player.uniqueId) { reconciliationEngine.snapshotOwned(player) }
     }
 
     /**
