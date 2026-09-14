@@ -239,10 +239,19 @@ class LedgerEventHandler(
         for (itemEntity in event.items) {
             val stack = itemEntity.itemStack
             if (!isTracked(stack.type)) continue
-            ownershipManager.setOwner(stack, player.uniqueId)
-            itemEntity.itemStack = stack
-            // Freshly tagged and lying in the world, so it counts as stored until picked up.
-            minedTally.merge(player.uniqueId to stack.type, stack.amount, Int::plus)
+            val existingOwner = ownershipManager.getOwner(stack)
+            if (existingOwner == null) {
+                ownershipManager.setOwner(stack, player.uniqueId)
+                itemEntity.itemStack = stack
+                // Freshly tagged and lying in the world, so it counts as stored until picked up.
+                minedTally.merge(player.uniqueId to stack.type, stack.amount, Int::plus)
+            } else if (stack.type == brokenType) {
+                // A placed block that kept its tag, like a shulker box. Placing it only counted its
+                // contents, so the box itself re-enters the world here, still its owner's.
+                minedTally.merge(existingOwner to stack.type, stack.amount, Int::plus)
+            }
+            // A tagged drop of another type was stored inside the block, like a pot's contents, and
+            // was counted when it went in, so it keeps its owner and changes nothing here.
 
             // No MINE entry on purpose: the credit happens at pickup, which inherits the
             // source context through the expected drop.
