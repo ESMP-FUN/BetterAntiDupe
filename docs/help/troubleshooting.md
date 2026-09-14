@@ -74,6 +74,21 @@ For 30 minutes after a server start that follows a crash, these alerts say so th
 
 <details>
 
+<summary><strong>An alert says someone's items "came out of storage beyond what was ever put in"</strong></summary>
+
+**What it means:** more of one player's items came back out of chests, frames or the ground than that player ever put there. The alert names whose items they were, who took the last of them, and where.
+
+**The likely causes:**
+
+* **A dupe inside a container.** Go to the location in the alert and look at who has been using that chest. `/adp ledger history <player>` for both names shows the puts and takes.
+* **A server crash.** A crash can roll a chest back to an earlier state while the plugin already saw items leave it. If the server did not shut down cleanly shortly before, the alert says so.
+
+The player who took the items may simply have been given them by a duper, so the alert adds no suspicion to them and nothing is removed.
+
+</details>
+
+<details>
+
 <summary><strong>Nothing is being recorded for me</strong></summary>
 
 **The likely cause:** you are in creative or spectator mode. Nothing done in those modes is recorded. Switch to survival and try [the tracking test](testing-in-game.md#are-items-being-tracked).

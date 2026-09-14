@@ -89,6 +89,24 @@ class OwnershipManager(
     class NestedRetag(val changed: Boolean, val previousOwner: UUID?)
 
     /**
+     * Adds every tagged, tracked item in [stack], nested ones at any depth included, to [sink]
+     * keyed by owner and material. Untagged items are left out.
+     */
+    fun tallyOwners(
+        stack: ItemStack?, isTracked: (Material) -> Boolean,
+        sink: MutableMap<Pair<UUID, Material>, Int>, depth: Int = 0
+    ) {
+        if (stack == null || stack.type == Material.AIR || depth >= MAX_RECURSION_DEPTH) return
+        if (isTracked(stack.type)) getOwner(stack)?.let { sink.merge(it to stack.type, stack.amount, Int::plus) }
+        val meta = stack.itemMeta ?: return
+        if (meta is BlockStateMeta && meta.hasBlockState()) {
+            (meta.blockState as? Container)?.inventory?.contents?.forEach { tallyOwners(it, isTracked, sink, depth + 1) }
+        }
+        if (meta is BundleMeta) meta.items.forEach { tallyOwners(it, isTracked, sink, depth + 1) }
+        SulfurCubeAccess.absorbedItem(stack)?.let { tallyOwners(it, isTracked, sink, depth + 1) }
+    }
+
+    /**
      * Gives [owner]'s tag to tracked items nested in a shulker box or bundle held as [holder],
      * at any depth, writing the contents back into the holder. With a [budget], at most that many
      * of each material are retagged and the budget is drawn down; nested stacks are never split,

@@ -90,6 +90,16 @@ When a block is broken or an item frame is knocked down, the plugin knows how mu
 
 <details>
 
+<summary><strong>Copies made inside a chest</strong></summary>
+
+Some dupes copy items inside a chest, a donkey, an item frame or on the ground, not in anyone's inventory. The plugin keeps count of each player's items that are stored away or lying around, and if more of them come back out than were ever put in, you get an alert saying whose items they were, who took them and where.
+
+The player who took them may be innocent, so this alert adds no suspicion and never removes anything. Items that were copied before any player ever held them cannot be traced this way.
+
+</details>
+
+<details>
+
 <summary><strong>Nobody ever sees them get anything</strong></summary>
 
 When a player gains something, the plugin notes who else was within 48 blocks. Duping usually happens alone, so a player on a busy server whose gains are almost never seen by anyone becomes a little more suspicious. This never raises an alert on its own.

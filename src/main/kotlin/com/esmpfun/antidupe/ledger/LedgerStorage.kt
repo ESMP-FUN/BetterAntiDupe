@@ -96,6 +96,19 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
      */
     open suspend fun claimBaseline(player: UUID): Boolean = true
 
+    private val worldStockFallback = ConcurrentHashMap<Pair<UUID, Material>, AtomicInteger>()
+
+    /**
+     * Adds [delta] to how many of [owner]'s tagged [material] are outside every player inventory,
+     * in containers, frames or on the ground, and returns the new count.
+     */
+    open suspend fun adjustWorldStock(owner: UUID, material: Material, delta: Int): Int =
+        worldStockFallback.computeIfAbsent(owner to material) { AtomicInteger() }.addAndGet(delta)
+
+    open suspend fun setWorldStock(owner: UUID, material: Material, value: Int) {
+        worldStockFallback.computeIfAbsent(owner to material) { AtomicInteger() }.set(value)
+    }
+
     abstract fun close()
 
     /**

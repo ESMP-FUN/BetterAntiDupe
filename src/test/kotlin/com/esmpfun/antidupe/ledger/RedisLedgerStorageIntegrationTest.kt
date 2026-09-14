@@ -56,6 +56,17 @@ class RedisLedgerStorageIntegrationTest {
     }
 
     @Test
+    fun `world stock is shared between servers and can be reset`() = runBlocking {
+        val serverA = newStore()
+        val serverB = newStore()
+        val owner = UUID.randomUUID()
+        serverA.adjustWorldStock(owner, Material.DIAMOND_BLOCK, 10)
+        assertEquals(4, serverB.adjustWorldStock(owner, Material.DIAMOND_BLOCK, -6))
+        serverB.setWorldStock(owner, Material.DIAMOND_BLOCK, 0)
+        assertEquals(0, serverA.adjustWorldStock(owner, Material.DIAMOND_BLOCK, 0))
+    }
+
+    @Test
     fun `two servers baselining the same new player credit it once`() = runBlocking {
         val serverA = JoinBaseline(newStore())
         val serverB = JoinBaseline(newStore())
