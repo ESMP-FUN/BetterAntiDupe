@@ -242,6 +242,7 @@ class LedgerEventHandler(
         val itemEntity = event.item
         val entityUuid = itemEntity.uniqueId
         val pickupLoc = itemEntity.location.clone()
+        val checkAfterCredit = reconcileOnPickup && previousOwner != player.uniqueId
 
         scheduler.runForEntityLater(itemEntity, 1, Runnable {
             val survived = itemEntity.isValid
@@ -298,9 +299,18 @@ class LedgerEventHandler(
                     }
                 }
                 if (capturedContents.isNotEmpty()) {
-                    appendContents(capturedPlayerId, LedgerAction.PICKUP, capturedContents, +1,
-                        finalMeta.copy(notes = listOfNotNull(finalMeta.notes, "CONTENTS_OF:$capturedMaterial").joinToString("|")))
+                    val contentsMeta = finalMeta.copy(notes = listOfNotNull(finalMeta.notes, "CONTENTS_OF:$capturedMaterial").joinToString("|"))
+                    for ((material, count) in capturedContents) {
+                        try {
+                            ledgerStorage.appendBuilt(capturedPlayerId, LedgerAction.PICKUP, material, count, contentsMeta)
+                        } catch (e: Exception) {
+                            logger.warning("[Ledger] PICKUP append failed: ${e.message}")
+                        }
+                    }
                 }
+                // Only once the credit is written: checking at event time sees the tagged item
+                // but not yet the credit, and alerts on every pickup above the threshold.
+                if (checkAfterCredit && player.isOnline) reconciliationEngine.reconcileAsync(player)
             }
         })
 
@@ -312,10 +322,6 @@ class LedgerEventHandler(
             }
         }
 
-        if (reconcileOnPickup &&
-            (previousOwner != null && previousOwner != player.uniqueId || previousOwner == null)) {
-            reconciliationEngine.reconcileAsync(player)
-        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
