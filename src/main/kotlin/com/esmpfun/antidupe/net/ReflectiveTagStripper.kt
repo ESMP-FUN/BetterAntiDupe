@@ -70,6 +70,12 @@ class ReflectiveTagStripper(
         "ClientboundSetCursorItemPacket",        // 1.21.2+ carried cursor item
     )
 
+    /**
+     * Item-bearing packets deliberately left unstripped. Villager offers are built by the villager,
+     * never tagged by us, so only strict mode has anything to hide in them.
+     */
+    private val unstrippedUnlessStrict = setOf("ClientboundMerchantOffersPacket")
+
     private val instanceFieldCache = ConcurrentHashMap<Class<*>, List<Field>>()
 
     /** Packet class names already logged as a passthrough/failure, so the warning fires once each. */
@@ -94,13 +100,23 @@ class ReflectiveTagStripper(
 
     private val minecraftTypeName = Regex("net\\.minecraft\\.[\\w.$]+")
 
-    /** Follows field types, their generic arguments and superclasses within net.minecraft, a few levels deep. */
+    /**
+     * Follows field types, their generic arguments and superclasses within net.minecraft, a few
+     * levels deep. Only reads declared types and never makes a field accessible: MerchantOffers
+     * extends ArrayList, and touching java.util internals throws on modern Java.
+     */
     private fun reachesItemStack(cls: Class<*>, seen: MutableSet<Class<*>>, depth: Int): Boolean {
         if (cls == nmsItemClass) return true
         if (depth > 3 || !seen.add(cls)) return false
         val typeNames = ArrayList<String>()
         cls.genericSuperclass?.let { typeNames.add(it.typeName) }
-        for (field in collectInstanceFields(cls)) typeNames.add(field.genericType.typeName)
+        var c: Class<*>? = cls
+        while (c != null && c.name.startsWith("net.minecraft.")) {
+            for (field in c.declaredFields) {
+                if (!Modifier.isStatic(field.modifiers)) typeNames.add(field.genericType.typeName)
+            }
+            c = c.superclass
+        }
         for (typeName in typeNames) {
             for (match in minecraftTypeName.findAll(typeName)) {
                 val referenced = try {
@@ -171,7 +187,10 @@ class ReflectiveTagStripper(
                     msg
                 }
             } else {
-                if (name !in loggedPacketNames && loggedPacketNames.add(name) && looksItemBearing(msg.javaClass)) {
+                // Runs inside the player's network pipeline, where anything thrown disconnects them.
+                val expected = !stripAll && name in unstrippedUnlessStrict
+                if (!expected && name !in loggedPacketNames && loggedPacketNames.add(name) &&
+                    runCatching { looksItemBearing(msg.javaClass) }.getOrDefault(false)) {
                     logger.warning("[TagStripper] The server sends item data in a way this version does not" +
                         " recognise ($name), so the hidden owner mark may be visible to players' game clients." +
                         " Detection is unaffected. Please report this with your server version.")
