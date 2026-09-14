@@ -13,7 +13,7 @@ import java.util.logging.Logger
  * without this a tracked block can be parked in a cube and bucketed to hide from every scan.
  *
  * The API landed after both compile targets (1.21.11 and 26.1.2), so the component type is
- * looked up by key at runtime and read reflectively. Older servers get a null and a no-op.
+ * looked up by key at runtime and read and written reflectively. Older servers get a no-op.
  */
 internal object SulfurCubeAccess {
 
@@ -37,7 +37,15 @@ internal object SulfurCubeAccess {
         }.getOrNull()
     }
 
+    private val contentFactory: java.lang.reflect.Method? by lazy {
+        runCatching {
+            Class.forName("io.papermc.paper.datacomponent.item.SulfurCubeContent")
+                .getMethod("sulfurCubeContent", ItemStack::class.java)
+        }.getOrNull()
+    }
+
     private var warned = false
+    private var warnedWrite = false
 
     fun absorbedItem(stack: ItemStack, logger: Logger? = null): ItemStack? {
         val bucket = bucketMaterial ?: return null
@@ -53,6 +61,24 @@ internal object SulfurCubeAccess {
                 logger?.warning("[Ledger] could not read a sulfur cube bucket's contents: ${e.message}")
             }
             null
+        }
+    }
+
+    /** Puts [inner] back as the absorbed item. False when this server cannot, leaving [stack] as it was. */
+    fun setAbsorbedItem(stack: ItemStack, inner: ItemStack, logger: Logger? = null): Boolean {
+        val bucket = bucketMaterial ?: return false
+        if (stack.type != bucket) return false
+        val type = contentComponentType ?: return false
+        val factory = contentFactory ?: return false
+        return try {
+            stack.setData(type, factory.invoke(null, inner) ?: return false)
+            true
+        } catch (e: Exception) {
+            if (!warnedWrite) {
+                warnedWrite = true
+                logger?.warning("[Ledger] could not update a sulfur cube bucket's contents: ${e.message}")
+            }
+            false
         }
     }
 }

@@ -92,7 +92,8 @@ class OwnershipManager(
      * Gives [owner]'s tag to tracked items nested in a shulker box or bundle held as [holder],
      * at any depth, writing the contents back into the holder. With a [budget], at most that many
      * of each material are retagged and the budget is drawn down; nested stacks are never split,
-     * so one too large for the budget keeps its tag. Absorbed sulfur cube contents are left alone.
+     * so one too large for the budget keeps its tag. A sulfur cube bucket's absorbed block counts
+     * as nested too.
      */
     fun retagNested(
         holder: ItemStack, owner: UUID, isTracked: (Material) -> Boolean,
@@ -151,6 +152,10 @@ class OwnershipManager(
             }
         }
         if (changed) holder.itemMeta = meta
+        // After the meta write, which would otherwise put the old component value back.
+        SulfurCubeAccess.absorbedItem(holder)?.let { inner ->
+            if (claim(inner) && SulfurCubeAccess.setAbsorbedItem(holder, inner)) changed = true
+        }
         return NestedRetag(changed, previous)
     }
 
