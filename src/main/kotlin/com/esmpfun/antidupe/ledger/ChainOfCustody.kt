@@ -65,6 +65,7 @@ class ChainOfCustody private constructor(
             )
             val witnessManager = WitnessManager(plugin, witnessRadius, verifiedThreshold, suspiciousSoloRatio)
             val suspicionManager = SuspicionManager(sensitivity)
+            val settleTracker = SettleTracker()
 
             val reconciliationEngine = ReconciliationEngine(
                 plugin = plugin,
@@ -78,7 +79,8 @@ class ChainOfCustody private constructor(
                 suspicion = suspicionManager,
                 reconciliationCooldown = reconciliationCooldownMs,
                 alertThresholds = alertThresholds,
-                defaultAlertThreshold = defaultAlertThreshold
+                defaultAlertThreshold = defaultAlertThreshold,
+                settle = settleTracker
             )
 
             val eventHandler = LedgerEventHandler(
@@ -95,7 +97,8 @@ class ChainOfCustody private constructor(
                 reconcileOnInventoryClose = reconcileOnInventoryClose,
                 flagSuspiciousPatterns = flagSuspiciousPatterns,
                 hopperMode = hopperMode,
-                blockCollectToCursor = blockCollectToCursor
+                blockCollectToCursor = blockCollectToCursor,
+                settle = settleTracker
             )
 
             plugin.server.pluginManager.registerEvents(eventHandler, plugin)

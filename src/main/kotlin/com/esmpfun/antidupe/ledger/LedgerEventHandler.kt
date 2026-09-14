@@ -62,7 +62,8 @@ class LedgerEventHandler(
     private val reconcileOnInventoryClose: Boolean = false,
     private val flagSuspiciousPatterns: Boolean = true,
     private val hopperMode: HopperMode = HopperMode.LOG,
-    private val blockCollectToCursor: Boolean = false
+    private val blockCollectToCursor: Boolean = false,
+    private val settle: SettleTracker = SettleTracker()
 ) : Listener {
 
     enum class HopperMode {
@@ -93,11 +94,14 @@ class LedgerEventHandler(
         quantity: Int,
         metadata: LedgerMetadata
     ) {
+        settle.begin(player)
         scope.launch {
             try {
                 ledgerStorage.appendBuilt(player, action, material, quantity, metadata)
             } catch (e: Exception) {
                 logger.warning("[Ledger] append failed: ${e.message}")
+            } finally {
+                settle.end(player)
             }
         }
     }
@@ -250,11 +254,15 @@ class LedgerEventHandler(
         val pickupLoc = itemEntity.location.clone()
         val checkAfterCredit = reconcileOnPickup && previousOwner != player.uniqueId
 
+        settle.begin(capturedPlayerId)
         scheduler.runForEntityLater(itemEntity, 1, Runnable {
             val survived = itemEntity.isValid
             val amountAfter = if (survived) itemEntity.itemStack.amount else 0
             val consumed = capturedAmount - amountAfter
-            if (consumed <= 0) return@Runnable
+            if (consumed <= 0) {
+                settle.end(capturedPlayerId)
+                return@Runnable
+            }
 
             val match = matchPickup(capturedMaterial, consumed, pickupLoc)
             val excess = match?.excess ?: 0
@@ -273,50 +281,56 @@ class LedgerEventHandler(
             val finalMeta = deferredMeta
 
             scope.launch {
-                // A partial pickup leaves the remainder on the ground under the same entity UUID,
-                // so the UUID only counts as consumed once the entity is gone.
-                val prev = if (!survived) {
-                    try {
-                        ledgerStorage.markEntityPickup(entityUuid, capturedPlayerId, capturedMaterial, consumed)
-                    } catch (e: Exception) {
-                        logger.warning("[Ledger] markEntityPickup failed: ${e.message}")
-                        null
-                    }
-                } else null
-
-                if (prev != null) {
-                    val nowMs = System.currentTimeMillis()
-                    flaggedDupeEntities.entries.removeIf { nowMs - it.value > dupeAlertSuppressMs }
-                    if (flaggedDupeEntities.putIfAbsent(entityUuid, nowMs) == null) {
-                        scheduler.runMain(Runnable {
-                            val online = plugin.server.getPlayer(capturedPlayerId) ?: return@Runnable
-                            logger.severe("[DUPE] ${online.name} picked up entity $entityUuid which was previously consumed by ${prev.playerUuid} ${(System.currentTimeMillis() - prev.pickedUpAt) / 1000}s ago")
-                            reconciliationEngine.flagEntityDupe(online, capturedMaterial, consumed, prev)
-                        })
-                    }
-                    return@launch
-                }
-
-                if (creditAmount > 0 && outerTracked) {
-                    try {
-                        ledgerStorage.appendBuilt(capturedPlayerId, LedgerAction.PICKUP, capturedMaterial, creditAmount, finalMeta)
-                    } catch (e: Exception) {
-                        logger.warning("[Ledger] PICKUP append failed: ${e.message}")
-                    }
-                }
-                if (capturedContents.isNotEmpty()) {
-                    val contentsMeta = finalMeta.copy(notes = listOfNotNull(finalMeta.notes, "CONTENTS_OF:$capturedMaterial").joinToString("|"))
-                    for ((material, count) in capturedContents) {
+                var credited = false
+                try {
+                    // A partial pickup leaves the remainder on the ground under the same entity UUID,
+                    // so the UUID only counts as consumed once the entity is gone.
+                    val prev = if (!survived) {
                         try {
-                            ledgerStorage.appendBuilt(capturedPlayerId, LedgerAction.PICKUP, material, count, contentsMeta)
+                            ledgerStorage.markEntityPickup(entityUuid, capturedPlayerId, capturedMaterial, consumed)
+                        } catch (e: Exception) {
+                            logger.warning("[Ledger] markEntityPickup failed: ${e.message}")
+                            null
+                        }
+                    } else null
+
+                    if (prev != null) {
+                        val nowMs = System.currentTimeMillis()
+                        flaggedDupeEntities.entries.removeIf { nowMs - it.value > dupeAlertSuppressMs }
+                        if (flaggedDupeEntities.putIfAbsent(entityUuid, nowMs) == null) {
+                            scheduler.runMain(Runnable {
+                                val online = plugin.server.getPlayer(capturedPlayerId) ?: return@Runnable
+                                logger.severe("[DUPE] ${online.name} picked up entity $entityUuid which was previously consumed by ${prev.playerUuid} ${(System.currentTimeMillis() - prev.pickedUpAt) / 1000}s ago")
+                                reconciliationEngine.flagEntityDupe(online, capturedMaterial, consumed, prev)
+                            })
+                        }
+                        return@launch
+                    }
+
+                    if (creditAmount > 0 && outerTracked) {
+                        try {
+                            ledgerStorage.appendBuilt(capturedPlayerId, LedgerAction.PICKUP, capturedMaterial, creditAmount, finalMeta)
                         } catch (e: Exception) {
                             logger.warning("[Ledger] PICKUP append failed: ${e.message}")
                         }
                     }
+                    if (capturedContents.isNotEmpty()) {
+                        val contentsMeta = finalMeta.copy(notes = listOfNotNull(finalMeta.notes, "CONTENTS_OF:$capturedMaterial").joinToString("|"))
+                        for ((material, count) in capturedContents) {
+                            try {
+                                ledgerStorage.appendBuilt(capturedPlayerId, LedgerAction.PICKUP, material, count, contentsMeta)
+                            } catch (e: Exception) {
+                                logger.warning("[Ledger] PICKUP append failed: ${e.message}")
+                            }
+                        }
+                    }
+                    credited = true
+                } finally {
+                    settle.end(capturedPlayerId)
                 }
                 // Only once the credit is written: checking at event time sees the tagged item
                 // but not yet the credit, and alerts on every pickup above the threshold.
-                if (checkAfterCredit && player.isOnline) reconciliationEngine.reconcileAsync(player)
+                if (credited && checkAfterCredit && player.isOnline) reconciliationEngine.reconcileAsync(player)
             }
         })
 
@@ -374,13 +388,18 @@ class LedgerEventHandler(
         val material = item.type
         val playerId = player.uniqueId
         val contents = containedTracked(item)
+        settle.begin(playerId)
         scheduler.runForEntityLater(player, 1, Runnable {
-            if (block.type != placedType) return@Runnable
-            val meta = LedgerMetadata.fromLocation(block.location)
-            appendAsync(playerId, LedgerAction.PLACE, material, -1, meta)
-            if (contents.isNotEmpty()) {
-                appendContents(playerId, LedgerAction.PLACE, contents, -1,
-                    meta.copy(notes = "CONTENTS_OF:$material"))
+            try {
+                if (block.type != placedType) return@Runnable
+                val meta = LedgerMetadata.fromLocation(block.location)
+                appendAsync(playerId, LedgerAction.PLACE, material, -1, meta)
+                if (contents.isNotEmpty()) {
+                    appendContents(playerId, LedgerAction.PLACE, contents, -1,
+                        meta.copy(notes = "CONTENTS_OF:$material"))
+                }
+            } finally {
+                settle.end(playerId)
             }
         })
     }
@@ -402,13 +421,18 @@ class LedgerEventHandler(
             if (outerTracked) pending.dropped.merge(material, amount, Int::plus)
             for ((m, c) in contents) pending.dropped.merge(m, c, Int::plus)
         }
+        settle.begin(playerId)
         scheduler.runForEntityLater(dropEntity, 1, Runnable {
-            if (!dropEntity.isValid) return@Runnable
-            val meta = LedgerMetadata.fromLocation(dropEntity.location)
-            if (outerTracked) appendAsync(playerId, LedgerAction.DROP, material, -amount, meta)
-            if (contents.isNotEmpty()) {
-                appendContents(playerId, LedgerAction.DROP, contents, -1,
-                    meta.copy(notes = "CONTENTS_OF:$material"))
+            try {
+                if (!dropEntity.isValid) return@Runnable
+                val meta = LedgerMetadata.fromLocation(dropEntity.location)
+                if (outerTracked) appendAsync(playerId, LedgerAction.DROP, material, -amount, meta)
+                if (contents.isNotEmpty()) {
+                    appendContents(playerId, LedgerAction.DROP, contents, -1,
+                        meta.copy(notes = "CONTENTS_OF:$material"))
+                }
+            } finally {
+                settle.end(playerId)
             }
         })
     }
@@ -560,6 +584,7 @@ class LedgerEventHandler(
         val pending = if (existing != null && existing.inventory === inv) existing else {
             val fresh = PendingContainerDiff(inv, target)
             pendingDiffs[player.uniqueId] = fresh
+            settle.begin(player.uniqueId)
             scheduler.runForEntityLater(player, 1, Runnable { settleContainerDiff(player, fresh) })
             fresh
         }
@@ -573,6 +598,14 @@ class LedgerEventHandler(
     }
 
     private fun settleContainerDiff(player: Player, pending: PendingContainerDiff) {
+        try {
+            settleContainerDiffNow(player, pending)
+        } finally {
+            settle.end(player.uniqueId)
+        }
+    }
+
+    private fun settleContainerDiffNow(player: Player, pending: PendingContainerDiff) {
         pendingDiffs.remove(player.uniqueId, pending)
         for ((mat, pre) in pending.playerPre) {
             val delta = countPlayerSide(player, mat) - pre
@@ -737,13 +770,18 @@ class LedgerEventHandler(
         if (watched.isEmpty()) return
 
         val before = watched.associateWith { countInSlots(top, it, resultSlot) }
+        settle.begin(player.uniqueId)
         scheduler.runForEntityLater(player, 1, Runnable {
-            for ((material, pre) in before) {
-                val consumed = pre - countInSlots(top, material, resultSlot)
-                if (consumed <= 0) continue
-                val meta = LedgerMetadata.fromLocation(player.location)
-                    .copy(containerType = type.name, notes = "STATION_INPUT:${type.name}")
-                appendAsync(player.uniqueId, LedgerAction.CONSUME, material, -consumed, meta)
+            try {
+                for ((material, pre) in before) {
+                    val consumed = pre - countInSlots(top, material, resultSlot)
+                    if (consumed <= 0) continue
+                    val meta = LedgerMetadata.fromLocation(player.location)
+                        .copy(containerType = type.name, notes = "STATION_INPUT:${type.name}")
+                    appendAsync(player.uniqueId, LedgerAction.CONSUME, material, -consumed, meta)
+                }
+            } finally {
+                settle.end(player.uniqueId)
             }
         })
     }
@@ -972,18 +1010,23 @@ class LedgerEventHandler(
 
         val before = materials.associateWith { countInInventory(player.inventory, it) }
         val loc = block.location
+        settle.begin(player.uniqueId)
         scheduler.runForEntityLater(player, 1, Runnable {
-            for ((mat, pre) in before) {
-                val delta = countInInventory(player.inventory, mat) - pre
-                if (delta == 0) continue
-                val meta = LedgerMetadata.fromLocation(player.location).withContainer("SHELF", loc)
-                if (delta < 0) {
-                    appendAsync(player.uniqueId, LedgerAction.CONTAINER_PUT, mat, delta, meta)
-                } else {
-                    val previousOwner = retagTaken(player, mat, delta)
-                    val takeMeta = if (previousOwner != null) meta.withRelatedPlayer(previousOwner) else meta
-                    appendAsync(player.uniqueId, LedgerAction.CONTAINER_TAKE, mat, delta, takeMeta)
+            try {
+                for ((mat, pre) in before) {
+                    val delta = countInInventory(player.inventory, mat) - pre
+                    if (delta == 0) continue
+                    val meta = LedgerMetadata.fromLocation(player.location).withContainer("SHELF", loc)
+                    if (delta < 0) {
+                        appendAsync(player.uniqueId, LedgerAction.CONTAINER_PUT, mat, delta, meta)
+                    } else {
+                        val previousOwner = retagTaken(player, mat, delta)
+                        val takeMeta = if (previousOwner != null) meta.withRelatedPlayer(previousOwner) else meta
+                        appendAsync(player.uniqueId, LedgerAction.CONTAINER_TAKE, mat, delta, takeMeta)
+                    }
                 }
+            } finally {
+                settle.end(player.uniqueId)
             }
         })
     }

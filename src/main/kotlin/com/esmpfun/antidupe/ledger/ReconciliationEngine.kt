@@ -2,6 +2,7 @@ package com.esmpfun.antidupe.ledger
 
 import com.esmpfun.antidupe.platform.PlatformScheduler
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bukkit.Material
@@ -28,7 +29,8 @@ class ReconciliationEngine(
     private val suspicion: SuspicionManager,
     private val reconciliationCooldown: Long = 5000L,
     private val alertThresholds: Map<Material, Int> = emptyMap(),
-    private val defaultAlertThreshold: Int = 5
+    private val defaultAlertThreshold: Int = 5,
+    private val settle: SettleTracker = SettleTracker()
 ) {
     private val activeReconciliations = ConcurrentHashMap<UUID, Long>()
     private val suspects = ConcurrentHashMap<UUID, SuspectProfile>()
@@ -47,6 +49,8 @@ class ReconciliationEngine(
 
     private companion object {
         const val WASH_WINDOW_MS = 86_400_000L
+        const val SETTLE_WAIT_MS = 10_000L
+        const val SETTLE_POLL_MS = 50L
     }
 
     fun addAlertListener(listener: (DupeAlert) -> Unit) {
@@ -59,7 +63,9 @@ class ReconciliationEngine(
 
     private class InventorySnapshot(
         val ownedCounts: Map<Material, Int>,
-        val foreignItems: List<ForeignItem>
+        val foreignItems: List<ForeignItem>,
+        val settleVersion: Long,
+        val settling: Boolean
     )
 
     /**
@@ -72,9 +78,15 @@ class ReconciliationEngine(
         suspendCancellableCoroutine { cont ->
             scheduler.runForEntity(player, Runnable {
                 try {
+                    // Read on the player's thread, where their clicks are handled, so no movement can
+                    // start between these and the count.
+                    val version = settle.version(player.uniqueId)
+                    val settling = settle.isSettling(player.uniqueId)
                     cont.resume(InventorySnapshot(
                         ownedCounts = ownershipManager.snapshotOwnedDeep(player, trackedMaterials),
-                        foreignItems = ownershipManager.findForeignItemsDeep(player)
+                        foreignItems = ownershipManager.findForeignItemsDeep(player),
+                        settleVersion = version,
+                        settling = settling
                     ))
                 } catch (t: Throwable) {
                     cont.resumeWithException(t)
@@ -85,29 +97,59 @@ class ReconciliationEngine(
     suspend fun snapshotOwned(player: Player): Map<Material, Int> =
         snapshotInventory(player).ownedCounts
 
+    /**
+     * Items that just moved are in the inventory before their ledger entry is written, and a
+     * movement after the count changes the ledger before it is read. Either way the two disagree,
+     * so a count and its balances only stand if nothing was settling and nothing moved between
+     * them. Null when the player never stopped moving items for [SETTLE_WAIT_MS].
+     */
+    private suspend fun settledSnapshot(player: Player, started: Long): Pair<InventorySnapshot, Map<Material, Int>>? {
+        val playerId = player.uniqueId
+        while (true) {
+            if (!settle.isSettling(playerId)) {
+                val candidate = snapshotInventory(player)
+                if (!candidate.settling) {
+                    val balances = trackedMaterials.associateWith { ledgerStorage.getBalance(playerId, it) }
+                    if (!settle.isSettling(playerId) && settle.version(playerId) == candidate.settleVersion) {
+                        return candidate to balances
+                    }
+                }
+            }
+            if (System.currentTimeMillis() - started >= SETTLE_WAIT_MS) return null
+            delay(SETTLE_POLL_MS)
+        }
+    }
+
     /** [ignoreCooldown] is for admin commands, which must always see a fresh count. */
     suspend fun reconcile(player: Player, ignoreCooldown: Boolean = false): ReconciliationResult {
         val playerId = player.uniqueId
-        val now = System.currentTimeMillis()
+        val started = System.currentTimeMillis()
 
         val lastReconcile = activeReconciliations[playerId]
-        if (!ignoreCooldown && lastReconcile != null && now - lastReconcile < reconciliationCooldown) {
+        if (!ignoreCooldown && lastReconcile != null && started - lastReconcile < reconciliationCooldown) {
             return ReconciliationResult(
                 player = playerId,
-                timestamp = now,
+                timestamp = started,
                 skipped = true,
                 reason = "Cooldown active"
             )
         }
-        activeReconciliations[playerId] = now
+        activeReconciliations[playerId] = started
 
-        val snapshot = snapshotInventory(player)
+        val (snapshot, balances) = settledSnapshot(player, started)
+            ?: return ReconciliationResult(
+                player = playerId,
+                timestamp = System.currentTimeMillis(),
+                skipped = true,
+                reason = "Player is still moving items"
+            )
+        val now = System.currentTimeMillis()
 
         val discrepancies = mutableListOf<Discrepancy>()
         val tmarViolations = mutableListOf<TmarViolation>()
 
         for (material in trackedMaterials) {
-            val ledgerBalance = ledgerStorage.getBalance(playerId, material)
+            val ledgerBalance = balances[material] ?: 0
             val actualCount = snapshot.ownedCounts[material] ?: 0
 
             val key = playerId to material
@@ -378,6 +420,7 @@ class ReconciliationEngine(
         activeReconciliations.entries.removeIf { it.value < cutoff }
         recentSurplus.entries.removeIf { now - it.value.seenAt > WASH_WINDOW_MS }
         washedSurplus.entries.removeIf { now - it.value.since > WASH_WINDOW_MS }
+        settle.prune()
     }
 }
 
