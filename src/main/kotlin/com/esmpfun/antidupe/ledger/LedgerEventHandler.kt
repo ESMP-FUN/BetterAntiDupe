@@ -927,7 +927,8 @@ class LedgerEventHandler(
     }
 
     // Copper golem sorting is deliberately not handled: a golem only moves items between two
-    // chests, never a player inventory, so no balance changes when it works.
+    // chests, never a player inventory, so no balance changes when it works. It also leaves a
+    // chest alone while a player has it open (verified on Paper 26.2 for both ends of a trip).
 
     // Crafter automation is deliberately not handled: CrafterCraftEvent only exists on Paper
     // builds newer than we target, and items leaving a crafter are caught downstream anyway.
