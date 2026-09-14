@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="t d">
+  <title id="t">Better Anti-Dupe icon</title>
+  <desc id="d">A Minecraft diamond inside a turning steel shield.</desc>
+
+  <defs>
+    <radialGradient id="iglow" cx="50%" cy="50%" r="58%">
+      <stop offset="0%"   stop-color="#27497A" stop-opacity="0.35"/>
+      <stop offset="55%"  stop-color="#27497A" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#27497A" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="igemglow">
+      <stop offset="0%"   stop-color="#4AEDD9" stop-opacity="0.20"/>
+      <stop offset="45%"  stop-color="#4AEDD9" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#4AEDD9" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="#0B1729"/>
+  <rect width="512" height="512" fill="url(#iglow)"/>
+
+  <defs>
+    <linearGradient id="isteel" gradientUnits="userSpaceOnUse" x1="0" y1="90" x2="0" y2="432">
+      <stop offset="0" stop-color="#E8EEF2"></stop>
+      <stop offset="1" stop-color="#A3B0BB"></stop>
+    </linearGradient>
+  </defs>
+  <circle cx="256" cy="248.5" r="170" fill="url(#igemglow)"/>
+  <path d="M256.0,103.5 270.1,103.3 283.6,102.9 296.5,102.1 309.0,101.1 321.0,99.8 332.6,98.3 343.7,96.6 354.5,94.7 364.9,92.7 375.0,90.5 384.8,88.1 402.5,83.6 402.5,206.2 401.1,234.8 397.2,261.8 390.7,287.0 382.1,310.6 371.5,332.3 359.1,352.2 345.1,370.3 329.7,386.7 313.2,401.2 295.7,413.9 277.4,424.8 256.0,435.2 234.6,424.8 216.3,413.9 198.8,401.2 182.3,386.7 166.9,370.3 152.9,352.2 140.5,332.3 129.9,310.6 121.3,287.0 114.8,261.8 110.9,234.8 109.5,206.2 109.5,83.6 127.2,88.1 137.0,90.5 147.1,92.7 157.5,94.7 168.3,96.6 179.4,98.3 191.0,99.8 203.0,101.1 215.5,102.1 228.4,102.9 241.9,103.3ZM256.0,116.5 270.4,116.3 284.2,115.9 297.5,115.1 310.2,114.0 322.5,112.7 334.4,111.2 345.8,109.4 356.9,107.5 367.6,105.4 377.9,103.1 387.9,100.8 389.5,100.4 389.5,205.8 388.2,233.5 384.4,259.2 378.3,283.2 370.2,305.4 360.1,326.0 348.4,344.8 335.2,361.9 320.7,377.3 305.0,391.0 288.5,403.1 271.2,413.4 256.0,420.8 240.8,413.4 223.5,403.1 207.0,391.0 191.3,377.3 176.8,361.9 163.6,344.8 151.9,326.0 141.8,305.4 133.7,283.2 127.6,259.2 123.8,233.5 122.5,205.8 122.5,100.4 124.1,100.8 134.1,103.1 144.4,105.4 155.1,107.5 166.2,109.4 177.6,111.2 189.5,112.7 201.8,114.0 214.5,115.1 227.8,115.9 241.6,116.3Z" fill="url(#isteel)" fill-rule="evenodd"/>
+  <path d="M256.0,134.0C304.0,134.0 342.0,128.0 374.0,122.0L374.0,210.0C374.0,308.0 318.0,370.0 256.0,400.0" fill="none" stroke="#CE9108" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M256.0,400.0C194.0,370.0 138.0,308.0 138.0,210.0L138.0,122.0C170.0,128.0 208.0,134.0 256.0,134.0" fill="none" stroke="#CE9108" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <g>
+    <path d="M282,164 L282,177 L295,177 L295,190 L308,190 L308,203 L308,203 L308,216 L321,216 L321,229 L334,229 L334,242 L334,242 L334,255 L334,255 L334,268 L334,268 L334,281 L321,281 L321,294 L321,294 L321,307 L308,307 L308,320 L295,320 L295,333 L217,333 L217,320 L204,320 L204,307 L191,307 L191,294 L191,294 L191,281 L178,281 L178,268 L178,268 L178,255 L178,255 L178,242 L178,242 L178,229 L191,229 L191,216 L191,216 L191,203 L204,203 L204,190 L217,190 L217,177 L230,177 L230,164Z" fill="#0B4F49"/>
+    <rect x="230" y="177" width="39" height="13" fill="#EFFFFC"/>
+    <rect x="269" y="177" width="13" height="13" fill="#A8F5EA"/>
+    <rect x="217" y="190" width="26" height="13" fill="#EFFFFC"/>
+    <rect x="243" y="190" width="39" height="13" fill="#A8F5EA"/>
+    <rect x="282" y="190" width="13" height="13" fill="#4AEDD9"/>
+    <rect x="204" y="203" width="13" height="13" fill="#EFFFFC"/>
+    <rect x="217" y="203" width="26" height="13" fill="#A8F5EA"/>
+    <rect x="243" y="203" width="13" height="13" fill="#4AEDD9"/>
+    <rect x="256" y="203" width="13" height="13" fill="#EFFFFC"/>
+    <rect x="269" y="203" width="13" height="13" fill="#4AEDD9"/>
+    <rect x="282" y="203" width="13" height="13" fill="#27BFAD"/>
+    <rect x="204" y="216" width="13" height="13" fill="#EFFFFC"/>
+    <rect x="217" y="216" width="13" height="13" fill="#A8F5EA"/>
+    <rect x="230" y="216" width="65" height="13" fill="#4AEDD9"/>
+    <rect x="295" y="216" width="13" height="13" fill="#27BFAD"/>
+    <rect x="191" y="229" width="13" height="13" fill="#EFFFFC"/>
+    <rect x="204" y="229" width="13" height="13" fill="#A8F5EA"/>
+    <rect x="217" y="229" width="78" height="13" fill="#4AEDD9"/>
+    <rect x="295" y="229" width="26" height="13" fill="#27BFAD"/>
+    <rect x="191" y="242" width="13" height="13" fill="#EFFFFC"/>
+    <rect x="204" y="242" width="13" height="13" fill="#A8F5EA"/>
+    <rect x="217" y="242" width="78" height="13" fill="#4AEDD9"/>
+    <rect x="295" y="242" width="26" height="13" fill="#27BFAD"/>
+    <rect x="191" y="255" width="13" height="13" fill="#EFFFFC"/>
+    <rect x="204" y="255" width="13" height="13" fill="#A8F5EA"/>
+    <rect x="217" y="255" width="78" height="13" fill="#4AEDD9"/>
+    <rect x="295" y="255" width="13" height="13" fill="#27BFAD"/>
+    <rect x="308" y="255" width="13" height="13" fill="#168276"/>
+    <rect x="191" y="268" width="13" height="13" fill="#A8F5EA"/>
+    <rect x="204" y="268" width="13" height="13" fill="#27BFAD"/>
+    <rect x="217" y="268" width="104" height="13" fill="#168276"/>
+    <rect x="204" y="281" width="13" height="13" fill="#A8F5EA"/>
+    <rect x="217" y="281" width="78" height="13" fill="#27BFAD"/>
+    <rect x="295" y="281" width="13" height="13" fill="#168276"/>
+    <rect x="204" y="294" width="13" height="13" fill="#168276"/>
+    <rect x="217" y="294" width="78" height="13" fill="#27BFAD"/>
+    <rect x="295" y="294" width="13" height="13" fill="#168276"/>
+    <rect x="217" y="307" width="13" height="13" fill="#168276"/>
+    <rect x="230" y="307" width="52" height="13" fill="#27BFAD"/>
+    <rect x="282" y="307" width="13" height="13" fill="#168276"/>
+  </g>
+</svg>
