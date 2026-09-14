@@ -39,6 +39,7 @@ class RedisLedgerStorage internal constructor(
         private const val KEY_BALANCE = "balance:"
         private const val KEY_RECENT = "ledger:recent:"
         private const val KEY_BASELINE_CLAIM = "ledger:baseline-claim:"
+        private const val KEY_WORLD_STOCK = "ledger:worldstock:"
         /** Long enough for the snapshot and the marker write; the marker guards every later join. */
         private const val BASELINE_CLAIM_SECONDS = 60L
         private const val SCAN_BATCH = 500L
@@ -67,6 +68,13 @@ class RedisLedgerStorage internal constructor(
             logger.info("[Ledger] Connected to Redis at $host:$port")
             return RedisLedgerStorage(client, connection, txConnection, coroutines, logger)
         }
+    }
+
+    override suspend fun adjustWorldStock(owner: UUID, material: Material, delta: Int): Int =
+        (redis.hincrby(KEY_WORLD_STOCK + owner, material.name, delta.toLong()) ?: 0L).toInt()
+
+    override suspend fun setWorldStock(owner: UUID, material: Material, value: Int) {
+        redis.hset(KEY_WORLD_STOCK + owner, material.name, value.toString())
     }
 
     override suspend fun claimBaseline(player: UUID): Boolean =

@@ -83,6 +83,19 @@ class ChainOfCustody private constructor(
                 settle = settleTracker
             )
 
+            val worldStock = WorldStock(
+                storage = ledgerStorage,
+                threshold = { reconciliationEngine.alertThresholdFor(it) },
+                logger = logger
+            ) { actor, owner, material, deficit, where ->
+                scheduler.runMain(Runnable {
+                    val server = plugin.server
+                    val actorName = server.getPlayer(actor)?.name ?: server.getOfflinePlayer(actor).name ?: actor.toString()
+                    val ownerName = server.getOfflinePlayer(owner).name ?: owner.toString()
+                    reconciliationEngine.flagWorldStockDeficit(actor, actorName, ownerName, material, deficit, where)
+                })
+            }
+
             val eventHandler = LedgerEventHandler(
                 plugin = plugin,
                 ledgerStorage = ledgerStorage,
@@ -98,7 +111,8 @@ class ChainOfCustody private constructor(
                 flagSuspiciousPatterns = flagSuspiciousPatterns,
                 hopperMode = hopperMode,
                 blockCollectToCursor = blockCollectToCursor,
-                settle = settleTracker
+                settle = settleTracker,
+                worldStock = worldStock
             )
 
             plugin.server.pluginManager.registerEvents(eventHandler, plugin)
@@ -111,6 +125,13 @@ class ChainOfCustody private constructor(
                 scheduler, sweepIntervalMinutes, sweepStaggerMs)
 
             coc.migrateLegacyChains()
+            scope.launch {
+                try {
+                    worldStock.seedIfNeeded(ledgerStorage.getTrackedPlayers())
+                } catch (e: Exception) {
+                    logger.warning("[Ledger] Could not count stored items from history, so storage dupe alerts stay off until the next start: ${e.message}")
+                }
+            }
             coc.startMaintenance()
             coc.startPeriodicSweep()
             coc.verifyIntegrityAsync()

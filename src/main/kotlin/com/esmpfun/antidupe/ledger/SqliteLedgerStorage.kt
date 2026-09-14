@@ -97,6 +97,14 @@ class SqliteLedgerStorage private constructor(
                     )
                 """.trimIndent())
                 st.execute("CREATE INDEX IF NOT EXISTS idx_pickup_ts ON pickup_history(picked_up_at)")
+                st.execute("""
+                    CREATE TABLE IF NOT EXISTS world_stock (
+                        owner TEXT NOT NULL,
+                        material TEXT NOT NULL,
+                        amount INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY (owner, material)
+                    )
+                """.trimIndent())
 
                 // SQLite has no ADD COLUMN IF NOT EXISTS, so look first. Rows written before
                 // hash version 2 default to 1: hashes that did not cover the metadata.
@@ -110,6 +118,30 @@ class SqliteLedgerStorage private constructor(
             }
             logger.info("[Ledger] Connected to SQLite at ${path.name}")
             SqliteLedgerStorage(c, logger)
+        }
+    }
+
+    override suspend fun adjustWorldStock(owner: UUID, material: Material, delta: Int): Int = withContext(db) {
+        conn.prepareStatement(
+            "INSERT INTO world_stock(owner, material, amount) VALUES(?, ?, ?) " +
+                "ON CONFLICT(owner, material) DO UPDATE SET amount = amount + excluded.amount"
+        ).use { st ->
+            st.setString(1, owner.toString()); st.setString(2, material.name); st.setInt(3, delta)
+            st.executeUpdate()
+        }
+        conn.prepareStatement("SELECT amount FROM world_stock WHERE owner=? AND material=?").use { st ->
+            st.setString(1, owner.toString()); st.setString(2, material.name)
+            st.executeQuery().use { rs -> if (rs.next()) rs.getInt(1) else 0 }
+        }
+    }
+
+    override suspend fun setWorldStock(owner: UUID, material: Material, value: Int): Unit = withContext(db) {
+        conn.prepareStatement(
+            "INSERT INTO world_stock(owner, material, amount) VALUES(?, ?, ?) " +
+                "ON CONFLICT(owner, material) DO UPDATE SET amount = excluded.amount"
+        ).use { st ->
+            st.setString(1, owner.toString()); st.setString(2, material.name); st.setInt(3, value)
+            st.executeUpdate()
         }
     }
 

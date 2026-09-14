@@ -63,7 +63,8 @@ class LedgerEventHandler(
     private val flagSuspiciousPatterns: Boolean = true,
     private val hopperMode: HopperMode = HopperMode.LOG,
     private val blockCollectToCursor: Boolean = false,
-    private val settle: SettleTracker = SettleTracker()
+    private val settle: SettleTracker = SettleTracker(),
+    private val worldStock: WorldStock? = null
 ) : Listener {
 
     enum class HopperMode {
@@ -104,6 +105,90 @@ class LedgerEventHandler(
                 settle.end(player)
             }
         }
+    }
+
+    private fun tally(stack: ItemStack?): MutableMap<Pair<UUID, Material>, Int> =
+        HashMap<Pair<UUID, Material>, Int>().also { ownershipManager.tallyOwners(stack, ::isTracked, it) }
+
+    /** Tally of a stack that moves one item at a time, as into a frame or a pot. */
+    private fun tallySingle(stack: ItemStack): Map<Pair<UUID, Material>, Int> {
+        val t = tally(stack)
+        val owner = ownershipManager.getOwner(stack)
+        if (owner != null && isTracked(stack.type)) t.merge(owner to stack.type, 1 - stack.amount, Int::plus)
+        return t.filterValues { it > 0 }
+    }
+
+    /** Only what a placed block carries inside it; the block itself comes back as a freshly mined drop. */
+    private fun tallyNested(stack: ItemStack): Map<Pair<UUID, Material>, Int> {
+        val t = tally(stack)
+        val owner = ownershipManager.getOwner(stack)
+        if (owner != null && isTracked(stack.type)) t.merge(owner to stack.type, -stack.amount, Int::plus)
+        return t.filterValues { it > 0 }
+    }
+
+    private fun tallyPlayerSide(player: Player, materials: Set<Material>): MutableMap<Pair<UUID, Material>, Int> {
+        val sink = HashMap<Pair<UUID, Material>, Int>()
+        fun consider(stack: ItemStack?) {
+            if (stack == null || (stack.type !in materials && !mightHoldItems(stack.type))) return
+            ownershipManager.tallyOwners(stack, ::isTracked, sink)
+        }
+        player.inventory.contents.forEach { consider(it) }
+        consider(player.itemOnCursor)
+        sink.keys.removeIf { it.second !in materials }
+        return sink
+    }
+
+    private fun locationLabel(loc: Location): String =
+        "${loc.world?.name ?: "?"} ${loc.blockX}, ${loc.blockY}, ${loc.blockZ}"
+
+    private fun stockOut(tally: Map<Pair<UUID, Material>, Int>) {
+        val ws = worldStock ?: return
+        if (tally.isEmpty()) return
+        scope.launch {
+            try { ws.out(tally) } catch (e: Exception) { logger.warning("[Ledger] world stock update failed: ${e.message}") }
+        }
+    }
+
+    private fun stockBack(actor: UUID, tally: Map<Pair<UUID, Material>, Int>, where: String?) {
+        val ws = worldStock ?: return
+        if (tally.isEmpty()) return
+        scope.launch {
+            try { ws.back(actor, tally, where) } catch (e: Exception) { logger.warning("[Ledger] world stock update failed: ${e.message}") }
+        }
+    }
+
+    /**
+     * Books the change in who owns the tagged items on a player's side. [after] must be counted
+     * before any retagging, or the taker's new tag hides whose items came out.
+     */
+    private fun settleStock(
+        actor: UUID,
+        before: Map<Pair<UUID, Material>, Int>,
+        after: Map<Pair<UUID, Material>, Int>,
+        adjust: Map<Pair<UUID, Material>, Int>,
+        where: String?,
+        ceiling: Map<Material, Int>?
+    ) {
+        val out = HashMap<Pair<UUID, Material>, Int>()
+        val back = HashMap<Pair<UUID, Material>, Int>()
+        for (key in before.keys + after.keys + adjust.keys) {
+            val d = (after[key] ?: 0) - (before[key] ?: 0) - (adjust[key] ?: 0)
+            if (d < 0) out[key] = -d else if (d > 0) back[key] = d
+        }
+        if (ceiling != null) {
+            // Nothing can come out of a container beyond what it held.
+            for ((material, cap) in ceiling) {
+                var room = cap
+                for (key in back.keys.filter { it.second == material }) {
+                    val taken = minOf(back.getValue(key), room)
+                    back[key] = taken
+                    room -= taken
+                }
+            }
+            back.entries.removeIf { it.value <= 0 }
+        }
+        stockOut(out)
+        stockBack(actor, back, where)
     }
 
     private fun mightHoldItems(type: Material): Boolean =
@@ -150,11 +235,14 @@ class LedgerEventHandler(
 
         val brokenType = event.blockState.type
         val tool = player.inventory.itemInMainHand
+        val minedTally = HashMap<Pair<UUID, Material>, Int>()
         for (itemEntity in event.items) {
             val stack = itemEntity.itemStack
             if (!isTracked(stack.type)) continue
             ownershipManager.setOwner(stack, player.uniqueId)
             itemEntity.itemStack = stack
+            // Freshly tagged and lying in the world, so it counts as stored until picked up.
+            minedTally.merge(player.uniqueId to stack.type, stack.amount, Int::plus)
 
             // No MINE entry on purpose: the credit happens at pickup, which inherits the
             // source context through the expected drop.
@@ -165,6 +253,7 @@ class LedgerEventHandler(
                 sourceContext = "MINE:${brokenType.name}|TOOL:${tool.type.name}"
             )
         }
+        stockOut(minedTally)
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -214,6 +303,7 @@ class LedgerEventHandler(
         val pickedContents = containedTracked(item)
         // An untracked holder such as a bundle still carries tracked contents that must move.
         if (!outerTracked && pickedContents.isEmpty()) return
+        val pickedTally = tally(item)
 
         val previousOwner = if (outerTracked) ownershipManager.getOwner(item)
             else ownershipManager.retagNested(item.clone(), player.uniqueId, ::isTracked).previousOwner
@@ -235,9 +325,15 @@ class LedgerEventHandler(
 
         pendingDiffs[player.uniqueId]?.let { pending ->
             val arriving = item.amount - event.remaining
-            if (arriving > 0 && outerTracked) pending.pickedUp.merge(item.type, arriving, Int::plus)
+            if (arriving > 0 && outerTracked) {
+                pending.pickedUp.merge(item.type, arriving, Int::plus)
+                pending.ownerAdjust.merge(player.uniqueId to item.type, arriving, Int::plus)
+            }
             if (event.remaining == 0) {
-                for ((m, c) in pickedContents) pending.pickedUp.merge(m, c, Int::plus)
+                for ((m, c) in pickedContents) {
+                    pending.pickedUp.merge(m, c, Int::plus)
+                    pending.ownerAdjust.merge(player.uniqueId to m, c, Int::plus)
+                }
             }
         }
 
@@ -330,6 +426,13 @@ class LedgerEventHandler(
                 }
                 // Only once the credit is written: checking at event time sees the tagged item
                 // but not yet the credit, and alerts on every pickup above the threshold.
+                if (credited) {
+                    val cameBack = if (survived) {
+                        val outer = previousOwner?.let { it to capturedMaterial }
+                        if (outer != null && pickedTally.containsKey(outer)) mapOf(outer to consumed) else emptyMap()
+                    } else pickedTally
+                    stockBack(capturedPlayerId, cameBack, locationLabel(pickupLoc))
+                }
                 if (credited && checkAfterCredit && player.isOnline) reconciliationEngine.reconcileAsync(player)
             }
         })
@@ -388,10 +491,12 @@ class LedgerEventHandler(
         val material = item.type
         val playerId = player.uniqueId
         val contents = containedTracked(item)
+        val nestedTally = if (contents.isEmpty()) emptyMap() else tallyNested(item)
         settle.begin(playerId)
         scheduler.runForEntityLater(player, 1, Runnable {
             try {
                 if (block.type != placedType) return@Runnable
+                stockOut(nestedTally)
                 val meta = LedgerMetadata.fromLocation(block.location)
                 appendAsync(playerId, LedgerAction.PLACE, material, -1, meta)
                 if (contents.isNotEmpty()) {
@@ -412,6 +517,7 @@ class LedgerEventHandler(
         val outerTracked = isTracked(item.type)
         val contents = containedTracked(item)
         if (!outerTracked && contents.isEmpty()) return
+        val dropTally = tally(item)
 
         val dropEntity = event.itemDrop
         val material = item.type
@@ -420,11 +526,13 @@ class LedgerEventHandler(
         pendingDiffs[playerId]?.let { pending ->
             if (outerTracked) pending.dropped.merge(material, amount, Int::plus)
             for ((m, c) in contents) pending.dropped.merge(m, c, Int::plus)
+            for ((k, n) in dropTally) pending.ownerAdjust.merge(k, -n, Int::plus)
         }
         settle.begin(playerId)
         scheduler.runForEntityLater(dropEntity, 1, Runnable {
             try {
                 if (!dropEntity.isValid) return@Runnable
+                stockOut(dropTally)
                 val meta = LedgerMetadata.fromLocation(dropEntity.location)
                 if (outerTracked) appendAsync(playerId, LedgerAction.DROP, material, -amount, meta)
                 if (contents.isNotEmpty()) {
@@ -447,6 +555,7 @@ class LedgerEventHandler(
         if (shouldSkip(player)) return
         val meta = LedgerMetadata.fromLocation(player.location).copy(notes = "DEATH_DROP")
         for (drop in event.drops) {
+            stockOut(tally(drop))
             if (isTracked(drop.type)) {
                 appendAsync(player.uniqueId, LedgerAction.DROP, drop.type, -drop.amount, meta)
             }
@@ -546,6 +655,10 @@ class LedgerEventHandler(
         val takeCeiling = ConcurrentHashMap<Material, Int>()
         val pickedUp = ConcurrentHashMap<Material, Int>()
         val dropped = ConcurrentHashMap<Material, Int>()
+        /** Who owned the tagged items on the player's side at the first click. */
+        val ownerPre = ConcurrentHashMap<Pair<UUID, Material>, Int>()
+        /** Same-tick pickups (+) and drops (-) by owner, which move the player's side on their own. */
+        val ownerAdjust = ConcurrentHashMap<Pair<UUID, Material>, Int>()
     }
 
     private val pendingDiffs = ConcurrentHashMap<UUID, PendingContainerDiff>()
@@ -589,11 +702,16 @@ class LedgerEventHandler(
             fresh
         }
         // Each click is applied after this MONITOR handler returns, so these are pre-click counts.
+        val fresh = HashSet<Material>()
         for (mat in materials) {
             if (pending.playerPre.putIfAbsent(mat, countPlayerSide(player, mat)) == null) {
                 pending.foreignPre[mat] = countForeignPlayerSide(player, mat)
+                fresh.add(mat)
             }
             pending.takeCeiling.merge(mat, countInInventory(inv, mat), Int::plus)
+        }
+        if (worldStock != null && fresh.isNotEmpty()) {
+            for ((key, amount) in tallyPlayerSide(player, fresh)) pending.ownerPre.merge(key, amount, Int::plus)
         }
     }
 
@@ -607,6 +725,12 @@ class LedgerEventHandler(
 
     private fun settleContainerDiffNow(player: Player, pending: PendingContainerDiff) {
         pendingDiffs.remove(player.uniqueId, pending)
+        if (worldStock != null) {
+            settleStock(
+                player.uniqueId, pending.ownerPre, tallyPlayerSide(player, pending.playerPre.keys),
+                pending.ownerAdjust, pending.target.location?.let(::locationLabel), pending.takeCeiling
+            )
+        }
         for ((mat, pre) in pending.playerPre) {
             val delta = countPlayerSide(player, mat) - pre
             val moved = delta - (pending.pickedUp[mat] ?: 0) + (pending.dropped[mat] ?: 0)
@@ -956,6 +1080,7 @@ class LedgerEventHandler(
         if (current != null && current.type != Material.AIR && !current.isSimilar(held)) return
 
         val meta = LedgerMetadata.fromLocation(block.location).copy(containerType = "DECORATED_POT")
+        stockOut(tallySingle(held))
         appendAsync(player.uniqueId, LedgerAction.CONTAINER_PUT, held.type, -1, meta)
         val contents = containedTracked(held)
         if (contents.isNotEmpty()) {
@@ -980,6 +1105,7 @@ class LedgerEventHandler(
 
         val meta = LedgerMetadata.fromLocation(event.lectern.location).copy(containerType = "LECTERN")
         appendAsync(player.uniqueId, LedgerAction.CONTAINER_TAKE, item.type, item.amount, meta)
+        stockBack(player.uniqueId, tally(item), locationLabel(event.lectern.location))
     }
 
     /**
@@ -1009,10 +1135,14 @@ class LedgerEventHandler(
         if (materials.isEmpty()) return
 
         val before = materials.associateWith { countInInventory(player.inventory, it) }
+        val ownersBefore = if (worldStock != null) tallyPlayerSide(player, materials) else emptyMap()
         val loc = block.location
         settle.begin(player.uniqueId)
         scheduler.runForEntityLater(player, 1, Runnable {
             try {
+                if (worldStock != null) {
+                    settleStock(player.uniqueId, ownersBefore, tallyPlayerSide(player, before.keys), emptyMap(), locationLabel(loc), null)
+                }
                 for ((mat, pre) in before) {
                     val delta = countInInventory(player.inventory, mat) - pre
                     if (delta == 0) continue
@@ -1187,6 +1317,7 @@ class LedgerEventHandler(
                 meta.copy(notes = "CONTENTS_OF:${held.type}"))
         }
 
+        stockOut(tallySingle(held))
         frameContents[frame.uniqueId] = FrameContent(held.type, 1, player.uniqueId)
     }
 

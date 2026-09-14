@@ -386,6 +386,31 @@ class ReconciliationEngine(
         ))
     }
 
+    /**
+     * More of [owner]'s tagged items came back out of containers, frames or the ground than ever
+     * went in, so copies were made outside anyone's inventory. Alert only: the taker may be
+     * innocent, so no suspicion is added and nothing is removed.
+     */
+    fun flagWorldStockDeficit(
+        actor: UUID, actorName: String, ownerName: String, material: Material, deficit: Int, where: String?
+    ) {
+        emitAlert(DupeAlert(
+            type = AlertType.BALANCE_DISCREPANCY,
+            player = actor,
+            playerName = actorName,
+            material = material,
+            details = "$deficit ${material.name} belonging to $ownerName came out of storage beyond what was ever put in" +
+                (where?.let { " (last taken at $it)" } ?: ""),
+            severity = calculateSeverity(material, deficit),
+            timestamp = System.currentTimeMillis(),
+            messageKey = "alerts.world-stock",
+            placeholders = mapOf(
+                "excess" to "$deficit", "material" to material.name,
+                "owner" to ownerName, "where" to (where ?: "?")
+            )
+        ))
+    }
+
     fun flagWitnessPattern(player: UUID) = suspicion.addHeat(player)
 
     fun confirmSuspect(player: UUID) = suspicion.confirm(player)
@@ -399,6 +424,8 @@ class ReconciliationEngine(
 
     fun suspicionOf(player: UUID): Double = suspicion.suspicion(player)
     fun decaySuspicion() = suspicion.decay()
+
+    fun alertThresholdFor(material: Material): Int = getAlertThreshold(material)
 
     private fun getAlertThreshold(material: Material): Int =
         alertThresholds[material] ?: defaultAlertThreshold

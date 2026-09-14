@@ -342,9 +342,10 @@ class BetterAntiDupe : JavaPlugin() {
             adpCommand.setEnforcement(enforcement)
 
             chainOfCustody?.onDupeAlert { raw ->
-                // A crash rolls the world back past pickups the ledger already saw, so the same
-                // item entity really is picked up twice. Say so rather than suppress the alert.
-                val alert = if (raw.messageKey == "alerts.entity-dupe" && recentlyCrashed())
+                // A crash rolls the world back past pickups and container moves the ledger already
+                // saw, which produces both of these alerts by itself. Say so rather than suppress.
+                val crashSensitive = raw.messageKey == "alerts.entity-dupe" || raw.messageKey == "alerts.world-stock"
+                val alert = if (crashSensitive && recentlyCrashed())
                     raw.copy(afterUncleanShutdown = true) else raw
                 com.esmpfun.antidupe.metrics.DetectionCounters
                     .recordDetection(alert.type.name, alert.severity.name, alert.material.name)
