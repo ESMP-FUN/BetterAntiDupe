@@ -77,14 +77,14 @@ Recent stashes by R4gnar95 (newest first, click coords to TP)
   /adp ledger confirm R4gnar95
   ```
 
-  From now on the plugin reacts to far smaller amounts from this player. If you set a punishment command, it runs now. See [Watch only, or take dupes back](../getting-started/watch-or-remove.md).
+  From now on the plugin reacts to far smaller amounts from this player, and that stays until you clear them. If you set a punishment command, it runs now. See [Watch only, or take dupes back](../getting-started/watch-or-remove.md).
 * **It is a false alarm:**
 
   ```
   /adp ledger clear R4gnar95
   ```
 
-  Resets their suspicion and takes them off the list.
+  Resets their suspicion and takes them off the list. Even without this, the extra suspicion from an automatic alert halves after each full day with no new alert, so an old false alarm fades on its own.
 
 Unless you turned on automatic removal, nothing has been taken yet.
 
@@ -108,6 +108,36 @@ Items stored inside a shulker box or bundle are left alone, and you are told how
 * `/adp ledger trust <player>` shows a score out of 100, built up over time from how often their gains were seen by others. Higher is more trustworthy.
 
 Neither is proof on its own. They help you decide.
+
+</details>
+
+## Other alerts you may see
+
+Most alerts are the "Has 20 but ledger shows 12" kind above. A few others read differently.
+
+<details>
+
+<summary><strong>"Chunk-load / drop-race dupe" (the same item picked up twice)</strong></summary>
+
+The exact same dropped item was picked up a second time, so it was copied. This is the most certain alert there is. The one innocent cause is a server crash, and the alert says so when the server did not shut down cleanly shortly before. Follow steps 2 to 5 as usual.
+
+</details>
+
+<details>
+
+<summary><strong>"carried without explanation, then stored away and written off"</strong></summary>
+
+The player carried extra items that carry their own mark, then stored them so their record dropped below zero and was written off. That is how small dupes get hidden. Check their history (step 3) and stash (step 4) around the time of the alert.
+
+</details>
+
+<details>
+
+<summary><strong>"belonging to ... came out of storage beyond what was ever put in"</strong></summary>
+
+More of one player's items came out of chests, frames, pots or the ground than that player ever put there, so copies were made in storage. The alert names whose items they were, who took the last of them, and where.
+
+The player who took them may simply have been handed them by a duper, so this alert adds no suspicion and removes nothing. Go to the location in the alert, and check `/adp ledger history` for both names. See [Troubleshooting](../help/troubleshooting.md) if a crash might be involved.
 
 </details>
 

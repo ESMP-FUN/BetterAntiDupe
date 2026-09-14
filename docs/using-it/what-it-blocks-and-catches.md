@@ -90,6 +90,16 @@ When a block is broken or an item frame is knocked down, the plugin knows how mu
 
 <details>
 
+<summary><strong>Small dupes hidden by storing them away</strong></summary>
+
+When a player's record for an item drops below zero, the plugin normally assumes it missed an honest gain, like a shop purchase, and accepts what they hold. A duper could use that: dupe a few items, store everything so the record drops below zero and is forgiven, then take it all back.
+
+Extra items that carry the player's own mark cannot come from a shop, so the plugin remembers them for a day. If they are stored away and written off like that, it adds them up and alerts once they reach the item's alert threshold. Items from shops and `/give` carry no mark and are still accepted quietly.
+
+</details>
+
+<details>
+
 <summary><strong>Copies made inside a chest</strong></summary>
 
 Some dupes copy items inside a chest, a donkey, an item frame or on the ground, not in anyone's inventory. The plugin keeps count of each player's items that are stored away or lying around, and if more of them come back out than were ever put in, you get an alert saying whose items they were, who took them and where.

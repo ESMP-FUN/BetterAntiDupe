@@ -40,17 +40,18 @@ diamond block and run `/adp ledger balance <your-name>`.
 **Blocked outright** - rail, carpet, TNT and gravity dupers; phantom-GUI container
 dupes; restart dupers. Each is a config toggle, all on by default.
 
-**Detected by the ledger** - balance reconciliation, Proof of Witness, stack-clone
-exploits, shulker and bundle laundering, item frames, entity inventories, hopper
-laundering, workstation outputs, container transfers, villager trades, chunk-load
-entity respawn, drop-pickup races, and acquisition-rate abuse (TMAR).
+**Detected by the ledger** - balance reconciliation, Proof of Witness, shulker and
+bundle laundering, item frames, entity inventories, hopper laundering, workstation
+outputs, container transfers, villager trades, chunk-load entity respawn,
+drop-pickup races, small dupes washed through storage, copies made inside
+containers, and acquisition-rate abuse (TMAR).
 
 Every ledger entry is hash-linked to the previous one, and the hash covers the
 audit details as well as the transaction, so editing the database directly breaks
 the chain and `/adp ledger verify` reports exactly where.
 
 The full coverage list, with the reasoning behind each detection, is in the
-[user guide](docs/README.md#62-what-it-catches).
+[user guide](docs/using-it/what-it-blocks-and-catches.md).
 
 ## Privacy
 
