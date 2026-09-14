@@ -86,6 +86,74 @@ class OwnershipManager(
         return tagged
     }
 
+    class NestedRetag(val changed: Boolean, val previousOwner: UUID?)
+
+    /**
+     * Gives [owner]'s tag to tracked items nested in a shulker box or bundle held as [holder],
+     * at any depth, writing the contents back into the holder. With a [budget], at most that many
+     * of each material are retagged and the budget is drawn down; nested stacks are never split,
+     * so one too large for the budget keeps its tag. Absorbed sulfur cube contents are left alone.
+     */
+    fun retagNested(
+        holder: ItemStack, owner: UUID, isTracked: (Material) -> Boolean,
+        budget: MutableMap<Material, Int>? = null, depth: Int = 0
+    ): NestedRetag {
+        if (depth >= MAX_RECURSION_DEPTH) return NestedRetag(false, null)
+        val meta = holder.itemMeta ?: return NestedRetag(false, null)
+        var changed = false
+        var previous: UUID? = null
+
+        fun claim(inner: ItemStack): Boolean {
+            var modified = false
+            if (isTracked(inner.type)) {
+                val current = getOwner(inner)
+                val allowed = budget?.get(inner.type) ?: if (budget == null) Int.MAX_VALUE else 0
+                if (current != owner && inner.amount <= allowed) {
+                    setOwner(inner, owner)
+                    budget?.merge(inner.type, -inner.amount, Int::plus)
+                    if (previous == null) previous = current
+                    modified = true
+                }
+            }
+            val deeper = retagNested(inner, owner, isTracked, budget, depth + 1)
+            if (deeper.changed) {
+                modified = true
+                if (previous == null) previous = deeper.previousOwner
+            }
+            return modified
+        }
+
+        if (meta is BlockStateMeta && meta.hasBlockState()) {
+            val state = meta.blockState
+            if (state is Container) {
+                val inv = state.inventory
+                var stateChanged = false
+                for (slot in 0 until inv.size) {
+                    val inner = inv.getItem(slot) ?: continue
+                    if (claim(inner)) {
+                        inv.setItem(slot, inner)
+                        stateChanged = true
+                    }
+                }
+                if (stateChanged) {
+                    meta.blockState = state
+                    changed = true
+                }
+            }
+        }
+        if (meta is BundleMeta) {
+            val items = meta.items.map { it.clone() }
+            var bundleChanged = false
+            for (inner in items) if (claim(inner)) bundleChanged = true
+            if (bundleChanged) {
+                meta.setItems(items)
+                changed = true
+            }
+        }
+        if (changed) holder.itemMeta = meta
+        return NestedRetag(changed, previous)
+    }
+
     /**
      * `PlayerInventory.getContents()` already spans storage, armor and offhand, so adding
      * `armorContents` or `itemInOffHand` on top double-counts worn gear.
