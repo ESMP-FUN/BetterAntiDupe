@@ -206,28 +206,34 @@ class LedgerEventHandler(
         if (shouldSkip(player)) return
 
         val item = event.item.itemStack
-        if (!isTracked(item.type)) return
+        val outerTracked = isTracked(item.type)
+        val pickedContents = containedTracked(item)
+        // An untracked holder such as a bundle still carries tracked contents that must move.
+        if (!outerTracked && pickedContents.isEmpty()) return
 
-        val previousOwner = ownershipManager.getOwner(item)
+        val previousOwner = if (outerTracked) ownershipManager.getOwner(item)
+            else ownershipManager.retagNested(item.clone(), player.uniqueId, ::isTracked).previousOwner
         val base = LedgerMetadata.fromLocation(event.item.location).let {
             if (previousOwner != null && previousOwner != player.uniqueId) it.withRelatedPlayer(previousOwner) else it
         }
         var meta = witnessedMetadata(player, LedgerAction.PICKUP, base, "${item.amount}x${item.type.name}")
 
-        if (previousOwner == null && meta.trustLevel == "SOLO") {
+        if (outerTracked && previousOwner == null && meta.trustLevel == "SOLO") {
             meta = meta.copy(notes = "UNTRACKED_SOLO_PICKUP")
             logger.warning("[PoW] ${player.name} picked up untracked ${item.type} with no witnesses")
         }
 
-        ownershipManager.setOwner(item, player.uniqueId)
+        if (outerTracked) ownershipManager.setOwner(item, player.uniqueId)
+        // The contents are credited below, so they must count as the picker's own too.
+        if (pickedContents.isNotEmpty()) ownershipManager.retagNested(item, player.uniqueId, ::isTracked)
         // getItemStack can hand back a detached copy, so write the tagged stack back.
         event.item.itemStack = item
 
         pendingDiffs[player.uniqueId]?.let { pending ->
             val arriving = item.amount - event.remaining
-            if (arriving > 0) pending.pickedUp.merge(item.type, arriving, Int::plus)
+            if (arriving > 0 && outerTracked) pending.pickedUp.merge(item.type, arriving, Int::plus)
             if (event.remaining == 0) {
-                for ((m, c) in containedTracked(item)) pending.pickedUp.merge(m, c, Int::plus)
+                for ((m, c) in pickedContents) pending.pickedUp.merge(m, c, Int::plus)
             }
         }
 
@@ -238,7 +244,7 @@ class LedgerEventHandler(
         val capturedPlayerId = player.uniqueId
         val capturedMaterial = item.type
         val capturedAmount = item.amount
-        val capturedContents = containedTracked(item)
+        val capturedContents = pickedContents
         val itemEntity = event.item
         val entityUuid = itemEntity.uniqueId
         val pickupLoc = itemEntity.location.clone()
@@ -291,7 +297,7 @@ class LedgerEventHandler(
                     return@launch
                 }
 
-                if (creditAmount > 0) {
+                if (creditAmount > 0 && outerTracked) {
                     try {
                         ledgerStorage.appendBuilt(capturedPlayerId, LedgerAction.PICKUP, capturedMaterial, creditAmount, finalMeta)
                     } catch (e: Exception) {
@@ -384,21 +390,22 @@ class LedgerEventHandler(
         val player = event.player
         if (shouldSkip(player)) return
         val item = event.itemDrop.itemStack
-        if (!isTracked(item.type)) return
+        val outerTracked = isTracked(item.type)
+        val contents = containedTracked(item)
+        if (!outerTracked && contents.isEmpty()) return
 
         val dropEntity = event.itemDrop
         val material = item.type
         val amount = item.amount
         val playerId = player.uniqueId
-        val contents = containedTracked(item)
         pendingDiffs[playerId]?.let { pending ->
-            pending.dropped.merge(material, amount, Int::plus)
+            if (outerTracked) pending.dropped.merge(material, amount, Int::plus)
             for ((m, c) in contents) pending.dropped.merge(m, c, Int::plus)
         }
         scheduler.runForEntityLater(dropEntity, 1, Runnable {
             if (!dropEntity.isValid) return@Runnable
             val meta = LedgerMetadata.fromLocation(dropEntity.location)
-            appendAsync(playerId, LedgerAction.DROP, material, -amount, meta)
+            if (outerTracked) appendAsync(playerId, LedgerAction.DROP, material, -amount, meta)
             if (contents.isNotEmpty()) {
                 appendContents(playerId, LedgerAction.DROP, contents, -1,
                     meta.copy(notes = "CONTENTS_OF:$material"))
@@ -586,9 +593,9 @@ class LedgerEventHandler(
 
     /**
      * Gives the taker's tag to up to [amount] of [material] they hold under someone else's tag or
-     * none, so balance checks count what they were just credited for. Only whole stacks are
-     * retagged; an oversized stack is split into a free slot, or left alone when there is none.
-     * Items nested in a shulker box or bundle keep their tag. Returns one previous owner, if any.
+     * none, so balance checks count what they were just credited for. Loose stacks go first and an
+     * oversized one is split into a free slot; whatever is left of the amount is then taken from
+     * inside shulker boxes and bundles. Returns one previous owner, if any.
      */
     private fun retagTaken(player: Player, material: Material, amount: Int): UUID? {
         val id = player.uniqueId
@@ -628,6 +635,28 @@ class LedgerEventHandler(
                 remaining = 0
             }
             if (previous == null) previous = owner
+        }
+        if (remaining > 0) {
+            val budget = hashMapOf(material to remaining)
+            val holder = player.itemOnCursor
+            if (mightHoldItems(holder.type)) {
+                val result = ownershipManager.retagNested(holder, id, ::isTracked, budget)
+                if (result.changed) {
+                    player.setItemOnCursor(holder)
+                    if (previous == null) previous = result.previousOwner
+                }
+            }
+            for (slot in inv.storageContents.indices) {
+                if ((budget[material] ?: 0) <= 0) break
+                val stack = inv.getItem(slot) ?: continue
+                if (!mightHoldItems(stack.type)) continue
+                val result = ownershipManager.retagNested(stack, id, ::isTracked, budget)
+                if (result.changed) {
+                    inv.setItem(slot, stack)
+                    if (previous == null) previous = result.previousOwner
+                }
+            }
+            remaining = budget[material] ?: 0
         }
         if (remaining > 0) {
             logger.fine("[Ledger] ${player.name}: $remaining x $material taken could not be retagged")
