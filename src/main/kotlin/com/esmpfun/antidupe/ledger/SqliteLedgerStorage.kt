@@ -198,7 +198,7 @@ class SqliteLedgerStorage private constructor(
                 st.setInt(3, entry.quantity)
                 st.executeUpdate()
             }
-            if (entry.quantity > 0) {
+            if (entry.quantity > 0 && entry.action != LedgerAction.LEFT_CREATIVE) {
                 conn.prepareStatement(
                     "INSERT OR REPLACE INTO ledger_recent(player, material, entry_id, ts, qty) VALUES (?, ?, ?, ?, ?)"
                 ).use { st ->

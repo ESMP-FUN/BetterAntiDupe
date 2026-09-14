@@ -141,6 +141,14 @@ The player who took them may simply have been handed them by a duper, so this al
 
 </details>
 
+<details>
+
+<summary><strong>"Left creative mode carrying ... more ... than their record showed"</strong></summary>
+
+You set `leaving_creative_mode: ALERT`, and someone switched out of creative mode carrying more than their record showed. Items can be made in creative, so this is not proof of a dupe. It adds no suspicion and removes nothing. Check who gave them creative mode, and their history (step 3).
+
+</details>
+
 {% hint style="info" %}
 **Staff who should see alerts but not use commands** need only `antidupe.alerts`. See [Commands & permissions](../reference/commands-and-permissions.md).
 {% endhint %}

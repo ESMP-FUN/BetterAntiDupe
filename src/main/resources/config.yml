@@ -215,6 +215,18 @@ detection:
 #           This changes how the game plays, so only pick it if you mean it.
 hopper_tracking: LOG
 
+# What happens when someone switches out of creative mode.
+# In creative, items can be made out of nothing, so the plugin cannot tell
+# which ones were earned. When the player switches back, whatever they carry
+# becomes their new record. The change shows up in /adp ledger history.
+#   RECORD - only write it into their history. Right for most servers, where
+#            staff build or help players in creative.
+#   ALERT  - also alert staff when someone switches back carrying more of a
+#            watched item than their record showed. It uses the item's alert
+#            threshold from materials.yml. For servers where only a few
+#            trusted people should use creative.
+leaving_creative_mode: RECORD
+
 # Stop double-click "gather every matching item" from working on watched
 # items. Off by default: players use it constantly and will notice it missing.
 # Only worth turning on if you would rather trade that convenience away.

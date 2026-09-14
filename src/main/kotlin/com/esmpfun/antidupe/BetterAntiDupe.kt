@@ -29,7 +29,7 @@ class BetterAntiDupe : JavaPlugin() {
         /** Settings `/adp reload` applies on the spot; any other changed key needs a restart. */
         val LIVE_KEYS = listOf(
             "language", "notifications", "shadow_mode", "auto_delete_dupes", "enforcement",
-            "on_confirm_command", "detection.on_confirm_command", "console_log_level"
+            "on_confirm_command", "detection.on_confirm_command", "console_log_level", "leaving_creative_mode"
         )
     }
 
@@ -364,6 +364,7 @@ class BetterAntiDupe : JavaPlugin() {
             chainOfCustody?.let {
                 adpCommand.setChainOfCustody(it)
                 it.reconciliationEngine.healLogLevel = healLogLevelFor()
+                it.reconciliationEngine.alertOnLeavingCreative = alertOnLeavingCreative()
             }
 
             logger.info("✓ Chain of Custody initialized")
@@ -457,6 +458,7 @@ class BetterAntiDupe : JavaPlugin() {
         notifier = AlertNotifier(config.getConfigurationSection("notifications"), pluginScope, logger)
         enforcement?.settings = enforcementSettings()
         chainOfCustody?.reconciliationEngine?.healLogLevel = healLogLevelFor()
+        chainOfCustody?.reconciliationEngine?.alertOnLeavingCreative = alertOnLeavingCreative()
 
         val after = restartOnlySnapshot()
         val changed = (before.keys + after.keys).filter { before[it] != after[it] }.toMutableList()
@@ -505,6 +507,16 @@ class BetterAntiDupe : JavaPlugin() {
             com.esmpfun.antidupe.ledger.LedgerEventHandler.HopperMode.LOG
         }
     }
+
+    private fun alertOnLeavingCreative(): Boolean =
+        when (val raw = (config.getString("leaving_creative_mode", "RECORD") ?: "RECORD").uppercase()) {
+            "RECORD" -> false
+            "ALERT" -> true
+            else -> {
+                logger.warning("Unknown leaving_creative_mode '$raw', using RECORD. Valid: RECORD, ALERT")
+                false
+            }
+        }
 
     private fun enforcementSettings(): com.esmpfun.antidupe.enforce.EnforcementService.Settings {
         val rawSeverity = config.getString("enforcement.min_severity", "HIGH") ?: "HIGH"

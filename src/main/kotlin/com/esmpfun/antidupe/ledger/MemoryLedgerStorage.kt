@@ -34,7 +34,7 @@ class MemoryLedgerStorage(logger: Logger) : LedgerStorage(logger) {
         // writes for one player each create a list and one entry is lost.
         byPlayer.computeIfAbsent(entry.player) { Collections.synchronizedList(mutableListOf()) }.add(entry)
         balances.merge(entry.player to entry.material, entry.quantity) { a, b -> a + b }
-        if (entry.quantity > 0) {
+        if (entry.quantity > 0 && entry.action != LedgerAction.LEFT_CREATIVE) {
             val list = recent.computeIfAbsent(entry.player to entry.material) { Collections.synchronizedList(mutableListOf()) }
             list.add(entry)
         }

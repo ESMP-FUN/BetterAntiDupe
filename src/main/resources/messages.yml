@@ -29,6 +29,8 @@ alerts:
   # More of one player's items came back out of chests, frames or the ground than they ever put
   # there. {player} is who took the last of them, {owner} whose items they were.
   world-stock: "{excess} {material} belonging to {owner} came out of storage beyond what was ever put in (last taken at {where})"
+  # Sent with leaving_creative_mode: ALERT. Items can be made in creative, so this is not proof of a dupe.
+  left-creative: "Left creative mode carrying {excess} more {material} than their record showed"
   # Added to an alert about an item picked up twice when the server crashed shortly before,
   # because a crash can cause that alert on its own.
   after-crash-suffix: " &6(the server did not shut down cleanly shortly before this, which can cause this alert by itself)"

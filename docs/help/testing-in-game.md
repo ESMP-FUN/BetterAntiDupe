@@ -3,7 +3,7 @@
 Every way to see the plugin working with your own eyes. Each test takes a minute or two. Do them in any order.
 
 {% hint style="warning" %}
-**Test in survival mode.** Nothing a player does in creative or spectator is recorded, so a test in creative shows nothing at all. Operators are tracked like everyone else.
+**Test in survival mode.** Balance checks wait while you are in creative, and nothing is recorded in spectator. Operators are tracked like everyone else.
 {% endhint %}
 
 ## Is it running?
@@ -15,7 +15,7 @@ Every way to see the plugin working with your own eyes. Each test takes a minute
 
 ## Are items being tracked?
 
-1. In creative, place a diamond block. Switch to survival (`/gamemode survival`).
+1. In survival, with no diamond blocks on you, place one beside you with `/setblock ~1 ~ ~ minecraft:diamond_block`.
 2. Mine it with an iron pickaxe or better, and pick it up.
 3. Run `/adp ledger history <your name>`. The newest line shows `+1` and `DIAMOND_BLOCK`.
 4. Run `/adp ledger balance <your name>`. It shows `DIAMOND_BLOCK: 1`.
@@ -27,6 +27,13 @@ Every way to see the plugin working with your own eyes. Each test takes a minute
 3. It should say `No discrepancies found - player balances verified`.
 
 Says `Reconciliation skipped: Cooldown active`? You were checked a few seconds ago. Wait five seconds and run it again.
+
+## Is leaving creative mode recorded?
+
+1. In creative, take a stack of diamond blocks from the creative menu.
+2. Switch to survival (`/gamemode survival`).
+3. Run `/adp ledger history <your name>`. The newest lines include `LEFT_CREATIVE` with `DIAMOND_BLOCK`.
+4. Run `/adp ledger reconcile <your name>`. It comes back clean, because what you carried out became your record.
 
 ## Can you find a stash?
 

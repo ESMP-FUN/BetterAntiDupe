@@ -5,6 +5,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import org.bukkit.GameMode
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
@@ -38,6 +39,12 @@ class ReconciliationEngine(
 
     @Volatile var healLogLevel: Level = Level.FINE
 
+    /** With leaving_creative_mode: ALERT, leaving creative with more than the record showed alerts. */
+    @Volatile var alertOnLeavingCreative: Boolean = false
+
+    /** Players between leaving creative mode and their record being reset, with when they left. */
+    private val leavingCreative = ConcurrentHashMap<UUID, Long>()
+
     private class SurplusMemory(@Volatile var amount: Int, @Volatile var seenAt: Long)
     private class Washed(@Volatile var amount: Int, @Volatile var since: Long)
 
@@ -51,6 +58,7 @@ class ReconciliationEngine(
         const val WASH_WINDOW_MS = 86_400_000L
         const val SETTLE_WAIT_MS = 10_000L
         const val SETTLE_POLL_MS = 50L
+        const val LEAVING_CREATIVE_STALE_MS = 30_000L
     }
 
     fun addAlertListener(listener: (DupeAlert) -> Unit) {
@@ -65,7 +73,8 @@ class ReconciliationEngine(
         val ownedCounts: Map<Material, Int>,
         val foreignItems: List<ForeignItem>,
         val settleVersion: Long,
-        val settling: Boolean
+        val settling: Boolean,
+        val creative: Boolean
     )
 
     /**
@@ -86,7 +95,8 @@ class ReconciliationEngine(
                         ownedCounts = ownershipManager.snapshotOwnedDeep(player, trackedMaterials),
                         foreignItems = ownershipManager.findForeignItemsDeep(player),
                         settleVersion = version,
-                        settling = settling
+                        settling = settling,
+                        creative = player.gameMode == GameMode.CREATIVE
                     ))
                 } catch (t: Throwable) {
                     cont.resumeWithException(t)
@@ -125,6 +135,16 @@ class ReconciliationEngine(
         val playerId = player.uniqueId
         val started = System.currentTimeMillis()
 
+        leavingCreative[playerId]?.let { since ->
+            if (started - since < LEAVING_CREATIVE_STALE_MS) return ReconciliationResult(
+                player = playerId,
+                timestamp = started,
+                skipped = true,
+                reason = "Player is leaving creative mode"
+            )
+            leavingCreative.remove(playerId, since)
+        }
+
         val lastReconcile = activeReconciliations[playerId]
         if (!ignoreCooldown && lastReconcile != null && started - lastReconcile < reconciliationCooldown) {
             return ReconciliationResult(
@@ -143,6 +163,13 @@ class ReconciliationEngine(
                 skipped = true,
                 reason = "Player is still moving items"
             )
+        // Anything can be made in creative, so what they carry is only judged after they leave it.
+        if (snapshot.creative) return ReconciliationResult(
+            player = playerId,
+            timestamp = System.currentTimeMillis(),
+            skipped = true,
+            reason = "Player is in creative mode"
+        )
         val now = System.currentTimeMillis()
 
         val discrepancies = mutableListOf<Discrepancy>()
@@ -297,6 +324,65 @@ class ReconciliationEngine(
         }
     }
 
+    /** Call on the player's thread as they leave creative, so no check lands before the reset. */
+    fun beginLeavingCreative(playerId: UUID) {
+        leavingCreative[playerId] = System.currentTimeMillis()
+    }
+
+    fun endLeavingCreative(playerId: UUID) {
+        leavingCreative.remove(playerId)
+    }
+
+    /**
+     * Makes what the player carries after creative mode their record. Items made in creative
+     * cannot be told apart from earned ones, so the difference is written down rather than judged.
+     */
+    suspend fun adoptAfterCreative(player: Player) {
+        val playerId = player.uniqueId
+        try {
+            val (snapshot, balances) = settledSnapshot(player, System.currentTimeMillis()) ?: run {
+                logger.warning("[CoC] ${player.name} kept moving items after leaving creative mode, so their record was not reset")
+                return
+            }
+            if (snapshot.creative) return
+            val now = System.currentTimeMillis()
+            val changes = mutableListOf<String>()
+            for (material in trackedMaterials) {
+                val recorded = balances[material] ?: 0
+                val held = snapshot.ownedCounts[material] ?: 0
+                if (held == recorded) continue
+                ledgerStorage.appendBuilt(
+                    player = playerId,
+                    action = LedgerAction.LEFT_CREATIVE,
+                    material = material,
+                    quantity = held - recorded,
+                    metadata = LedgerMetadata(notes = "LEFT_CREATIVE: ledger $recorded -> $held")
+                )
+                changes += "$material $recorded -> $held"
+                val gained = held - recorded
+                if (alertOnLeavingCreative && gained >= getAlertThreshold(material)) {
+                    // excess stays 0 and no suspicion is added: this is not proof of a dupe.
+                    emitAlert(DupeAlert(
+                        type = AlertType.BALANCE_DISCREPANCY,
+                        player = playerId,
+                        playerName = player.name,
+                        material = material,
+                        details = "Left creative mode carrying $gained more ${material.name} than their record showed",
+                        severity = calculateSeverity(material, gained),
+                        timestamp = now,
+                        messageKey = "alerts.left-creative",
+                        placeholders = mapOf("excess" to "$gained", "material" to material.name)
+                    ))
+                }
+            }
+            if (changes.isNotEmpty()) {
+                logger.log(healLogLevel, "[CoC] ${player.name} left creative mode, record reset: ${changes.joinToString()}")
+            }
+        } finally {
+            leavingCreative.remove(playerId)
+        }
+    }
+
     /** Highest-confidence signal we produce, so it alerts unconditionally. */
     fun flagEntityDupe(player: Player, material: Material, amount: Int, previous: PreviousPickup) {
         val now = System.currentTimeMillis()
@@ -447,6 +533,7 @@ class ReconciliationEngine(
         activeReconciliations.entries.removeIf { it.value < cutoff }
         recentSurplus.entries.removeIf { now - it.value.seenAt > WASH_WINDOW_MS }
         washedSurplus.entries.removeIf { now - it.value.since > WASH_WINDOW_MS }
+        leavingCreative.entries.removeIf { now - it.value > LEAVING_CREATIVE_STALE_MS }
         settle.prune()
     }
 }

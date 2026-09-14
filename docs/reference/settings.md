@@ -45,6 +45,16 @@ What to do when a hopper, dropper or crafter moves a tracked item by itself. `LO
 
 <details>
 
+<summary><code>leaving_creative_mode</code></summary>
+
+**Default:** `RECORD`
+
+What happens when someone switches out of creative mode. What they carry becomes their new record, and the change shows up in their history as `LEFT_CREATIVE`. `ALERT` also alerts staff when they carry out more of an item than their record showed. `/adp reload` applies it.
+
+</details>
+
+<details>
+
 <summary><code>block_collect_to_cursor</code></summary>
 
 **Default:** `false`

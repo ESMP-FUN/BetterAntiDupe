@@ -180,7 +180,8 @@ enum class LedgerAction {
     MERGE,
     OWNERSHIP_CHANGE,
     RECONCILE,
-    CHAIN_RESET
+    CHAIN_RESET,
+    LEFT_CREATIVE
 }
 
 data class LedgerMetadata(
