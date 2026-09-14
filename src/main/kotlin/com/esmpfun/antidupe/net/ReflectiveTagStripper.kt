@@ -78,13 +78,41 @@ class ReflectiveTagStripper(
     /**
      * A version rename could move an item-bearing packet out of [targetPackets] and the tag
      * would start leaking to clients with no signal at all; this turns that into one warning.
+     * The name only shortlists a packet; it counts as item-bearing when an ItemStack is actually
+     * reachable from its fields, so TakeItemEntity or SetHeldSlot, which carry ids and slot
+     * numbers, stay quiet.
      */
-    private fun looksItemBearing(simpleName: String): Boolean =
-        simpleName.startsWith("Clientbound") && (
-            simpleName.contains("Item") || simpleName.contains("Slot") ||
-            simpleName.contains("Inventory") || simpleName.contains("Equipment") ||
-            simpleName.contains("ContainerSetContent") || simpleName.contains("MerchantOffers")
+    private fun looksItemBearing(packet: Class<*>): Boolean {
+        val name = packet.simpleName
+        val shortlisted = name.startsWith("Clientbound") && (
+            name.contains("Item") || name.contains("Slot") ||
+            name.contains("Inventory") || name.contains("Equipment") ||
+            name.contains("ContainerSetContent") || name.contains("MerchantOffers")
         )
+        return shortlisted && reachesItemStack(packet, HashSet(), 0)
+    }
+
+    private val minecraftTypeName = Regex("net\\.minecraft\\.[\\w.$]+")
+
+    /** Follows field types, their generic arguments and superclasses within net.minecraft, a few levels deep. */
+    private fun reachesItemStack(cls: Class<*>, seen: MutableSet<Class<*>>, depth: Int): Boolean {
+        if (cls == nmsItemClass) return true
+        if (depth > 3 || !seen.add(cls)) return false
+        val typeNames = ArrayList<String>()
+        cls.genericSuperclass?.let { typeNames.add(it.typeName) }
+        for (field in collectInstanceFields(cls)) typeNames.add(field.genericType.typeName)
+        for (typeName in typeNames) {
+            for (match in minecraftTypeName.findAll(typeName)) {
+                val referenced = try {
+                    Class.forName(match.value, false, cls.classLoader)
+                } catch (e: Throwable) {
+                    continue
+                }
+                if (reachesItemStack(referenced, seen, depth + 1)) return true
+            }
+        }
+        return false
+    }
 
     override fun inject(player: Player) {
         try {
@@ -143,9 +171,10 @@ class ReflectiveTagStripper(
                     msg
                 }
             } else {
-                if (looksItemBearing(name) && loggedPacketNames.add(name)) {
-                    logger.warning("[TagStripper] client-bound packet $name looks like it carries items" +
-                        " but is not on the strip list - a server update may have renamed a packet; report this")
+                if (name !in loggedPacketNames && loggedPacketNames.add(name) && looksItemBearing(msg.javaClass)) {
+                    logger.warning("[TagStripper] The server sends item data in a way this version does not" +
+                        " recognise ($name), so the hidden owner mark may be visible to players' game clients." +
+                        " Detection is unaffected. Please report this with your server version.")
                 }
                 msg
             }
