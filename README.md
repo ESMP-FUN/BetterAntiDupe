@@ -1,4 +1,4 @@
-<img width="1000" alt="betterantidupebanner" src="https://github.com/user-attachments/assets/fe09ded7-0db9-44cb-90ad-eff69e9b6b64" />
+<img width="1000" alt="Better Anti-Dupe" src="brand/bad-banner-animated.webp" />
 
 # BetterAntiDupe
 

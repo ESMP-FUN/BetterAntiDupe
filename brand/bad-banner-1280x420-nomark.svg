@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 420" width="1280" height="420" role="img" aria-labelledby="t d">
+  <title id="t">Better Anti-Dupe</title>
+  <desc id="d">The Better Anti-Dupe wordmark above its tagline.</desc>
+
+  <defs>
+    <radialGradient id="bglow" cx="50%" cy="50%" r="58%">
+      <stop offset="0%"   stop-color="#27497A" stop-opacity="0.35"/>
+      <stop offset="55%"  stop-color="#27497A" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#27497A" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bgemglow">
+      <stop offset="0%"   stop-color="#4AEDD9" stop-opacity="0.20"/>
+      <stop offset="45%"  stop-color="#4AEDD9" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#4AEDD9" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="420" fill="#0B1729"/>
+  <rect width="1280" height="420" fill="url(#bglow)"/>
+  
+  <text x="640" y="212.1" font-family="'Space Grotesk','Outfit','Segoe UI',system-ui,sans-serif"
+        font-size="96.6" font-weight="700"
+        letter-spacing="-2.87" fill="#FFFFFF"
+        text-anchor="middle">Better Anti-Dupe</text>
+
+  <text x="331.6" y="289.8" font-family="'Inter','Inter Variable','Segoe UI',system-ui,sans-serif" font-size="28.0" font-weight="500" fill="#9AABC2" text-anchor="start">Stops item duplication</text>
+  <text x="637.0" y="289.8" font-family="'Inter','Inter Variable','Segoe UI',system-ui,sans-serif" font-size="28.0" font-weight="500" fill="#FFB000" text-anchor="start" opacity="1.000">and tells you who tried.</text><rect x="637.0" y="304.38" width="311.4" height="1.54" rx="0.77" fill="#FFB000" opacity="0.10"/><rect x="637.0" y="304.38" width="0.0" height="1.54" rx="0.77" fill="#FFB000" opacity="0.45"></rect>
+</svg>

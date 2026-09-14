@@ -1,4 +1,4 @@
-[CENTER][IMG]https://github.com/ESMP-FUN/BetterAntiDupe/blob/master/images/betterantidupebanner.png?raw=true[/IMG]
+[CENTER][IMG]https://github.com/ESMP-FUN/BetterAntiDupe/blob/master/brand/bad-banner-1280x420.png?raw=true[/IMG]
 
 [SIZE=4][COLOR=#7f8c8d]Stops item duplication, and tells you who tried[/COLOR][/SIZE]
 [SIZE=3]Paper, Folia, Spigot - 1.21.x and 26.x[/SIZE]
