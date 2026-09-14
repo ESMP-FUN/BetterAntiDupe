@@ -223,6 +223,14 @@ class LedgerEventHandler(
         // getItemStack can hand back a detached copy, so write the tagged stack back.
         event.item.itemStack = item
 
+        pendingDiffs[player.uniqueId]?.let { pending ->
+            val arriving = item.amount - event.remaining
+            if (arriving > 0) pending.pickedUp.merge(item.type, arriving, Int::plus)
+            if (event.remaining == 0) {
+                for ((m, c) in containedTracked(item)) pending.pickedUp.merge(m, c, Int::plus)
+            }
+        }
+
         // Deferred a tick because a plugin at a later priority can cancel the pickup, after which
         // the item survives in the player's hitbox and the event re-fires every tick. Acting at
         // event time would credit items that never arrived and flag every re-fire as a dupe.
@@ -377,6 +385,10 @@ class LedgerEventHandler(
         val amount = item.amount
         val playerId = player.uniqueId
         val contents = containedTracked(item)
+        pendingDiffs[playerId]?.let { pending ->
+            pending.dropped.merge(material, amount, Int::plus)
+            for ((m, c) in contents) pending.dropped.merge(m, c, Int::plus)
+        }
         scheduler.runForEntityLater(dropEntity, 1, Runnable {
             if (!dropEntity.isValid) return@Runnable
             val meta = LedgerMetadata.fromLocation(dropEntity.location)
@@ -423,10 +435,11 @@ class LedgerEventHandler(
     }
 
     /**
-     * Container transfers are recorded by snapshot-diff, not by emulating each InventoryAction:
-     * count the container now, count it again next tick, record the delta. Plugin GUIs (null or
-     * custom holders) are deliberately not classified, because their item flow is plugin-internal
-     * and a shop plugin declares grants through [ChainOfCustody.recordSystemGrant] instead.
+     * Container transfers are recorded by snapshot-diff of the clicking player's own inventory and
+     * cursor, not of the container: several players, hoppers and copper golems can change a
+     * container in the same tick, but only this player changes their own side. Plugin GUIs (null
+     * or custom holders) are deliberately not classified, because their item flow is
+     * plugin-internal and a shop plugin declares grants through [ChainOfCustody.recordSystemGrant].
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onInventoryClick(event: InventoryClickEvent) {
@@ -480,11 +493,23 @@ class LedgerEventHandler(
         scheduleContainerDiff(player, topInv, target, materials)
     }
 
+    /**
+     * Pickups and drops during the window move the player's side without touching the container,
+     * so they are subtracted back out. A drop from a container slot (Q over the chest) counts as a
+     * take this way, which is right: the drop debit and a later pickup then net to zero.
+     */
     private class PendingContainerDiff(
         val inventory: Inventory,
-        val target: StorageTarget,
-        val preCounts: MutableMap<Material, Int>
-    )
+        val target: StorageTarget
+    ) {
+        val playerPre = ConcurrentHashMap<Material, Int>()
+        /** Top-level stacks not carrying the player's tag; a swap moves tags without moving counts. */
+        val foreignPre = ConcurrentHashMap<Material, Int>()
+        /** The container's count at every click in the window, summed: nobody can take more. */
+        val takeCeiling = ConcurrentHashMap<Material, Int>()
+        val pickedUp = ConcurrentHashMap<Material, Int>()
+        val dropped = ConcurrentHashMap<Material, Int>()
+    }
 
     private val pendingDiffs = ConcurrentHashMap<UUID, PendingContainerDiff>()
 
@@ -498,26 +523,110 @@ class LedgerEventHandler(
         return total
     }
 
+    private fun countPlayerSide(player: Player, material: Material): Int {
+        var total = countInInventory(player.inventory, material)
+        val cursor = player.itemOnCursor
+        if (cursor.type == material) total += cursor.amount
+        if (mightHoldItems(cursor.type)) total += containedTracked(cursor)[material] ?: 0
+        return total
+    }
+
+    private fun countForeignPlayerSide(player: Player, material: Material): Int {
+        val id = player.uniqueId
+        var total = 0
+        for (stack in player.inventory.storageContents) {
+            if (stack != null && stack.type == material && ownershipManager.getOwner(stack) != id) total += stack.amount
+        }
+        val cursor = player.itemOnCursor
+        if (cursor.type == material && ownershipManager.getOwner(cursor) != id) total += cursor.amount
+        return total
+    }
+
     private fun scheduleContainerDiff(player: Player, inv: Inventory, target: StorageTarget, materials: Set<Material>) {
         val existing = pendingDiffs[player.uniqueId]
-        if (existing != null && existing.inventory === inv) {
-            for (mat in materials) existing.preCounts.getOrPut(mat) { countInInventory(inv, mat) }
-            return
+        val pending = if (existing != null && existing.inventory === inv) existing else {
+            val fresh = PendingContainerDiff(inv, target)
+            pendingDiffs[player.uniqueId] = fresh
+            scheduler.runForEntityLater(player, 1, Runnable { settleContainerDiff(player, fresh) })
+            fresh
+        }
+        // Each click is applied after this MONITOR handler returns, so these are pre-click counts.
+        for (mat in materials) {
+            if (pending.playerPre.putIfAbsent(mat, countPlayerSide(player, mat)) == null) {
+                pending.foreignPre[mat] = countForeignPlayerSide(player, mat)
+            }
+            pending.takeCeiling.merge(mat, countInInventory(inv, mat), Int::plus)
+        }
+    }
+
+    private fun settleContainerDiff(player: Player, pending: PendingContainerDiff) {
+        pendingDiffs.remove(player.uniqueId, pending)
+        for ((mat, pre) in pending.playerPre) {
+            val delta = countPlayerSide(player, mat) - pre
+            val moved = delta - (pending.pickedUp[mat] ?: 0) + (pending.dropped[mat] ?: 0)
+            val ceiling = pending.takeCeiling[mat] ?: 0
+            val taken = if (moved > 0) minOf(moved, ceiling) else 0
+            // Swapping a stack for an equal one from the container leaves the count unchanged but
+            // hands the player someone else's tag, so retag what arrived even when nothing is credited.
+            val foreignArrived = countForeignPlayerSide(player, mat) - (pending.foreignPre[mat] ?: 0)
+            val retagBudget = minOf(maxOf(taken, foreignArrived), ceiling)
+            val previousOwner = if (retagBudget > 0) retagTaken(player, mat, retagBudget) else null
+            when {
+                taken > 0 -> recordTake(player, mat, taken, pending.target, previousOwner)
+                moved < 0 -> recordPut(player, mat, -moved, pending.target)
+            }
+        }
+    }
+
+    /**
+     * Gives the taker's tag to up to [amount] of [material] they hold under someone else's tag or
+     * none, so balance checks count what they were just credited for. Only whole stacks are
+     * retagged; an oversized stack is split into a free slot, or left alone when there is none.
+     * Items nested in a shulker box or bundle keep their tag. Returns one previous owner, if any.
+     */
+    private fun retagTaken(player: Player, material: Material, amount: Int): UUID? {
+        val id = player.uniqueId
+        var remaining = amount
+        var previous: UUID? = null
+
+        val cursor = player.itemOnCursor
+        if (cursor.type == material && cursor.amount <= remaining) {
+            val owner = ownershipManager.getOwner(cursor)
+            if (owner != id) {
+                ownershipManager.setOwner(cursor, id)
+                player.setItemOnCursor(cursor)
+                remaining -= cursor.amount
+                previous = owner
+            }
         }
 
-        val pending = PendingContainerDiff(inv, target,
-            materials.associateWithTo(HashMap()) { countInInventory(inv, it) })
-        pendingDiffs[player.uniqueId] = pending
-
-        scheduler.runForEntityLater(player, 1, Runnable {
-            if (pendingDiffs[player.uniqueId] === pending) pendingDiffs.remove(player.uniqueId)
-            for ((mat, pre) in pending.preCounts) {
-                val post = countInInventory(pending.inventory, mat)
-                val delta = post - pre
-                if (delta > 0) recordPut(player, mat, delta, pending.target)
-                else if (delta < 0) recordTake(player, mat, -delta, pending.target)
+        val inv = player.inventory
+        for (slot in inv.storageContents.indices) {
+            if (remaining <= 0) break
+            val stack = inv.getItem(slot) ?: continue
+            if (stack.type != material) continue
+            val owner = ownershipManager.getOwner(stack)
+            if (owner == id) continue
+            if (stack.amount <= remaining) {
+                ownershipManager.setOwner(stack, id)
+                inv.setItem(slot, stack)
+                remaining -= stack.amount
+            } else {
+                val free = inv.firstEmpty()
+                if (free < 0) continue
+                val split = stack.clone().also { it.amount = remaining }
+                ownershipManager.setOwner(split, id)
+                stack.amount -= remaining
+                inv.setItem(slot, stack)
+                inv.setItem(free, split)
+                remaining = 0
             }
-        })
+            if (previous == null) previous = owner
+        }
+        if (remaining > 0) {
+            logger.fine("[Ledger] ${player.name}: $remaining x $material taken could not be retagged")
+        }
+        return previous
     }
 
     private sealed class StorageTarget(val label: String, val location: Location?, val isEntity: Boolean)
@@ -832,15 +941,21 @@ class LedgerEventHandler(
                 val delta = countInInventory(player.inventory, mat) - pre
                 if (delta == 0) continue
                 val meta = LedgerMetadata.fromLocation(player.location).withContainer("SHELF", loc)
-                if (delta < 0) appendAsync(player.uniqueId, LedgerAction.CONTAINER_PUT, mat, delta, meta)
-                else appendAsync(player.uniqueId, LedgerAction.CONTAINER_TAKE, mat, delta, meta)
+                if (delta < 0) {
+                    appendAsync(player.uniqueId, LedgerAction.CONTAINER_PUT, mat, delta, meta)
+                } else {
+                    val previousOwner = retagTaken(player, mat, delta)
+                    val takeMeta = if (previousOwner != null) meta.withRelatedPlayer(previousOwner) else meta
+                    appendAsync(player.uniqueId, LedgerAction.CONTAINER_TAKE, mat, delta, takeMeta)
+                }
             }
         })
     }
 
-    private fun recordTake(player: Player, mat: Material, qty: Int, target: StorageTarget) {
+    private fun recordTake(player: Player, mat: Material, qty: Int, target: StorageTarget, previousOwner: UUID?) {
         val action = if (target.isEntity) LedgerAction.ENTITY_TAKE else LedgerAction.CONTAINER_TAKE
-        val meta = LedgerMetadata.fromLocation(player.location).withContainer(target.label, target.location)
+        var meta = LedgerMetadata.fromLocation(player.location).withContainer(target.label, target.location)
+        if (previousOwner != null && previousOwner != player.uniqueId) meta = meta.withRelatedPlayer(previousOwner)
         appendAsync(player.uniqueId, action, mat, qty, meta)
     }
 
