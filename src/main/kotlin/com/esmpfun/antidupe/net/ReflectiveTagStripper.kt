@@ -58,7 +58,9 @@ class ReflectiveTagStripper(
 
     private val nmsItemClass = Class.forName("net.minecraft.world.item.ItemStack")
     private val craftItemStackClass = Class.forName("org.bukkit.craftbukkit.inventory.CraftItemStack")
-    private val asBukkitCopy = craftItemStackClass.getMethod("asBukkitCopy", nmsItemClass)
+    // 26.3 dropped the ItemStack overload and kept the ItemInstance one, which ItemStack implements.
+    private val asBukkitCopy = runCatching { craftItemStackClass.getMethod("asBukkitCopy", nmsItemClass) }
+        .getOrElse { craftItemStackClass.getMethod("asBukkitCopy", Class.forName("net.minecraft.world.item.ItemInstance")) }
     private val asNMSCopy = craftItemStackClass.getMethod("asNMSCopy", org.bukkit.inventory.ItemStack::class.java)
 
     private val targetPackets = setOf(
