@@ -1,19 +1,19 @@
 package com.esmpfun.antidupe.ledger
 
-import io.papermc.paper.datacomponent.DataComponentType
-import io.papermc.paper.registry.RegistryAccess
-import io.papermc.paper.registry.RegistryKey
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
+import org.bukkit.Registry
 import org.bukkit.inventory.ItemStack
+import java.lang.reflect.Method
 import java.util.logging.Logger
 
 /**
  * A Bucket of Sulfur Cube holds the block the cube swallowed, NBT and ownership tag intact, so
  * without this a tracked block can be parked in a cube and bucketed to hide from every scan.
  *
- * The API landed after both compile targets (1.21.11 and 26.1.2), so the component type is
- * looked up by key at runtime and read and written reflectively. Older servers get a no-op.
+ * The data component API is Paper-only and postdates both compile targets, so it is reached purely
+ * by reflection. No Paper type may appear in this object's fields or signatures: Spigot fails to
+ * initialise the object otherwise, and every inventory event that checks for a bucket throws.
  */
 internal object SulfurCubeAccess {
 
@@ -22,25 +22,32 @@ internal object SulfurCubeAccess {
         runCatching { Material.matchMaterial("SULFUR_CUBE_BUCKET") }.getOrNull()
     }
 
-    private val contentComponentType: DataComponentType.Valued<Any>? by lazy {
-        runCatching {
-            val registry = RegistryAccess.registryAccess().getRegistry(RegistryKey.DATA_COMPONENT_TYPE)
-            @Suppress("UNCHECKED_CAST")
-            registry.get(NamespacedKey.minecraft("sulfur_cube_content")) as? DataComponentType.Valued<Any>
-        }.getOrNull()
-    }
+    private class Api(
+        val type: Any,
+        val getData: Method,
+        val setData: Method,
+        val absorbedItem: Method,
+        val contentFactory: Method
+    )
 
-    private val absorbedItemMethod: java.lang.reflect.Method? by lazy {
+    /** Null on Spigot and on Paper builds without the component. */
+    private val api: Api? by lazy {
         runCatching {
-            Class.forName("io.papermc.paper.datacomponent.item.SulfurCubeContent")
-                .getMethod("absorbedItem")
-        }.getOrNull()
-    }
-
-    private val contentFactory: java.lang.reflect.Method? by lazy {
-        runCatching {
-            Class.forName("io.papermc.paper.datacomponent.item.SulfurCubeContent")
-                .getMethod("sulfurCubeContent", ItemStack::class.java)
+            val accessClass = Class.forName("io.papermc.paper.registry.RegistryAccess")
+            val keyClass = Class.forName("io.papermc.paper.registry.RegistryKey")
+            val access = accessClass.getMethod("registryAccess").invoke(null)
+            val registry = accessClass.getMethod("getRegistry", keyClass)
+                .invoke(access, keyClass.getField("DATA_COMPONENT_TYPE").get(null)) as Registry<*>
+            val type = registry.get(NamespacedKey.minecraft("sulfur_cube_content")) ?: return@runCatching null
+            val valued = Class.forName("io.papermc.paper.datacomponent.DataComponentType\$Valued")
+            val content = Class.forName("io.papermc.paper.datacomponent.item.SulfurCubeContent")
+            Api(
+                type,
+                ItemStack::class.java.getMethod("getData", valued),
+                ItemStack::class.java.getMethod("setData", valued, Any::class.java),
+                content.getMethod("absorbedItem"),
+                content.getMethod("sulfurCubeContent", ItemStack::class.java)
+            )
         }.getOrNull()
     }
 
@@ -50,11 +57,10 @@ internal object SulfurCubeAccess {
     fun absorbedItem(stack: ItemStack, logger: Logger? = null): ItemStack? {
         val bucket = bucketMaterial ?: return null
         if (stack.type != bucket) return null
-        val type = contentComponentType ?: return null
-        val method = absorbedItemMethod ?: return null
+        val api = api ?: return null
         return try {
-            val content = stack.getData(type) ?: return null
-            (method.invoke(content) as? ItemStack)?.takeIf { it.type != Material.AIR }
+            val content = api.getData.invoke(stack, api.type) ?: return null
+            (api.absorbedItem.invoke(content) as? ItemStack)?.takeIf { it.type != Material.AIR }
         } catch (e: Exception) {
             if (!warned) {
                 warned = true
@@ -68,10 +74,9 @@ internal object SulfurCubeAccess {
     fun setAbsorbedItem(stack: ItemStack, inner: ItemStack, logger: Logger? = null): Boolean {
         val bucket = bucketMaterial ?: return false
         if (stack.type != bucket) return false
-        val type = contentComponentType ?: return false
-        val factory = contentFactory ?: return false
+        val api = api ?: return false
         return try {
-            stack.setData(type, factory.invoke(null, inner) ?: return false)
+            api.setData.invoke(stack, api.type, api.contentFactory.invoke(null, inner) ?: return false)
             true
         } catch (e: Exception) {
             if (!warnedWrite) {

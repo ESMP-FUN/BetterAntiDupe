@@ -10,6 +10,7 @@ All notable changes to BetterAntiDupe will be documented in this file.
 - **`leaving_creative_mode`** decides what happens when someone switches out of creative mode. Whatever they carry becomes their new record, including what is packed inside shulker boxes and bundles, and the change is written into their history as `LEFT_CREATIVE`. `RECORD` (the default) only writes it down. `ALERT` also alerts staff when someone switches back carrying more of an item than their record showed, once it reaches that item's alert threshold. It never removes anything and adds no suspicion. `/adp reload` applies it.
 
 ### Fixed
+- **Works on Spigot again.** Since 4.3.0 the plugin threw an error on almost every item pickup, inventory click and drop on Spigot servers, because the check for a Bucket of Sulfur Cube needed a part of Paper that Spigot does not have. Item tracking on Spigot was effectively off. On Spigot, feeding a block to a live sulfur cube is still not recorded, because only Paper reports that.
 - **Crafting a tracked item into something untracked now takes it off the record.** Turning a Block of Diamond back into diamonds, or using a tracked item at an anvil, smithing table or stonecutter to make an untracked item, left the record too high by that amount, which is room to dupe.
 - **Taking items out of a furnace is counted once.** A furnace take was recorded twice, which left the record too high by the amount taken.
 - **Putting a book on a lectern is now recorded.** Only taking a book off was, so a book passed between two players this way was counted twice.
