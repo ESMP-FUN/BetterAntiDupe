@@ -9,12 +9,12 @@ plugins {
 group = "com.esmpfun"
 
 // Three build targets from one source, selected with -Pmc=<line> (default 26):
-//   ./gradlew shadowJar -Pmc=21   ->  BetterAntiDupe-4.3.0.jar         (1.21.x,       Java 21)
-//   ./gradlew shadowJar -Pmc=26   ->  BetterAntiDupe-4.3.0-mc26.jar    (26.0 to 26.2, Java 25)
-//   ./gradlew shadowJar -Pmc=263  ->  BetterAntiDupe-4.3.0-mc263.jar   (26.3,         Java 25)
+//   ./gradlew shadowJar -Pmc=21   ->  BetterAntiDupe-4.4.0.jar         (1.21.x,       Java 21)
+//   ./gradlew shadowJar -Pmc=26   ->  BetterAntiDupe-4.4.0-mc26.jar    (26.0 to 26.2, Java 25)
+//   ./gradlew shadowJar -Pmc=263  ->  BetterAntiDupe-4.4.0-mc263.jar   (26.3,         Java 25)
 // 1.21.x servers run JDK21 and can't load Java 25 bytecode. The 26.3 jar declares
 // api-version 26.3, so an older server refuses it, and it follows its own update track.
-val pluginVersion = "4.3.0"
+val pluginVersion = "4.4.0"
 val mcLine = (findProperty("mc") as String?) ?: "26"
 
 data class McTarget(val paperApi: String, val suffix: String, val apiVersion: String, val java: Int, val runMc: String)

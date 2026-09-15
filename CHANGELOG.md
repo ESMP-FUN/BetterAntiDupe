@@ -2,7 +2,7 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
-## [Unreleased]
+## [4.4.0] - 2026-09-16
 
 ### Added
 - **Minecraft 26.3 support, as its own download.** There are now three jars: the plain one for 1.21.x, `-mc26` for 26.0 to 26.2, and the new `-mc263` for 26.3. A 26.2 or older server refuses the 26.3 jar with a clear message, and each jar only offers updates meant for its own Minecraft version. If a 26.3 server runs the `-mc26` jar, the console asks you to switch.
