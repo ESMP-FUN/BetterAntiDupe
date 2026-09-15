@@ -278,9 +278,11 @@ class LedgerEventHandler(
         // result dynamically copy data onto it that the static one lacks, and the shulker recolor
         // recipe carries the input's contents that way. Overwriting with recipe.result loses them.
         val actual = event.currentItem ?: event.recipe.result
-        if (!isTracked(actual.type)) return
-
         val amount = if (event.isShiftClick) calculateShiftCraftAmount(event) else actual.amount
+        val crafts = StationAccounting.craftCount(event.isShiftClick, amount, actual.amount)
+        // Before the result check: uncrafting a tracked block into untracked items still uses the block up.
+        debitCraftIngredients(player, event, crafts)
+        if (!isTracked(actual.type)) return
 
         val taggedResult = actual.clone()
         ownershipManager.setOwner(taggedResult, player.uniqueId)
@@ -292,10 +294,6 @@ class LedgerEventHandler(
             "${amount}x${actual.type.name}"
         )
         appendAsync(player.uniqueId, LedgerAction.CRAFT, actual.type, amount, meta)
-
-        val perCraft = actual.amount.coerceAtLeast(1)
-        val crafts = if (event.isShiftClick) (amount / perCraft).coerceAtLeast(1) else 1
-        debitCraftIngredients(player, event, crafts)
 
         val craftedType = actual.type
         scope.launch {
@@ -744,6 +742,7 @@ class LedgerEventHandler(
     }
 
     private val pendingDiffs = ConcurrentHashMap<UUID, PendingContainerDiff>()
+    private val stationCredits = StationCredits()
 
     private fun countInInventory(inv: Inventory, material: Material): Int {
         var total = 0
@@ -814,9 +813,10 @@ class LedgerEventHandler(
                 pending.ownerAdjust, pending.target.location?.let(::locationLabel), pending.takeCeiling
             )
         }
+        val stationOutput = stationCredits.consume(player.uniqueId)
         for ((mat, pre) in pending.playerPre) {
             val delta = countPlayerSide(player, mat) - pre
-            val moved = delta - (pending.pickedUp[mat] ?: 0) + (pending.dropped[mat] ?: 0)
+            val moved = delta - (pending.pickedUp[mat] ?: 0) - (stationOutput[mat] ?: 0) + (pending.dropped[mat] ?: 0)
             val ceiling = pending.takeCeiling[mat] ?: 0
             val taken = if (moved > 0) minOf(moved, ceiling) else 0
             // Swapping a stack for an equal one from the container leaves the count unchanged but
@@ -946,7 +946,7 @@ class LedgerEventHandler(
     private fun handleStationClick(player: Player, event: InventoryClickEvent, type: InventoryType, resultSlot: Int) {
         if (event.rawSlot != resultSlot) return
         val current = event.currentItem ?: return
-        if (current.type == Material.AIR || !isTracked(current.type)) return
+        if (current.type == Material.AIR) return
 
         val qty = when (event.action) {
             InventoryAction.PICKUP_ALL,
@@ -960,10 +960,12 @@ class LedgerEventHandler(
         }
         if (qty <= 0) return
 
-        val meta = LedgerMetadata.fromLocation(player.location)
-            .copy(containerType = type.name, notes = "STATION:${type.name}")
-        appendAsync(player.uniqueId, LedgerAction.STATION_OUTPUT, current.type, qty, meta)
-
+        if (isTracked(current.type)) {
+            val meta = LedgerMetadata.fromLocation(player.location)
+                .copy(containerType = type.name, notes = "STATION:${type.name}")
+            appendAsync(player.uniqueId, LedgerAction.STATION_OUTPUT, current.type, qty, meta)
+        }
+        // Tracked inputs are used up even when what comes out is not tracked.
         debitStationInputs(player, event.view.topInventory, type, resultSlot)
     }
 
@@ -1211,6 +1213,9 @@ class LedgerEventHandler(
         val meta = LedgerMetadata.fromLocation(event.block.location)
             .copy(containerType = event.block.type.name, notes = "FURNACE:${event.block.type.name}")
         appendAsync(player.uniqueId, LedgerAction.STATION_OUTPUT, event.itemType, event.itemAmount, meta)
+        // The open furnace is also a container, so keep its diff from booking the same items as a take.
+        stationCredits.add(player.uniqueId, event.itemType, event.itemAmount)
+        scheduler.runForEntityLater(player, 2, Runnable { stationCredits.consume(player.uniqueId) })
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -1260,6 +1265,34 @@ class LedgerEventHandler(
         val meta = LedgerMetadata.fromLocation(event.lectern.location).copy(containerType = "LECTERN")
         appendAsync(player.uniqueId, LedgerAction.CONTAINER_TAKE, item.type, item.amount, meta)
         stockBack(player.uniqueId, tally(item), locationLabel(event.lectern.location))
+    }
+
+    /** Putting a book on a lectern fires no inventory event, so it is judged from the hand and the lectern a tick later. */
+    @EventHandler(priority = EventPriority.MONITOR)
+    fun onLecternPut(event: org.bukkit.event.player.PlayerInteractEvent) {
+        if (event.action != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) return
+        if (event.useInteractedBlock() == org.bukkit.event.Event.Result.DENY) return
+        val block = event.clickedBlock ?: return
+        if (block.type != Material.LECTERN) return
+        val player = event.player
+        if (shouldSkip(player)) return
+        val hand = event.hand ?: return
+        val held = player.inventory.getItem(hand)
+        if (held.type == Material.AIR || !isTracked(held.type)) return
+        val lectern = block.state as? org.bukkit.block.Lectern ?: return
+        if (lectern.inventory.getItem(0)?.type?.isAir == false) return
+
+        val type = held.type
+        val heldBefore = held.amount
+        val stored = tallySingle(held)
+        scheduler.runForEntityLater(player, 1, Runnable {
+            val book = (block.state as? org.bukkit.block.Lectern)?.inventory?.getItem(0)
+            val after = player.inventory.getItem(hand).let { if (it.type == type) it.amount else 0 }
+            if (!StationAccounting.lecternBookPlaced(false, book?.type == type, heldBefore, after)) return@Runnable
+            val meta = LedgerMetadata.fromLocation(block.location).copy(containerType = "LECTERN")
+            appendAsync(player.uniqueId, LedgerAction.CONTAINER_PUT, type, -1, meta)
+            stockOut(stored)
+        })
     }
 
     /**
@@ -1527,19 +1560,13 @@ class LedgerEventHandler(
      * three slots costs three. At MONITOR the grid still holds its pre-craft contents.
      */
     private fun debitCraftIngredients(player: Player, event: CraftItemEvent, crafts: Int) {
-        if (crafts <= 0) return
-        val perMaterial = HashMap<Material, Int>()
-        for (slot in event.inventory.matrix) {
-            if (slot == null || slot.type == Material.AIR) continue
-            if (!isTracked(slot.type)) continue
-            perMaterial.merge(slot.type, 1, Int::plus)
-        }
-        if (perMaterial.isEmpty()) return
+        val debits = StationAccounting.ingredientDebits(event.inventory.matrix.map { it?.type }, ::isTracked, crafts)
+        if (debits.isEmpty()) return
 
         val meta = LedgerMetadata.fromLocation(player.location)
             .copy(notes = "CRAFT_INGREDIENT")
-        for ((material, slots) in perMaterial) {
-            appendAsync(player.uniqueId, LedgerAction.CONSUME, material, -(slots * crafts), meta)
+        for ((material, used) in debits) {
+            appendAsync(player.uniqueId, LedgerAction.CONSUME, material, -used, meta)
         }
     }
 
