@@ -1092,6 +1092,77 @@ class LedgerEventHandler(
         } catch (e: ClassNotFoundException) {
             logger.info("[Ledger] PlayerTradeEvent unavailable (Spigot?) - villager trades won't be credited")
         }
+        registerSulfurCubeSwallow()
+    }
+
+    /** SulfurCubeSwallowItemEvent postdates the 1.21 and 26.1 compile targets, so it is bound reflectively. */
+    private fun registerSulfurCubeSwallow() {
+        val eventClass = try {
+            Class.forName("io.papermc.paper.event.entity.SulfurCubeSwallowItemEvent")
+        } catch (e: ClassNotFoundException) {
+            return
+        }
+        val getPlayer = eventClass.getMethod("getPlayer")
+        val getOldItem = eventClass.getMethod("getOldItem")
+        val getNewItem = eventClass.getMethod("getNewItem")
+        val getEntity = eventClass.getMethod("getEntity")
+        @Suppress("UNCHECKED_CAST")
+        plugin.server.pluginManager.registerEvent(
+            eventClass as Class<out org.bukkit.event.Event>, this, EventPriority.MONITOR,
+            { _, event ->
+                if (!eventClass.isInstance(event)) return@registerEvent
+                try {
+                    onSulfurCubeSwallow(
+                        getPlayer.invoke(event) as? Player ?: return@registerEvent,
+                        getEntity.invoke(event) as? org.bukkit.entity.Entity ?: return@registerEvent,
+                        getOldItem.invoke(event) as? ItemStack,
+                        getNewItem.invoke(event) as? ItemStack ?: return@registerEvent
+                    )
+                } catch (e: Exception) {
+                    logger.warning("[Ledger] could not record a sulfur cube swallow: ${e.message}")
+                }
+            },
+            plugin, true
+        )
+    }
+
+    private fun onSulfurCubeSwallow(player: Player, cube: org.bukkit.entity.Entity, oldItem: ItemStack?, newItem: ItemStack) {
+        if (shouldSkip(player)) return
+        // Vanilla swallows nothing for a baby cube or a block of the type it already holds.
+        if ((cube as? org.bukkit.entity.Ageable)?.isAdult == false) return
+        val old = oldItem?.takeIf { it.type != Material.AIR }
+        if (old != null && old.type == newItem.type) return
+        // The held stack only loses one when no other plugin replaced the swallowed item.
+        val inventory = player.inventory
+        val held = listOf(inventory.itemInMainHand, inventory.itemInOffHand).firstOrNull { it == newItem }
+
+        val loc = cube.location
+        val where = "${loc.world?.name},${loc.blockX},${loc.blockY},${loc.blockZ}"
+        if (held != null && isTracked(held.type)) {
+            val meta = LedgerMetadata.fromLocation(loc).copy(containerType = "SULFUR_CUBE", containerLocation = where)
+            appendAsync(player.uniqueId, LedgerAction.ENTITY_PUT, held.type, -1, meta)
+            stockOut(tallySingle(held))
+        }
+        if (old != null && isTracked(old.type)) {
+            authorizeDrop(
+                material = old.type, amount = 1, loc = loc, sourcePlayer = player.uniqueId,
+                sourceAction = LedgerAction.ENTITY_TAKE, sourceContext = "SULFUR_CUBE_EJECT:$where"
+            )
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onSulfurCubeShear(event: org.bukkit.event.player.PlayerShearEntityEvent) {
+        if (event.entity.type.name != "SULFUR_CUBE") return
+        val loc = event.entity.location
+        for (drop in event.drops) {
+            if (!isTracked(drop.type)) continue
+            authorizeDrop(
+                material = drop.type, amount = drop.amount, loc = loc, sourcePlayer = event.player.uniqueId,
+                sourceAction = LedgerAction.ENTITY_TAKE,
+                sourceContext = "SULFUR_CUBE_SHEAR:${loc.world?.name},${loc.blockX},${loc.blockY},${loc.blockZ}"
+            )
+        }
     }
 
     private inner class PaperTradeListener : Listener {
