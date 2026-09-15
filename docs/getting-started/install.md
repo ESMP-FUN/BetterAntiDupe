@@ -7,7 +7,8 @@ Running several servers that players move between? Do this on each one, then rea
 ## 1. Pick the right download
 
 * Minecraft **1.21.x**: `BetterAntiDupe-4.3.0.jar`
-* Minecraft **26.x**: `BetterAntiDupe-4.3.0-mc26.jar`
+* Minecraft **26.0 to 26.2**: `BetterAntiDupe-4.3.0-mc26.jar`
+* Minecraft **26.3**: `BetterAntiDupe-4.3.0-mc263.jar`
 
 ## 2. Put it in your plugins folder
 

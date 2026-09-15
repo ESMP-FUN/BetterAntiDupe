@@ -52,6 +52,19 @@ class BetterAntiDupe : JavaPlugin() {
     @Volatile private var enforcement: com.esmpfun.antidupe.enforce.EnforcementService? = null
     private var uncleanStartAt = 0L
 
+    /** The -mc26 jar still runs on 26.3, but it follows the wrong update track there. */
+    private fun warnIfNewerDownloadFits() {
+        @Suppress("DEPRECATION")
+        if (!description.version.endsWith("-mc26")) return
+        val parts = server.bukkitVersion.substringBefore('-').split('.').mapNotNull { it.toIntOrNull() }
+        val major = parts.getOrElse(0) { 0 }
+        val minor = parts.getOrElse(1) { 0 }
+        if (major > 26 || (major == 26 && minor >= 3)) {
+            logger.warning("You are using the download for Minecraft 26.0 to 26.2, but this server runs ${server.bukkitVersion.substringBefore('-')}.")
+            logger.warning("Please switch to the BetterAntiDupe jar ending in -mc263, so you get the right updates.")
+        }
+    }
+
     override fun onEnable() {
         migrateLegacyDataFolder()
         @Suppress("DEPRECATION")
@@ -92,6 +105,7 @@ class BetterAntiDupe : JavaPlugin() {
             // Update checking. Its own settings live in pluginpulse.yml; an `update:` block in
             // config.yml overrides the mode and interval.
             io.github.darkstarworks.pluginpulse.PluginPulse.bootstrap(this)
+            warnIfNewerDownloadFits()
 
             logger.info("=== BetterAntiDupe enabled successfully ===")
         } catch (e: Exception) {
