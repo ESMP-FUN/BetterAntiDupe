@@ -128,14 +128,16 @@ class LedgerEventHandler(
         return t.filterValues { it > 0 }
     }
 
-    private fun tallyPlayerSide(player: Player, materials: Set<Material>): MutableMap<Pair<UUID, Material>, Int> {
+    private fun tallyPlayerSide(
+        player: Player, materials: Set<Material>, cursor: ItemStack = player.itemOnCursor
+    ): MutableMap<Pair<UUID, Material>, Int> {
         val sink = HashMap<Pair<UUID, Material>, Int>()
         fun consider(stack: ItemStack?) {
             if (stack == null || (stack.type !in materials && !mightHoldItems(stack.type))) return
             ownershipManager.tallyOwners(stack, ::isTracked, sink)
         }
         player.inventory.contents.forEach { consider(it) }
-        consider(player.itemOnCursor)
+        consider(cursor)
         sink.keys.removeIf { it.second !in materials }
         return sink
     }
@@ -696,7 +698,27 @@ class LedgerEventHandler(
         if (isTracked(mat)) materials.add(mat)
         materials.addAll(containedTracked(event.oldCursor).keys)
         if (materials.isEmpty()) return
-        scheduleContainerDiff(player, topInv, target, materials)
+        if (player.gameMode == GameMode.CREATIVE) countCreativeCopies(event, topInv.size)
+        // The server shortens the held stack before this event fires, so count from the stack as it was.
+        scheduleContainerDiff(player, topInv, target, materials, event.oldCursor)
+    }
+
+    /**
+     * A creative middle-button drag fills slots without using up the held stack. Copies left in the
+     * container count as stored, so taking them out later is not read as a storage dupe.
+     */
+    private fun countCreativeCopies(event: InventoryDragEvent, topSize: Int) {
+        var topAdded = 0
+        var bottomAdded = 0
+        for ((raw, stack) in event.newItems) {
+            val added = stack.amount - (event.view.getItem(raw)?.amount ?: 0)
+            if (raw < topSize) topAdded += added else bottomAdded += added
+        }
+        val cursorUsed = event.oldCursor.amount - (event.cursor?.amount ?: 0)
+        val copies = topAdded - (cursorUsed - bottomAdded).coerceIn(0, maxOf(topAdded, 0))
+        if (copies <= 0) return
+        val perCopy = tally(event.oldCursor.clone().also { it.amount = 1 })
+        if (perCopy.isNotEmpty()) stockOut(perCopy.mapValues { it.value * copies })
     }
 
     /**
@@ -733,26 +755,27 @@ class LedgerEventHandler(
         return total
     }
 
-    private fun countPlayerSide(player: Player, material: Material): Int {
+    private fun countPlayerSide(player: Player, material: Material, cursor: ItemStack = player.itemOnCursor): Int {
         var total = countInInventory(player.inventory, material)
-        val cursor = player.itemOnCursor
         if (cursor.type == material) total += cursor.amount
         if (mightHoldItems(cursor.type)) total += containedTracked(cursor)[material] ?: 0
         return total
     }
 
-    private fun countForeignPlayerSide(player: Player, material: Material): Int {
+    private fun countForeignPlayerSide(player: Player, material: Material, cursor: ItemStack = player.itemOnCursor): Int {
         val id = player.uniqueId
         var total = 0
         for (stack in player.inventory.storageContents) {
             if (stack != null && stack.type == material && ownershipManager.getOwner(stack) != id) total += stack.amount
         }
-        val cursor = player.itemOnCursor
         if (cursor.type == material && ownershipManager.getOwner(cursor) != id) total += cursor.amount
         return total
     }
 
-    private fun scheduleContainerDiff(player: Player, inv: Inventory, target: StorageTarget, materials: Set<Material>) {
+    private fun scheduleContainerDiff(
+        player: Player, inv: Inventory, target: StorageTarget, materials: Set<Material>,
+        cursor: ItemStack = player.itemOnCursor
+    ) {
         val existing = pendingDiffs[player.uniqueId]
         val pending = if (existing != null && existing.inventory === inv) existing else {
             val fresh = PendingContainerDiff(inv, target)
@@ -764,14 +787,14 @@ class LedgerEventHandler(
         // Each click is applied after this MONITOR handler returns, so these are pre-click counts.
         val fresh = HashSet<Material>()
         for (mat in materials) {
-            if (pending.playerPre.putIfAbsent(mat, countPlayerSide(player, mat)) == null) {
-                pending.foreignPre[mat] = countForeignPlayerSide(player, mat)
+            if (pending.playerPre.putIfAbsent(mat, countPlayerSide(player, mat, cursor)) == null) {
+                pending.foreignPre[mat] = countForeignPlayerSide(player, mat, cursor)
                 fresh.add(mat)
             }
             pending.takeCeiling.merge(mat, countInInventory(inv, mat), Int::plus)
         }
         if (worldStock != null && fresh.isNotEmpty()) {
-            for ((key, amount) in tallyPlayerSide(player, fresh)) pending.ownerPre.merge(key, amount, Int::plus)
+            for ((key, amount) in tallyPlayerSide(player, fresh, cursor)) pending.ownerPre.merge(key, amount, Int::plus)
         }
     }
 
