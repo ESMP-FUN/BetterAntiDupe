@@ -2,7 +2,7 @@
 # https://github.com/darkstarworks/PluginPulse
 #
 # Modrinth is the primary source; GitHub Releases is the fallback.
-modrinth: antidupepro
+modrinth: betterantidupe
 github: ESMP-FUN/BetterAntiDupe
 
 permission: antidupe.admin
