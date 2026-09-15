@@ -743,6 +743,9 @@ class LedgerEventHandler(
 
     private val pendingDiffs = ConcurrentHashMap<UUID, PendingContainerDiff>()
     private val stationCredits = StationCredits()
+    private val shearDropsMethod: java.lang.reflect.Method? by lazy {
+        runCatching { org.bukkit.event.player.PlayerShearEntityEvent::class.java.getMethod("getDrops") }.getOrNull()
+    }
 
     private fun countInInventory(inv: Inventory, material: Material): Int {
         var total = 0
@@ -1157,7 +1160,10 @@ class LedgerEventHandler(
     fun onSulfurCubeShear(event: org.bukkit.event.player.PlayerShearEntityEvent) {
         if (event.entity.type.name != "SULFUR_CUBE") return
         val loc = event.entity.location
-        for (drop in event.drops) {
+        // getDrops is Paper-only; Spigot has sulfur cubes too, and calling it there throws.
+        @Suppress("UNCHECKED_CAST")
+        val drops = shearDropsMethod?.let { runCatching { it.invoke(event) as? List<ItemStack> }.getOrNull() } ?: return
+        for (drop in drops) {
             if (!isTracked(drop.type)) continue
             authorizeDrop(
                 material = drop.type, amount = drop.amount, loc = loc, sourcePlayer = event.player.uniqueId,
