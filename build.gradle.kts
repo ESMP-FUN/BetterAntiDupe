@@ -8,14 +8,26 @@ plugins {
 
 group = "com.esmpfun"
 
-// Two build targets from one source, selected with -Pmc=<line> (default 26):
-//   ./gradlew shadowJar -Pmc=21   ->  BetterAntiDupe-3.4.2.jar       (compile 1.21.x, Java 21)
-//   ./gradlew shadowJar -Pmc=26   ->  BetterAntiDupe-3.4.2-mc26.jar  (compile 26.x,  Java 25)
-// 1.21.x servers run JDK21 and can't load Java 25 bytecode, hence the two artifacts.
+// Three build targets from one source, selected with -Pmc=<line> (default 26):
+//   ./gradlew shadowJar -Pmc=21   ->  BetterAntiDupe-4.3.0.jar         (1.21.x,       Java 21)
+//   ./gradlew shadowJar -Pmc=26   ->  BetterAntiDupe-4.3.0-mc26.jar    (26.0 to 26.2, Java 25)
+//   ./gradlew shadowJar -Pmc=263  ->  BetterAntiDupe-4.3.0-mc263.jar   (26.3,         Java 25)
+// 1.21.x servers run JDK21 and can't load Java 25 bytecode. The 26.3 jar declares
+// api-version 26.3, so an older server refuses it, and it follows its own update track.
 val pluginVersion = "4.3.0"
 val mcLine = (findProperty("mc") as String?) ?: "26"
-val is26 = mcLine == "26"
-version = if (is26) "$pluginVersion-mc26" else pluginVersion
+
+data class McTarget(val paperApi: String, val suffix: String, val apiVersion: String, val java: Int, val runMc: String)
+
+val mcTarget = when (mcLine) {
+    "21" -> McTarget("1.21.11-R0.1-SNAPSHOT", "", "1.21", 21, "1.21.8")
+    "26" -> McTarget("26.1.2.build.66-stable", "-mc26", "1.21", 25, "26.2")
+    "263" -> McTarget("26.3.build.3-alpha", "-mc263", "26.3", 25, "26.3")
+    else -> throw GradleException("Unknown -Pmc=$mcLine. Use 21, 26 or 263.")
+}
+version = "$pluginVersion${mcTarget.suffix}"
+// PluginPulse only applies a track on 26.x servers, so the 1.21 jar's value is never read.
+val updateTrack = if (mcLine == "263") "mc263" else "mc26"
 
 repositories {
     mavenCentral()
@@ -31,10 +43,7 @@ repositories {
 dependencies {
     // API matches the build target. All server internals are reached via reflection, so the
     // tag stripper needs neither paperweight nor the newer API at compile time.
-    compileOnly(
-        if (is26) "io.papermc.paper:paper-api:26.1.2.build.66-stable"
-        else "io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT"
-    )
+    compileOnly("io.papermc.paper:paper-api:${mcTarget.paperApi}")
     // Netty types for the client-side tag stripper's pipeline handler. compileOnly — the server
     // ships Netty at runtime, so nothing is added to the jar. All NMS access is via reflection,
     // so no paperweight/dev-bundle is needed and this still builds on plain paper-api.
@@ -57,10 +66,7 @@ dependencies {
     // Unit tests. The ledger's hashing, canonical metadata form and balance arithmetic are
     // pure functions, so they can be checked without standing a server up.
     testImplementation(kotlin("test"))
-    testImplementation(
-        if (is26) "io.papermc.paper:paper-api:26.1.2.build.66-stable"
-        else "io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT"
-    )
+    testImplementation("io.papermc.paper:paper-api:${mcTarget.paperApi}")
 
     // FastStats — anonymous usage metrics and (opt-in) error reporting.
     // Server owners can disable either in config.yml; the SDK itself only
@@ -75,9 +81,8 @@ tasks.test {
 tasks {
     runServer {
         // Overridable so the same jar can be smoke-tested across the line it claims to
-        // support: ./gradlew runServer -PrunMc=26.2 (and 26.3 once it lands). The compile
-        // target stays at the oldest supported release; only the runtime moves.
-        minecraftVersion((findProperty("runMc") as String?) ?: if (is26) "26.2" else "1.21.8")
+        // support, e.g. ./gradlew runServer -Pmc=26 -PrunMc=26.1.2.
+        minecraftVersion((findProperty("runMc") as String?) ?: mcTarget.runMc)
         // A smoke-test server on an empty world needs very little. Left uncapped it asks for
         // a default heap that a development machine already running a game and a real server
         // cannot commit, and Paperclip dies allocating before the plugin ever loads.
@@ -85,11 +90,8 @@ tasks {
     }
 }
 
-// 1.21.x servers run JDK21 and cannot load newer bytecode; 26.x runs JDK25 and loads either.
-// So the 1.21 artifact must be Java 21; the 26 artifact targets Java 25.
-val targetJavaVersion = if (is26) 25 else 21
 kotlin {
-    jvmToolchain(targetJavaVersion)
+    jvmToolchain(mcTarget.java)
 }
 
 tasks.build {
@@ -178,10 +180,10 @@ tasks.shadowJar {
 }
 
 tasks.processResources {
-    val props = mapOf("version" to version)
+    val props = mapOf("version" to version, "apiVersion" to mcTarget.apiVersion, "track" to updateTrack)
     inputs.properties(props)
     filteringCharset = "UTF-8"
-    filesMatching("plugin.yml") {
+    filesMatching(listOf("plugin.yml", "pluginpulse.yml")) {
         expand(props)
     }
 }

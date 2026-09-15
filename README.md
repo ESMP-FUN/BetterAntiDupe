@@ -21,7 +21,8 @@ identifiers, so vanilla behaviour is preserved.
 
 1. Download the jar for your server:
    - `BetterAntiDupe-X.Y.Z.jar` - Minecraft 1.21.x (Java 21+)
-   - `BetterAntiDupe-X.Y.Z-mc26.jar` - Minecraft 26.x (Java 25+)
+   - `BetterAntiDupe-X.Y.Z-mc26.jar` - Minecraft 26.0 to 26.2 (Java 25+)
+   - `BetterAntiDupe-X.Y.Z-mc263.jar` - Minecraft 26.3 (Java 25+)
 2. Drop it into `plugins/`.
 3. Start the server. It generates its config and a SQLite database, then loads.
 

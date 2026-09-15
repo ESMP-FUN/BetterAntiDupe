@@ -19,7 +19,7 @@ Install it and you are protected.<br>The defaults are sensible, and nothing is e
 | | |
 |---|---|
 | **Server software** | Paper, Folia, Spigot, or a Paper fork |
-| **Minecraft** | 1.21.x, or 26.x with the `-mc26` download |
+| **Minecraft** | 1.21.x, 26.0 to 26.2 with the `-mc26` download, or 26.3 with the `-mc263` download |
 | **Java** | 21+ for `1.21.x` or 25+ for `26.x` |
 | **Anything else** | Nothing. Redis is optional. |
 
@@ -27,7 +27,8 @@ Install it and you are protected.<br>The defaults are sensible, and nothing is e
 <summary><b>Which download do I need?</b></summary>
 
 Minecraft 1.21.x: the plain jar. <br>
-Minecraft 26.x: the jar ending in `-mc26`. <br>
+Minecraft 26.0 to 26.2: the jar ending in `-mc26`. <br>
+Minecraft 26.3: the jar ending in `-mc263`. <br>
 
 More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/getting-started/install)
 
@@ -289,7 +290,7 @@ More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/bette
 
 ## Installation
 
-1. Download the jar (`-mc26` for Minecraft 26.x).
+1. Download the jar (`-mc26` for Minecraft 26.0 to 26.2, `-mc263` for 26.3).
 2. Drop it into `plugins/` and restart the server.
 3. That's it. [Testing in-game](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/help/testing-in-game) shows you it working.
 

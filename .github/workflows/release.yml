@@ -30,8 +30,13 @@ jobs:
         env:
           JAVA_HOME: ${{ env.JAVA_HOME_21_X64 }}
 
-      - name: Build 26.x jar
+      - name: Build 26.0-26.2 jar
         run: ./gradlew build -Pmc=26 -x test
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_25_X64 }}
+
+      - name: Build 26.3 jar
+        run: ./gradlew build -Pmc=263 -x test
         env:
           JAVA_HOME: ${{ env.JAVA_HOME_25_X64 }}
 

@@ -1,7 +1,7 @@
 name: BetterAntiDupe
 version: '${version}'
 main: com.esmpfun.antidupe.BetterAntiDupe
-api-version: '1.21'
+api-version: '${apiVersion}'
 prefix: DUPE »
 load: STARTUP
 authors: [ darkstarworks ]

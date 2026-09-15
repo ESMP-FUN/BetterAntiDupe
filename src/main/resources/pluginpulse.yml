@@ -16,6 +16,6 @@ prefix: "<gold>[AntiDupe]</gold>"
 mode: notify
 check-interval-hours: 6
 
-# BetterAntiDupe ships a separate "-mc26" build for Minecraft 26.x; servers on
-# 26.x follow that release line automatically.
-track: mc26
+# BetterAntiDupe ships separate "-mc26" (26.0 to 26.2) and "-mc263" (26.3) builds.
+# Filled in at build time, so each jar follows its own release line.
+track: ${track}
