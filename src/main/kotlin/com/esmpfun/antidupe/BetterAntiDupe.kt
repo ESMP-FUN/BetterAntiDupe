@@ -60,7 +60,7 @@ class BetterAntiDupe : JavaPlugin() {
         val major = parts.getOrElse(0) { 0 }
         val minor = parts.getOrElse(1) { 0 }
         if (major > 26 || (major == 26 && minor >= 3)) {
-            logger.warning("You are using the download for Minecraft 26.0 to 26.2, but this server runs ${server.bukkitVersion.substringBefore('-')}.")
+            logger.warning("You are using the download for Minecraft 26.0 to 26.2, but this server runs $major.$minor.")
             logger.warning("Please switch to the BetterAntiDupe jar ending in -mc263, so you get the right updates.")
         }
     }
