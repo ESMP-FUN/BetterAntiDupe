@@ -22,7 +22,7 @@ data class McTarget(val paperApi: String, val suffix: String, val apiVersion: St
 val mcTarget = when (mcLine) {
     "21" -> McTarget("1.21.11-R0.1-SNAPSHOT", "", "1.21", 21, "1.21.8")
     "26" -> McTarget("26.1.2.build.66-stable", "-mc26", "1.21", 25, "26.2")
-    "263" -> McTarget("26.3.build.3-alpha", "-mc263", "26.3", 25, "26.3")
+    "263" -> McTarget("26.3.build.4-alpha", "-mc263", "26.3", 25, "26.3")
     else -> throw GradleException("Unknown -Pmc=$mcLine. Use 21, 26 or 263.")
 }
 version = "$pluginVersion${mcTarget.suffix}"
