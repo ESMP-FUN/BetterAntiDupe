@@ -6,6 +6,7 @@ All notable changes to BetterAntiDupe will be documented in this file.
 
 ### Added
 - **Minecraft 26.3 support, as its own download.** There are now three jars: the plain one for 1.21.x, `-mc26` for 26.0 to 26.2, and the new `-mc263` for 26.3. A 26.2 or older server refuses the 26.3 jar with a clear message, and each jar only offers updates meant for its own Minecraft version. If a 26.3 server runs the `-mc26` jar, the console asks you to switch.
+- **Hiding the ownership tag from players now works on Minecraft 26.3.** 26.3 servers changed an item conversion the feature relies on, so it switched itself off at startup with an "unsupported server build" warning.
 - **`leaving_creative_mode`** decides what happens when someone switches out of creative mode. Whatever they carry becomes their new record, including what is packed inside shulker boxes and bundles, and the change is written into their history as `LEFT_CREATIVE`. `RECORD` (the default) only writes it down. `ALERT` also alerts staff when someone switches back carrying more of an item than their record showed, once it reaches that item's alert threshold. It never removes anything and adds no suspicion. `/adp reload` applies it.
 
 ### Fixed

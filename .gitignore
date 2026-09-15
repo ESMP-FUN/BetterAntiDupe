@@ -125,3 +125,4 @@ OPLETTEN*.txt
 
 # Scraped web content (firecrawl working dir)
 .firecrawl/
+run263/
