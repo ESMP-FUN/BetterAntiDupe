@@ -6,9 +6,9 @@ Running several servers that players move between? Do this on each one, then rea
 
 ## 1. Pick the right download
 
-* Minecraft **1.21.x**: `BetterAntiDupe-4.4.0.jar`
-* Minecraft **26.0 to 26.2**: `BetterAntiDupe-4.4.0-mc26.jar`
-* Minecraft **26.3**: `BetterAntiDupe-4.4.0-mc263.jar`
+* Minecraft **1.21.x**: `BetterAntiDupe-4.5.0.jar`
+* Minecraft **26.0 to 26.2**: `BetterAntiDupe-4.5.0-mc26.jar`
+* Minecraft **26.3**: `BetterAntiDupe-4.5.0-mc263.jar`
 
 ## 2. Put it in your plugins folder
 
@@ -19,7 +19,7 @@ Stop the server, drop the jar into `plugins/`, and start it again.
 Look in your console for these two lines:
 
 ```
-[BetterAntiDupe] === BetterAntiDupe v4.4.0 ===
+[BetterAntiDupe] === BetterAntiDupe v4.5.0 ===
 [BetterAntiDupe] === BetterAntiDupe enabled successfully ===
 ```
 
