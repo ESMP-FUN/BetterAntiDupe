@@ -78,16 +78,21 @@ class DuperPreventionListener(
         BlockFace.DOWN, BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST
     )
 
+    // TNT dupers are powered by a detector rail and minecart riding on their slime, so with TNT
+    // dupers allowed a detector rail no longer counts as a rail duper.
+    private fun isTntDuperRail(b: Block) = !preventTnt && b.type == Material.DETECTOR_RAIL
+
     /** A short reason string when this piston movement matches a duper signature, else null. */
     private fun dupeVector(moved: List<Block>): Pair<String, Block>? {
         for (block in moved) {
             val type = block.type
             if (preventTnt && type == Material.TNT) return "TNT duper" to block
             val above = block.getRelative(BlockFace.UP)
-            railCarpetVector(above.type)?.let { return it to above }
+            if (!isTntDuperRail(above)) railCarpetVector(above.type)?.let { return it to above }
             if ((preventRail || preventCarpet) && isSlimeLike(type)) {
                 for (face in slimeDragFaces) {
                     val neighbor = block.getRelative(face)
+                    if (isTntDuperRail(neighbor)) continue
                     railCarpetVector(neighbor.type)?.let { return it to neighbor }
                 }
             }
@@ -109,7 +114,7 @@ class DuperPreventionListener(
         // head block, which never appears in event.blocks, and a plain retract moves nothing at
         // all, yet pulling the arm back is exactly what dislodges and dupes it.
         val aboveHead = event.block.getRelative(event.direction).getRelative(BlockFace.UP)
-        railCarpetVector(aboveHead.type)?.let { reason ->
+        if (!isTntDuperRail(aboveHead)) railCarpetVector(aboveHead.type)?.let { reason ->
             event.isCancelled = true
             logBlocked(reason, aboveHead)
             return

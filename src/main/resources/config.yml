@@ -170,6 +170,9 @@ prevent-gravity-dupers: true
 
 # Pistons are not allowed to move TNT. Turn this off if your players run TNT
 # duper world eaters on purpose, as some anarchy and tech servers allow.
+# With this off, detector rails are left out of the rail check above, since
+# TNT dupers use a detector rail and minecart to power themselves. Other rails
+# and all carpets stay protected.
 prevent-tnt-dupers: true
 
 # Close a container's window when the container itself goes away: a shulker
