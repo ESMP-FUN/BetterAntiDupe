@@ -2,6 +2,11 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
+## [4.5.0] - 2026-09-17
+
+### Fixed
+- **TNT dupers that use a detector rail work when TNT dupers are allowed.** With `prevent-tnt-dupers` off but rail protection on, TNT dupers powered by a detector rail and minecart could not move. Detector rails are now left out of the rail check whenever TNT dupers are allowed. Other rails and all carpets stay protected.
+
 ## [4.4.0] - 2026-09-16
 
 ### Added
