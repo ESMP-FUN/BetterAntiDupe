@@ -2,6 +2,12 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- **Starts on hosts where the temporary folder cannot be used.** The database needs to unpack a small helper file before it can run, and it used the server's temporary folder to do it. Many hosts do not allow that folder to be used this way, or keep it full, and the plugin then stopped with a confusing "no native library found" message. It now unpacks into its own folder instead.
+- **Starts on network storage and when the disk is full.** The plugin asks the database to use a faster way of saving, which does not work when the plugin folder lives on network storage, and fails when the disk is full. That stopped the whole plugin. It now says so in the console and switches to the slower, safe way instead. Nothing is lost and no setting needs changing.
+
 ## [4.5.0] - 2026-09-17
 
 ### Fixed

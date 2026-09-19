@@ -26,14 +26,23 @@ class SqliteLedgerStorage private constructor(
 
     companion object {
         suspend fun create(plugin: JavaPlugin, logger: Logger): SqliteLedgerStorage = withContext(Dispatchers.IO) {
-            Class.forName("org.sqlite.JDBC")
             val dir = plugin.dataFolder.also { if (!it.exists()) it.mkdirs() }
+            // The driver unpacks its native library to a temp directory and loads it from
+            // there. Shared hosts often mount /tmp noexec or full, which surfaces as a
+            // "no native library found" error naming a path that is actually inside the jar.
+            // The data folder is always writable, so point the driver at it unless the owner
+            // set the property themselves.
+            if (System.getProperty("org.sqlite.tmpdir") == null) {
+                val nativeDir = java.io.File(dir, "native").also { it.mkdirs() }
+                System.setProperty("org.sqlite.tmpdir", nativeDir.absolutePath)
+            }
+            Class.forName("org.sqlite.JDBC")
             val name = plugin.config.getString("storage.sqlite_ledger_file", "ledger.db") ?: "ledger.db"
             val path = java.io.File(dir, name)
             val c = DriverManager.getConnection("jdbc:sqlite:${path.absolutePath}")
             c.autoCommit = true
             c.createStatement().use { st ->
-                st.execute("PRAGMA journal_mode=WAL")
+                enableWriteAheadLog(st, logger)
                 st.execute("PRAGMA synchronous=NORMAL")
                 st.execute("""
                     CREATE TABLE IF NOT EXISTS ledger_entries (
@@ -118,6 +127,32 @@ class SqliteLedgerStorage private constructor(
             }
             logger.info("[Ledger] Connected to SQLite at ${path.name}")
             SqliteLedgerStorage(c, logger)
+        }
+
+        /**
+         * Write-ahead logging needs a shared-memory file the database can memory-map and grow.
+         * Network storage (NFS, SMB) and some container mounts cannot do that, and a full disk
+         * breaks it too, so fall back to the slower journal instead of failing to start.
+         */
+        private fun enableWriteAheadLog(st: java.sql.Statement, logger: Logger) {
+            val mode = try {
+                st.executeQuery("PRAGMA journal_mode=WAL").use { rs ->
+                    if (rs.next()) rs.getString(1)?.lowercase() else null
+                }
+            } catch (e: java.sql.SQLException) {
+                logger.warning("[Ledger] Could not turn on the faster saving mode: ${e.message}")
+                null
+            }
+            if (mode == "wal") return
+
+            logger.warning("[Ledger] This server's storage does not support the faster way of saving the ledger.")
+            logger.warning("[Ledger] Switching to the slower, safe way. Nothing is lost and no setting needs changing.")
+            logger.warning("[Ledger] This usually means the plugin folder is on network storage, or the disk is full.")
+            try {
+                st.execute("PRAGMA journal_mode=DELETE")
+            } catch (e: java.sql.SQLException) {
+                logger.warning("[Ledger] Could not switch saving modes either: ${e.message}")
+            }
         }
     }
 
