@@ -8,6 +8,9 @@ You do not need to set any of this up. It is all on by default. Open a section t
 
 These machines copy blocks in the world before any item exists, so there is nothing to count. Instead, the trick each one relies on is simply not allowed. Each has its own switch under `[Blocking]` in `config.yml`.
 
+IMPORTANT: if you have `allow-piston-duplication: false` in `paper-global.yml`, enabling any of the dupe machines that use a piston will not work.<br>
+set `allow-piston-duplication: true` in `paper-global.yml` to use any of the piston-powered machines below:
+
 <details>
 
 <summary><strong>Rail and carpet dupers</strong> (<code>prevent-rail-dupers</code>, <code>prevent-carpet-dupers</code>)</summary>
