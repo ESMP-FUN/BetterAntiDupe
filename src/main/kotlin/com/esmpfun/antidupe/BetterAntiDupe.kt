@@ -72,8 +72,20 @@ class BetterAntiDupe : JavaPlugin() {
         logger.info("Initializing Chain of Custody...")
         checkUncleanShutdown()
 
+        if (!dataFolderUsable()) {
+            logger.severe("BetterAntiDupe cannot save anything into its own folder, so it cannot start.")
+            logger.severe("The folder is: ${dataFolder.absolutePath}")
+            logger.severe("Your host has made it read-only, or the disk is full. Fix that and start the server again.")
+            server.pluginManager.disablePlugin(this)
+            return
+        }
+
         try {
-            pluginScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+            com.esmpfun.antidupe.util.ErrorReporter.init(logger) { metrics }
+            pluginScope = CoroutineScope(
+                Dispatchers.IO + SupervisorJob() +
+                    com.esmpfun.antidupe.util.ErrorReporter.handler("background-task")
+            )
             scheduler = PlatformScheduler(this)
             logger.info("✓ Scheduler initialized (${if (scheduler.isFolia) "Folia" else "Bukkit"} mode)")
 
@@ -385,6 +397,9 @@ class BetterAntiDupe : JavaPlugin() {
             logger.info("  Tracking ${trackedMaterials.size} materials, ${tmarLimits.size} TMAR limits")
         } catch (e: Exception) {
             logger.log(Level.SEVERE, "Failed to initialize Chain of Custody", e)
+            logger.severe("Item tracking is off for this run: nothing is being recorded and no dupe alerts will fire.")
+            logger.severe("The protections that block duping machines are unaffected and still running.")
+            logger.severe("The reason is in the lines above. Fix it and restart to get tracking back.")
             metrics?.report("chain-of-custody-init", e)
         }
     }
@@ -488,6 +503,20 @@ class BetterAntiDupe : JavaPlugin() {
             .filterValues { it !is org.bukkit.configuration.ConfigurationSection }
             .filterKeys { key -> LIVE_KEYS.none { key == it || key.startsWith("$it.") } }
             .mapValues { it.value.toString() }
+
+    /**
+     * Config, messages, the markers and the database all live here, and an unwritable folder
+     * otherwise surfaces as whichever of them happens to be touched first.
+     */
+    private fun dataFolderUsable(): Boolean = try {
+        dataFolder.mkdirs()
+        val probe = File(dataFolder, ".write-test")
+        probe.writeText("")
+        probe.delete()
+        true
+    } catch (e: Exception) {
+        false
+    }
 
     private fun runningMarker() = File(dataFolder, "server-running")
 

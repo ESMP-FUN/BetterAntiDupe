@@ -11,6 +11,7 @@ alerts:
   drop-excess: "Подобрано {excess} {material} сверх того, что произвели ближайшие источники ({source})"
 
 commands:
+  storage-unavailable: "&cСейчас не удаётся прочитать записи о предметах. Причина указана в консоли сервера."
   no-permission: "&cУ вас нет прав на команды реестра."
   not-initialized: "&cChain of Custody не инициализирован."
   unknown-subcommand: "&cНеизвестная подкоманда. Список команд: &e/adp help"

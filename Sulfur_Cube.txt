@@ -1,0 +1,1897 @@
+{{Infobox entity
+| title = Sulfur Cube
+| group1 = Default
+| 1-1 = Sulfur Cube.png
+| 1-2 = Sulfur Cube Small.png
+| 1-2size = 80px
+| 1-1caption = Large
+| 1-2caption = Small
+| group2 = Absorbed block (grass block)
+| 2-1 = Sulfur Cube Grass Block JE2.png
+| 2-1caption = Large only
+| extratext = [[#Gallery|View more renders]]<!-- this shouldn't be changed to "all renders" since it doesn't contain all renders -->
+| health = '''Large:''' {{hp|8}}<br/>'''Small:''' {{hp|4}}
+| invimage = Sulfur Cube Spawn Egg
+| invimage2 = Bucket of Sulfur Cube
+| behavior = Passive<ref group="note" name="passive">Can unintentionally hurt the player if having absorbed a [[magma block]] or [[TNT]].</ref>
+| mobtype = {{EntityLink|Monster}}<br>{{EntityLink|Animal}}
+| damage = '''{{BlockLink|Magma Block}}:'''<br>
+{{hp|1}} per half-second (10 ticks)
+<hr>
+'''{{BlockLink|TNT}}:'''<br>
+''Explosion varies by proximity and difficulty.''<br>
+Maximum damage:<br>
+Easy: {{hp|22.5}}<br>
+Normal: {{hp|43}}<br>
+Hard: {{hp|64.5}}
+| size = '''Large:'''<br/>Height: 0.98 blocks<br/>Width: 0.98 blocks<br/>'''Small:'''<br/>Height: 0.49 blocks<br/>Width: 0.49 blocks<br/>
+| speed = '''Large:''' 0.4 <br>'''Small:''' 0.3
+| knockbackresistance = Varies by archetype; see {{slink||Absorbing blocks}} for details
+| spawn = {{BiomeLink|Sulfur Caves}}
+| usableitems = '''Large:'''
+{{drop|block|id=Grass Block|text=Absorbable blocks|#Absorbing blocks}} 
+{{drop|Item|Shears}}<small>(when it has absorbed a block)</small>
+{{drop|Item|Bucket}}
+{{drop|Item|Lead}}<small>(when it has absorbed a block)</small>
+'''Small:'''
+{{drop|Item|Slimeball}}
+{{drop|Block|Golden Dandelion}}
+}}
+
+A '''sulfur cube''' is a [[bucket of Sulfur Cube|bucketable]] jumping [[passive mob]] that is found only in [[sulfur caves]]. It can absorb a full-sized [[block]] into itself, which immobilizes it and makes it receive higher [[Knockback (mechanic)|knockback]] from most attacks instead of damage. The block type a sulfur cube absorbs affects its bounciness and behavior, and some blocks cannot be absorbed, such as [[slab]]s and [[stairs]]. Blocks can be extracted using [[shears]], by replacing the block with a different one, or by killing the sulfur cube.
+
+'''Small sulfur cubes''' spawn in groups of two when a large sulfur cube dies. They grow up over time similarly to [[babies]] and cannot absorb blocks.
+
+== Spawning ==
+Large sulfur cubes spawn naturally in [[sulfur caves]] at any light level.
+
+Two small sulfur cubes spawn when a large sulfur cube dies, which can then grow up into large sulfur cubes; see {{Section link||Splitting}} below.
+
+{{Mob spawn table}}
+
+== Drops ==
+Upon death, large sulfur cubes drop the block they absorbed and 1-2 [[experience]], while small sulfur cubes drop no experience.
+
+== Behavior ==
+Sulfur cubes are passive mobs that, by default, jump around aimlessly. In this state, they are susceptible to all sources of damage.
+
+If a sulfur cube [[pathfind]]s into a block that can be [[climb]]ed, such as [[ladder]]s or [[vines]], the sulfur cube climbs the block. Sulfur cubes with absorbed blocks that are launched are also capable of climbing.{{Only|java}}
+
+=== Splitting ===
+Sulfur cubes come in two sizes: small and large. When a large sulfur cube dies, it splits into two small cubes, unless the death was caused by its own explosion. If a small sulfur cube dies, it does not split and drops nothing. When a named large sulfur cube is killed and splits, both small cubes retain the name as with other cube mobs.
+
+Small sulfur cubes grow into large ones after 20 minutes, similarly to [[baby]] mobs. [[Slimeball]]s can be used to tempt and feed small sulfur cubes, which decreases their remaining growth time. They can also be fed a [[golden dandelion]] to prevent them from growing.
+
+=== Bucketing ===
+A large sulfur cube can be picked up by using an empty [[bucket]] on it to create a [[bucket of sulfur cube]]. If a named sulfur cube is bucketed, the name of the item becomes "Bucket of ''<name>''" (the sulfur cube's name){{only|bedrock}} or only the cube's name{{Only|java}}. 
+
+If the bucketed sulfur cube has an absorbed block, the bucket of sulfur cube item tooltip displays the name of the absorbed block.
+
+A bucketed sulfur cube no longer counts toward the [[mob cap]] and does not [[despawn]]. However, if the bucketed sulfur cube is split into two small cubes, the small cubes can despawn.<ref>{{bug|MC-308361||Small sulfur cubes that split from bucketed sulfur cubes can despawn|WAI}}</ref>
+
+=== <span class="anchor" id="Archetypes"></span> Absorbing blocks ===
+{{Redirect|Sulfur cube archetype|the definition of sulfur cube archetypes in data packs|Sulfur cube archetype definition}}
+Large sulfur cubes have the ability to absorb some [[block]]s, mostly [[interaction box|full-sized]] ones. It can absorb a block [[Item (entity)|dropped]] on the ground (unless {{cmd|gamerule mob_griefing}} is set to <code>false</code>), and also can be fed a block by {{control|interacting}} with it. Sulfur cubes move toward absorbable blocks dropped on the ground, and they also follow players holding an applicable block in their hand. Small sulfur cubes cannot absorb blocks. A [[dispenser]] can also be used to feed a block to a sulfur cube if the cube's hitbox intersects the block space directly in front of the dispenser.
+
+They can also absorb any block using commands.
+
+Any method of feeding a block to a sulfur cube can also be done on a sulfur cube that has already absorbed a block, which changes the block inside it and drops its previously-absorbed block as an item.
+
+When a sulfur cube has absorbed a block, it stops moving and its absorbed block is visible inside of it. The absorbed block can be removed from a sulfur cube by using [[shears]] on it, which drops the block as an item. Dispensers with shears can also be used to remove the block.
+
+Absorbed blocks in sulfur cubes have the same visual properties as when placed down, including MERS textures with [[Vibrant Visuals]]. Froglights, for example, glow inside the sulfur cube, but they do not actually light the environment gameplay-wise. Throwing a [[splash potion of Invisibility]] on a sulfur cube causes it to show only the absorbed block.
+
+Sulfur cubes can absorb [[Anvil#Renaming|named]] blocks; the block remains named if removed, but the name of the block is not displayed above the sulfur cube.
+
+Sulfur cubes can absorb only the specific blocks listed below:
+
+{|class="wikitable stikitable sortable col-4-center col-5-center col-6-center col-7-center"
+!rowspan="2" width="160px"|Archetype
+!rowspan="2"|Block
+!rowspan="2"|Description
+!colspan="4"|[[Attribute]] values
+!colspan="2"|Knockback modifiers
+!rowspan="2"|Floats<br>in [[water]]
+|-
+!style="position:sticky; top:52px"|<small><small>Knockback<br>resistance</small></small>
+!style="position:sticky; top:52px"|<small><small>Bounciness</small></small>
+!style="position:sticky; top:52px"|<small><small>Friction<br>modifier</small></small>
+!style="position:sticky; top:52px"|<small><small>Air drag<br>modifier</small></small>
+!style="position:sticky; top:52px"|<small><small>Horizontal</small></small>
+!style="position:sticky; top:52px"|<small><small>Vertical</small></small>
+|-
+|Bouncy<br><small>(Rubber Ball)</small>
+|{{columns-list|colwidth=15em|style=width: 450px|
+*{{BlockLink|Planks}}
+*{{BlockLink|Bamboo Mosaic}}
+*{{BlockLink|id=all-logs-stems|Log|Logs}}
+*{{BlockLink|id=all-stripped-logs-stems|Stripped Log|Stripped Logs}}
+*{{BlockLink|id=all-wood-hyphae|Wood|Wood}}
+*{{BlockLink|id=all-stripped-wood-hyphae|Stripped Wood|Stripped Wood}}
+*{{BlockLink|Block of Bamboo}}
+*{{BlockLink|Block of Stripped Bamboo}}
+}}
+|Fast speed, high bounciness, medium ground friction and low air drag.
+| -2.0
+|0.9
+|0.3
+|0.01
+|0.4125
+|0.105
+|{{tc|yes}}
+|-
+|Explosive
+|
+*{{BlockLink|TNT}}
+|Medium speed, medium bounciness, and medium ground friction like regular, but with high air drag. Allows to be ignited and explode. See {{slink||Special archetypes}} below.
+| -1.0
+|0.5
+|0.3
+|0.3
+|0.4125
+|0.09
+|{{tc|yes}}
+|-
+|Fast Flat<br><small>(Golf Ball)</small>
+|{{columns-list|colwidth=15em|style=width: 450px|
+*{{BlockLink|id=all-coral-blocks|Coral Block|Coral Blocks}}
+*{{BlockLink|id=all-dead-coral-blocks|Dead Coral Block|Dead Coral Blocks}}
+*{{BlockLink|Sponge}}
+*{{BlockLink|Wet Sponge}}
+*{{BlockLink|Dried Kelp Block}}
+*{{BlockLink|Moss Block}}
+*{{BlockLink|Pale Moss Block}}
+*{{BlockLink|Block of Resin}}
+*{{BlockLink|Resin Bricks}}
+*{{BlockLink|Chiseled Resin Bricks}}
+*{{BlockLink|Pumpkin}}
+*{{BlockLink|Melon}}
+*{{BlockLink|Hay Bale}}
+*{{BlockLink|Carved Pumpkin}}
+*{{BlockLink|Jack o'Lantern}}
+*{{BlockLink|Froglights}}
+}}
+|Fast speed, low bounciness, medium ground friction and low air drag.
+| -1.0
+|0.5
+|0.2
+|0.01
+|0.9125
+|0.09
+|{{tc|no}}
+|-
+|Fast Sliding<br><small>(Hockey Puck)</small>
+|{{columns-list|colwidth=15em|style=width: 450px|
+*{{BlockLink|Blue Ice}}
+*{{BlockLink|Packed Ice}}
+*{{BlockLink|Snow Block}}
+}}
+|Fast speed, no bounciness, low ground friction and low air drag.
+|0.5
+|0.1
+|0.05
+|0.01
+|0.6625
+|0.09
+|{{tc|no}}
+|-
+|High Resistance
+|{{columns-list|colwidth=15em|style=width: 450px|
+*{{BlockLink|Soul Sand}}
+*{{BlockLink|Soul Soil}}
+}}
+|Very slow, low drag with low bounce with high friction.
+|0.7
+|0.2
+|1
+|0.01
+|0.4125
+|0.09
+|{{tc|no}}
+|-
+|Hot
+|
+*{{BlockLink|Magma Block}}
+|Same properties as football, but damages entities on contact. See {{slink||Special archetypes}} below.
+| -1.0
+|0.5
+|0.3
+|0.1
+|0.4125
+|0.09
+|{{tc|yes}}
+|-
+|Light<br><small>(Beach Ball)</small>
+|
+*{{BlockLink|Wool}}
+|Slow speed, high bounciness, medium ground friction and high air drag.
+| -1.0
+|1.0
+|0.3
+|1.8
+|0.4125
+|0.18
+|{{tc|yes}}
+|-
+|Regular<br><small>(Football/Soccer Ball)</small>
+|{{columns-list|colwidth=15em|style=width: 450px|
+*{{BlockLink|Concrete Powder}}
+*{{BlockLink|Mud}}
+*{{BlockLink|Muddy Mangrove Roots}}
+*{{BlockLink|Packed Mud}}
+*{{BlockLink|Block of Coal}}
+*{{BlockLink|Dirt}}
+*{{BlockLink|Coarse Dirt}}
+*{{BlockLink|Rooted Dirt}}
+*{{BlockLink|Podzol}}
+*{{BlockLink|Grass Block}}
+*{{BlockLink|Clay}}
+*{{BlockLink|Bone Block}}
+}}
+|Medium speed, medium bounciness, medium ground friction and low air drag.
+| -1.0
+|0.5
+|0.3
+|0.1
+|0.4125
+|0.09
+|{{tc|yes}}
+|-
+|Slow Bouncy
+|{{Collapse
+|title={{BlockSprite|Stone}} Most stone-like blocks
+|content={{columns-list|colwidth=15em|style=width: 450px|
+*{{BlockLink|Block of Amethyst}}
+*{{BlockLink|Andesite}}
+*{{BlockLink|Basalt}}
+*{{BlockLink|Blackstone}}
+*{{BlockLink|Bricks}}
+*{{BlockLink|Calcite}}
+*{{BlockLink|Chiseled Cinnabar}}
+*{{BlockLink|Chiseled Deepslate}}
+*{{BlockLink|Chiseled Nether Bricks}}
+*{{BlockLink|Chiseled Polished Blackstone}}
+*{{BlockLink|Chiseled Quartz Block}}
+*{{BlockLink|Chiseled Red Sandstone}}
+*{{BlockLink|Chiseled Sandstone}}
+*{{BlockLink|Chiseled Stone Bricks}}
+*{{BlockLink|Chiseled Sulfur}}
+*{{BlockLink|Chiseled Tuff}}
+*{{BlockLink|Chiseled Tuff Bricks}}
+*{{BlockLink|Cinnabar}}
+*{{BlockLink|Cinnabar Bricks}}
+*{{BlockLink|Cobbled Deepslate}}
+*{{BlockLink|Cobblestone}}
+*{{BlockLink|Cracked Deepslate Bricks}}
+*{{BlockLink|Cracked Deepslate Tiles}}
+*{{BlockLink|Cracked Nether Bricks}}
+*{{BlockLink|Cracked Polished Blackstone Bricks|Cracked Polished&hyphen;<br>Blackstone Bricks}}
+*{{BlockLink|Cracked Stone Bricks}}
+*{{BlockLink|Crimson Nylium}}
+*{{BlockLink|Crying Obsidian}}
+*{{BlockLink|Cut Red Sandstone}}
+*{{BlockLink|Cut Sandstone}}
+*{{BlockLink|Dark Prismarine}}
+*{{BlockLink|Deepslate}}
+*{{BlockLink|Deepslate Bricks}}
+*{{BlockLink|Deepslate Tiles}}
+*{{BlockLink|Block of Diamond}}
+*{{BlockLink|Diorite}}
+*{{BlockLink|Dripstone Block}}
+*{{BlockLink|Block of Emerald}}
+*{{BlockLink|End Stone}}
+*{{BlockLink|End Stone Bricks}}
+*{{BlockLink|Gilded Blackstone}}
+*{{BlockLink|Glowstone}}
+*{{BlockLink|Granite}}
+*{{BlockLink|Block of Lapis Lazuli}}
+*{{BlockLink|Mossy Cobblestone}}
+*{{BlockLink|Mossy Stone Bricks}}
+*{{BlockLink|Mud Bricks}}
+*{{BlockLink|Nether Bricks}}
+*{{BlockLink|Netherrack}}
+*{{BlockLink|Observer}}
+*{{BlockLink|Obsidian}}
+*{{BlockLink|Polished Andesite}}
+*{{BlockLink|Polished Basalt}}
+*{{BlockLink|Polished Blackstone}}
+*{{BlockLink|Polished Blackstone Bricks}}
+*{{BlockLink|Polished Cinnabar}}
+*{{BlockLink|Polished Deepslate}}
+*{{BlockLink|Polished Diorite}}
+*{{BlockLink|Polished Granite}}
+*{{BlockLink|Polished Sulfur}}
+*{{BlockLink|Polished Tuff}}
+*{{BlockLink|Prismarine}}
+*{{BlockLink|Prismarine Bricks}}
+*{{BlockLink|Purpur Block}}
+*{{BlockLink|Purpur Pillar}}
+*{{BlockLink|Block of Quartz}}
+*{{BlockLink|Quartz Bricks}}
+*{{BlockLink|Nether Quartz Ore}}
+*{{BlockLink|Quartz Pillar}}
+*{{BlockLink|Red Nether Bricks}}
+*{{BlockLink|Red Sandstone}}
+*{{BlockLink|Redstone Lamp}}
+*{{BlockLink|Sandstone}}
+*{{BlockLink|Sea Lantern}}
+*{{BlockLink|Smooth Basalt}}
+*{{BlockLink|Smooth Quartz}}
+*{{BlockLink|Smooth Red Sandstone}}
+*{{BlockLink|Smooth Sandstone}}
+*{{BlockLink|Smooth Stone}}
+*{{BlockLink|Stone}}
+*{{BlockLink|Stone Bricks}}
+*{{BlockLink|Sulfur}}
+*{{BlockLink|Sulfur Bricks}}
+*{{BlockLink|Tuff}}
+*{{BlockLink|Tuff Bricks}}
+*{{BlockLink|Warped Nylium}}
+*{{BlockLink|Concrete}}
+*{{BlockLink|Coal Ore}}
+*{{BlockLink|Deepslate Coal Ore}}
+*{{BlockLink|Lapis Lazuli Ore}}
+*{{BlockLink|Deepslate Lapis Lazuli Ore}}
+*{{BlockLink|Redstone Ore}}
+*{{BlockLink|Deepslate Redstone Ore}}
+*{{BlockLink|Diamond Ore}}
+*{{BlockLink|Deepslate Diamond Ore}}
+*{{BlockLink|Emerald Ore}}
+*{{BlockLink|Deepslate Emerald Ore}}
+*{{BlockLink|Terracotta}}
+*{{BlockLink|Stained Terracotta}}
+*{{BlockLink|Glazed Terracotta}}
+}}}}
+|Slow speed, high bounciness, medium friction and medium air drag.
+|0.4
+|0.6
+|0.3
+|0.05
+|0.4125
+|0.24
+|{{tc|no}}
+|-
+|Slow Flat<br><small>(Medicine Ball)</small>
+|{{columns-list|colwidth=15em|style=width: 450px|
+*{{BlockLink|Block of Iron}}
+*{{BlockLink|Block of Gold}}
+*{{BlockLink|Block of Raw Copper}}
+*{{BlockLink|Block of Raw Gold}}
+*{{BlockLink|Block of Raw Iron}}
+*{{BlockLink|id=all-gold-ore|Gold Ore}}
+*{{BlockLink|Nether Gold Ore}}
+*{{BlockLink|id=all-iron-ore|Iron Ore}}
+*{{BlockLink|id=all-copper-ore|Copper Ore}}
+*{{BlockLink|Block of Netherite}}
+*{{BlockLink|Ancient Debris}}
+*{{BlockLink|id=all-copper-blocks|Block of Copper}}
+*{{BlockLink|id=all-copper-bulbs|Copper Bulb}}
+*{{BlockLink|id=all-cut-copper|Cut Copper}}
+*{{BlockLink|id=all-chiseled-copper|Chiseled Copper}}
+}}
+|Slow speed, low bounciness, medium ground friction and medium air drag.
+|0.5
+|0.4
+|0.4
+|0.1
+|0.4125
+|0.105
+|{{tc|no}}
+|-
+|Slow Sliding<br><small>(Curling Stone)</small>
+|{{columns-list|colwidth=15em|style=width: 450px|
+*{{BlockLink|Brown Mushroom Block}}
+*{{BlockLink|Red Mushroom Block}}
+*{{BlockLink|Mushroom Stem}}
+*{{BlockLink|Mycelium}}
+*{{BlockLink|Nether Wart Block}}
+*{{BlockLink|Warped Wart Block}}
+*{{BlockLink|Shroomlight}}
+}}
+|Slow speed, no bounciness, low ground friction and low air drag.
+|0.8
+|0.1
+|0.05
+|0.01
+|0.4125
+|0.09
+|{{tc|no}}
+|-
+|Sticky
+|
+*{{BlockLink|Honeycomb Block}}
+|Fast speed and low air drag like fast flat, but sticks with extremely high ground friction and no bounce to simulate stickiness.
+| -2.0
+|0.0
+|2.0
+|0.01
+|0.4125
+|0.09
+|{{tc|no}}
+|}
+{{fnlist}}
+If a sulfur cube with a block dies, it drops the block as an item in addition to splitting.
+
+{{IN|JE}}, the items that can be absorbed by the sulfur cube are determined by the tag {{Tag link|item|sulfur_cube_swallowable}}, with the archetypes of the items determined by the tags: {{Tag link|item|sulfur_cube_archetype/bouncy|sulfur_cube_archetype/regular|sulfur_cube_archetype/slow_flat|sulfur_cube_archetype/fast_flat|sulfur_cube_archetype/light|sulfur_cube_archetype/fast_sliding|sulfur_cube_archetype/slow_sliding|sulfur_cube_archetype/sticky|sulfur_cube_archetype/high_resistance|sulfur_cube_archetype/explosive|sulfur_cube_archetype/hot|sulfur_cube_archetype/slow_bouncy}}
+
+{{IN|BE}}, the items that can be absorbed by the sulfur cube as well as the archetypes they give the sulfur cube are determined by the {{Tag link|item|minecraft:sulfur_cube_archetype_bouncy|minecraft:sulfur_cube_archetype_fast_flat|minecraft:sulfur_cube_archetype_fast_sliding|minecraft:sulfur_cube_archetype_high_resistance|minecraft:sulfur_cube_archetype_light|minecraft:sulfur_cube_archetype_regular|minecraft:sulfur_cube_archetype_slow_flat|minecraft:sulfur_cube_archetype_slow_sliding|minecraft:sulfur_cube_archetype_sticky|minecraft:sulfur_cube_archetype_explosive|minecraft:sulfur_cube_archetype_hot|minecraft:sulfur_cube_archetype_slow_bouncy|edition=bedrock}} item tags.
+
+==== Special archetypes ====
+Sulfur cubes that have absorbed specific functional blocks can have those functions applied to them. 
+*[[TNT]] has the explosive archetype. When a sulfur cube with the explosive archetype is ignited manually, its fuse time is set to {{convert|120|game tick|second}}. When ignited by another explosion, it is set to be a random number between {{convert|15|game tick|second}} and {{convert|44|game tick|second}}, inclusive.
+** Sulfur cubes with ignited TNT cannot be damaged, be captured in a [[bucket]], or have their absorbed block [[shear]]ed. When the sulfur cube explodes, no small sulfur cubes are spawned.
+** Sulfur cubes with the explosive archetype can be ignited in the same ways that TNT can be [[TNT#Activation|activated]] and more, including: 
+*** direct usage of [[flint and steel]] by a player or [[dispenser]], or usage of a [[fire charge]] by a player;
+*** causing any [[fire damage]] to the sulfur cube ([[fire]], [[lava]], flaming projectile, [[campfire]] or [[magma block]]);
+**** this works even if the mob has [[Fire Resistance]] on it;
+*** being hit by a weapon with [[Fire Aspect]];
+*** any other [[explosion]] nearby, including explosions from other sulfur cubes;
+*** a [[redstone]] signal. TNT activates if the center of sulfur cube's hitbox is in such a block that a TNT would be activated if it was a placed block instead.
+****TNT sulfur cubes are also primed if they occupy the same position as a redstone component that's currently emitting a signal (a [[comparator]], for example), even though that position might not be necessarily powered.
+*[[Magma block]]s have the hot archetype. Sulfur cubes with the hot archetype damage nearby mobs, acting as if they touched magma.
+
+==== Damage resistance ====
+A sulfur cube that has absorbed a block is resistant to the following forms of damage:
+* [[Melee attack]]s
+* [[Projectile]]s
+* [[Falling block]]s, including [[anvil]]s and [[stalactite]]s
+* [[Explosion]]s, except their own
+* [[Fall damage]], including onto [[stalagmite]]s
+* [[Freezing]]
+* Contact with [[cactus]] or [[sweet berry bushes]]
+* [[Magma block]]s and sulfur cubes with the hot archetype
+Other sources of damage, such as [[fire]], [[suffocation]], [[cramming]], or the damage [[effect]]s, can damage or kill the sulfur cube as normal.
+
+Some hostile mobs attack the sulfur cube even while it has absorbed a block, such as [[zoglin]]s, the [[wither]] and [[warden]]s. Although the sulfur cube is immune to the warden's melee damage, they can be killed by its [[sonic boom]]. Additionally, tamed [[wolves]] attack a sulfur cube that their owner attacks.
+
+==== Launching ====
+When affected by [[Knockback (mechanic)|knockback]], the sulfur cube is launched and is affected by [[gravity]] and [[physics]]. This causes it to behave and bounce like a ball.
+
+The direction and trajectory in which a sulfur cube is launched is the opposite of where on its body it is hit.{{Needs testing|May not be implemented yet in Bedrock Edition.}}
+
+This diagram describes how hitting a sulfur cube on different portions of its body launches it.
+{| class="wikitable"
+! colspan="1" |Sulfur Cube Launching Portions
+|- style="vertical-align:middle;"
+|[[File:Sulfur Cube Launching Guide.png|500px]]
+|}
+
+The force at which a sulfur cube is launched is based on the amount of damage the attack does. For example, hitting it with a [[diamond sword]] launches it farther than punching it without an item. The [[Knockback]] and [[Punch]] enchantments also apply additional power to the launch.
+
+Sulfur cubes that are in the air can be knocked farther upward when launched. This is particularly notable {{in|JE}}, where this behavior differs from the usual [[Knockback (mechanic)#Versus airborne entities|airborne knockback mechanics]].
+
+Depending on the absorbed block, sulfur cubes exhibit different properties when hit.
+
+== Sounds ==
+
+=== Mob ===
+==== Large ====
+{{el|je}}:
+{{SoundTable
+| type = java
+| {{SoundLine
+| sound = Sulfur cube jump1.ogg
+| sound2 = Sulfur cube jump2.ogg
+| sound3 = Sulfur cube jump3.ogg
+| sound4 = Sulfur cube jump4.ogg
+| sound5 = Sulfur cube jump5.ogg
+| sound6 = Sulfur cube jump6.ogg
+| sound7 = Sulfur cube jump7.ogg
+| sound8 = Sulfur cube jump8.ogg
+| sound9 = Sulfur cube jump9.ogg
+| sound10 = Sulfur cube jump10.ogg
+| sound11 = Sulfur cube jump11.ogg
+| description = When a sulfur cube jumps
+| source = neutral
+| id = entity.sulfur_cube.jump
+| translationkey = subtitles.entity.sulfur_cube.bounce
+| subtitle = Sulfur Cube bounces
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Sulfur cube squish1.ogg
+| sound2 = Sulfur cube squish2.ogg
+| sound3 = Sulfur cube squish3.ogg
+| sound4 = Sulfur cube squish4.ogg
+| sound5 = Sulfur cube squish5.ogg
+| sound6 = Sulfur cube squish6.ogg
+| sound7 = Sulfur cube squish7.ogg
+| sound8 = Sulfur cube squish8.ogg
+| sound9 = Sulfur cube squish9.ogg
+| sound10 = Sulfur cube squish10.ogg
+| sound11 = Sulfur cube squish11.ogg
+| description = When a sulfur cube lands
+| source = neutral
+| id = entity.sulfur_cube.squish
+| translationkey = subtitles.entity.sulfur_cube.bounce
+| subtitle = Sulfur Cube bounces
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Sulfur cube absorb1.ogg 
+| sound2 = Sulfur cube absorb2.ogg 
+| sound3 = Sulfur cube absorb3.ogg 
+| description = When a sulfur cube absorbs a block
+| source = neutral
+| id = entity.sulfur_cube.absorb
+| translationkey = subtitles.entity.sulfur_cube.absorb
+| subtitle = Sulfur Cube full
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Sulfur cube eject1.ogg 
+| sound2 = Sulfur cube eject2.ogg 
+| description = When a sulfur cube ejects a block
+| source = neutral
+| id = entity.sulfur_cube.eject
+| translationkey = subtitles.entity.sulfur_cube.eject
+| subtitle = Block removed
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Sulfur cube hit1.wav
+| sound2 = Sulfur cube hit2.wav
+| sound3 = Sulfur cube hit3.wav
+| sound4 = Sulfur cube hit4.wav
+| description = When a sulfur cube is damaged
+| source = neutral
+| id = entity.sulfur_cube.hurt
+| translationkey = subtitles.entity.sulfur_cube.hurt
+| subtitle = Sulfur Cube hurts
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Sulfur cube death.wav
+| description = When a sulfur cube dies
+| source = neutral
+| id = entity.sulfur_cube.death
+| translationkey = subtitles.entity.sulfur_cube.death
+| subtitle = Sulfur Cube dies
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+}}
+
+{{Edition|Bedrock}}:
+{{SoundTable
+| type = bedrock
+| {{SoundLine
+| sound = Sulfur cube jump1.ogg
+| sound2 = Sulfur cube jump2.ogg
+| sound3 = Sulfur cube jump3.ogg
+| sound4 = Sulfur cube jump4.ogg
+| sound5 = Sulfur cube jump5.ogg
+| sound6 = Sulfur cube jump6.ogg
+| sound7 = Sulfur cube jump7.ogg
+| sound8 = Sulfur cube jump8.ogg
+| sound9 = Sulfur cube jump9.ogg
+| sound10 = Sulfur cube jump10.ogg
+| sound11 = Sulfur cube jump11.ogg
+| description = When a sulfur cube jumps
+| source = neutral
+| id = mob.sulfur_cube.jump
+| translationkey = subtitles.entity.sulfur_cube.squish
+| subtitle = Sulfur Cube bounces
+| volume = 1.0
+| pitch = 1.0
+}}
+| {{SoundLine
+| sound = Sulfur cube squish1.ogg
+| sound2 = Sulfur cube squish2.ogg
+| sound3 = Sulfur cube squish3.ogg
+| sound4 = Sulfur cube squish4.ogg
+| sound5 = Sulfur cube squish5.ogg
+| sound6 = Sulfur cube squish6.ogg
+| sound7 = Sulfur cube squish7.ogg
+| sound8 = Sulfur cube squish8.ogg
+| sound9 = Sulfur cube squish9.ogg
+| sound10 = Sulfur cube squish10.ogg
+| sound11 = Sulfur cube squish11.ogg
+| description = When a sulfur cube lands
+| source = neutral
+| id = mob.sulfur_cube.landing
+| translationkey = subtitles.entity.sulfur_cube.landing
+| subtitle = Sulfur cube bounces
+| volume = 1.0
+| pitch = 1.0
+}}
+| {{SoundLine
+| sound = Sulfur cube absorb1.ogg
+| sound2 = Sulfur cube absorb2.ogg
+| sound3 = Sulfur cube absorb3.ogg 
+| description = When a sulfur cube absorbs a block
+| source = neutral
+| id = mob.sulfur_cube.absorb
+| translationkey = subtitles.entity.sulfur_cube.absorb
+| subtitle = Sulfur Cube full
+| volume = 1.0
+| pitch = 1.0
+}}
+| {{SoundLine
+| sound = Sulfur cube eject1.ogg 
+| sound2 = Sulfur cube eject2.ogg 
+| description = When a sulfur cube ejects a block
+| source = neutral
+| id = mob.sulfur_cube.eject
+| translationkey = subtitles.entity.sulfur_cube.eject
+| subtitle = Block Removed
+| volume = 1.0
+| pitch = 1.0
+}}
+| {{SoundLine
+| sound = Sulfur cube hit1.wav
+| sound2 = Sulfur cube hit2.wav
+| sound3 = Sulfur cube hit3.wav
+| sound4 = Sulfur cube hit4.wav
+| description = When a sulfur cube is damaged
+| source = neutral
+| id = mob.sulfur_cube.hurt
+| translationkey = subtitles.entity.sulfur_cube.hurt
+| subtitle = Sulfur Cube hurts
+| volume = 0.5–1.5
+| pitch = 0.8–1.2
+}}
+| {{SoundLine
+| sound = Sulfur cube death.wav
+| description = When a sulfur cube dies
+| source = neutral
+| id = mob.sulfur_cube.death
+| translationkey = subtitles.entity.sulfur_cube.death
+| subtitle = Sulfur Cube dies
+| volume = 0.5
+| pitch = 0.9
+}}
+}}
+
+==== Small ====
+{{el|je}}:
+{{SoundTable
+| type = java
+| {{SoundLine
+| sound = Small sulfur cube jump1.ogg
+| sound2 = Small sulfur cube jump2.ogg
+| sound3 = Small sulfur cube jump3.ogg
+| sound4 = Small sulfur cube jump4.ogg
+| sound5 = Small sulfur cube jump5.ogg
+| sound6 = Small sulfur cube jump6.ogg
+| sound7 = Small sulfur cube jump7.ogg
+| sound8 = Small sulfur cube jump8.ogg
+| sound9 = Small sulfur cube jump9.ogg
+| sound10 = Small sulfur cube jump10.ogg
+| sound11 = Small sulfur cube jump11.ogg
+| description = When a small sulfur cube jumps
+| source = neutral
+| id = entity.small_sulfur_cube.jump
+| translationkey = subtitles.entity.sulfur_cube.bounce
+| subtitle = Sulfur Cube bounces
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Small sulfur cube squish1.ogg
+| sound2 = Small sulfur cube squish2.ogg
+| sound3 = Small sulfur cube squish3.ogg
+| sound4 = Small sulfur cube squish4.ogg
+| sound5 = Small sulfur cube squish5.ogg
+| sound6 = Small sulfur cube squish6.ogg
+| sound7 = Small sulfur cube squish7.ogg
+| sound8 = Small sulfur cube squish8.ogg
+| sound9 = Small sulfur cube squish9.ogg
+| sound10 = Small sulfur cube squish10.ogg
+| description = When a small sulfur cube lands
+| source = neutral
+| id = entity.small_sulfur_cube.squish
+| translationkey = subtitles.entity.sulfur_cube.bounce
+| subtitle = Sulfur Cube bounces
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Small sulfur cube hit1.ogg
+| sound2 = Small sulfur cube hit2.ogg
+| sound3 = Small sulfur cube hit3.ogg
+| sound4 = Small sulfur cube hit4.ogg
+| description = When a small sulfur cube is damaged
+| source = neutral
+| id = entity.small_sulfur_cube.hurt
+| translationkey = subtitles.entity.small_sulfur_cube.hurt
+| subtitle = Small Sulfur Cube hurts
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Small sulfur cube death.ogg
+| description = When a small sulfur cube dies
+| source = neutral
+| id = entity.small_sulfur_cube.death
+| translationkey = subtitles.entity.small_sulfur_cube.death
+| subtitle = Small Sulfur Cube dies
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Small Sulfur Cube eat1.ogg
+| sound2 = Small Sulfur Cube eat2.ogg
+| description = When a small sulfur cube eats an item
+| source = neutral
+| id = entity.small_sulfur_cube.eat
+| translationkey = subtitles.entity.small_sulfur_cube.eat
+| subtitle = Small Sulfur Cube puts on mass
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+}}
+
+{{Edition|Bedrock}}:
+{{SoundTable
+| type = bedrock
+| {{SoundLine
+| sound = Small sulfur cube jump1.ogg
+| sound2 = Small sulfur cube jump2.ogg
+| sound3 = Small sulfur cube jump3.ogg
+| sound4 = Small sulfur cube jump4.ogg
+| sound5 = Small sulfur cube jump5.ogg
+| sound6 = Small sulfur cube jump6.ogg
+| sound7 = Small sulfur cube jump7.ogg
+| sound8 = Small sulfur cube jump8.ogg
+| sound9 = Small sulfur cube jump9.ogg
+| sound10 = Small sulfur cube jump10.ogg
+| sound11 = Small sulfur cube jump11.ogg
+| description = When a small sulfur cube jumps
+| source = neutral
+| id = mob.sulfur_cube.small.jump
+| translationkey = subtitles.entity.sulfur_cube.squish
+| subtitle = Sulfur Cube bounces
+| volume = 1.0
+| pitch = 0.5
+}}
+| {{SoundLine
+| sound = Small sulfur cube squish1.ogg
+| sound2 = Small sulfur cube squish2.ogg
+| sound3 = Small sulfur cube squish3.ogg
+| sound4 = Small sulfur cube squish4.ogg
+| sound5 = Small sulfur cube squish5.ogg
+| sound6 = Small sulfur cube squish6.ogg
+| sound7 = Small sulfur cube squish7.ogg
+| sound8 = Small sulfur cube squish8.ogg
+| sound9 = Small sulfur cube squish9.ogg
+| sound10 = Small sulfur cube squish10.ogg
+|subtitle=Sulfur Cube squishes
+| description = When a small sulfur cube lands
+| source = neutral
+| id = mob.sulfur_cube.small.landing
+| translationkey =
+| volume = 1.0
+| pitch = 0.5
+}}
+| {{SoundLine
+| sound = Sulfur cube small hit1.wav
+| sound2 = Sulfur cube small hit2.wav
+| sound3 = Sulfur cube small hit3.wav
+| sound4 = Sulfur cube small hit4.wav
+| description = When a small sulfur cube is damaged
+| source = neutral
+| id = mob.sulfur_cube.small.hurt
+| translationkey = subtitles.entity.sulfur_cube.hurt
+| subtitle = Sulfur Cube hurts
+| volume = 1.0
+| pitch = 0.5
+}}
+| {{SoundLine
+| sound = Sulfur cube small death.wav
+| description = When a small sulfur cube dies
+| source = neutral
+| id = mob.sulfur_cube.small.death
+| translationkey = subtitles.entity.sulfur_cube.death
+| subtitle = Sulfur Cube dies
+| volume = 1.0
+| pitch = 0.5
+}}
+|{{SoundLine
+| sound = Eat1.ogg
+| sound2 = Eat2.ogg
+| sound3 = Eat3.ogg
+| description = When a small sulfur cube eats
+| source = neutral
+| id = random.eat
+| translationkey = subtitles.entity.generic.eat
+| subtitle = Eating
+| volume = 1.0
+| pitch = 2.0
+}}}}
+
+=== Ball ===
+{{el|je}}:
+{{SoundTable
+| type = java<!-- Bouncy -->
+| {{SoundLine
+| sound = Sulfur Cube bouncy hit1 JE2.ogg
+| sound2 = Sulfur Cube bouncy hit2 JE2.ogg
+| sound3 = Sulfur Cube bouncy hit3 JE2.ogg
+| sound4 = Sulfur Cube bouncy hit4 JE2.ogg
+| description = When bouncy and kicked by a player
+| source = neutral
+| id = entity.sulfur_cube.bouncy.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Sulfur Cube bouncy push1.ogg
+| sound2 = Sulfur Cube bouncy push2.ogg
+| sound3 = Sulfur Cube bouncy push3.ogg
+| sound4 = Sulfur Cube bouncy push4.ogg
+| description = When bouncy and pushed by a player
+| source = neutral
+| id = entity.sulfur_cube.bouncy.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+<!-- Explosive -->
+| {{SoundLine
+| sound = Sulfur Cube explosive hit1.ogg
+| sound2 = Sulfur Cube explosive hit2.ogg
+| sound3 = Sulfur Cube explosive hit3.ogg
+| sound4 = Sulfur Cube explosive hit4.ogg
+| description = When explosive and kicked by a player
+| source = neutral
+| id = entity.sulfur_cube.explosive.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Sulfur Cube explosive push1.ogg
+| sound2 = Sulfur Cube explosive push2.ogg
+| sound3 = Sulfur Cube explosive push3.ogg
+| sound4 = Sulfur Cube explosive push4.ogg
+| description = When explosive and pushed by a player
+| source = neutral
+| id = entity.sulfur_cube.explosive.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+<!-- Fast Flat -->
+| {{SoundLine
+| sound = Sulfur Cube fastflat hit1.ogg
+| sound2 = Sulfur Cube fastflat hit2.ogg
+| sound3 = Sulfur Cube fastflat hit3.ogg
+| sound4 = Sulfur Cube fastflat hit4.ogg
+| description = When fast flat and kicked by a player
+| source = neutral
+| id = entity.sulfur_cube.fast_flat.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Sulfur Cube fastflat push1.ogg
+| sound2 = Sulfur Cube fastflat push2.ogg
+| sound3 = Sulfur Cube fastflat push3.ogg
+| sound4 = Sulfur Cube fastflat push4.ogg
+| description = When fast flat and pushed by a player
+| source = neutral
+| id = entity.sulfur_cube.fast_flat.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+<!-- Fast Sliding -->
+| {{SoundLine
+| sound = Sulfur Cube fastsliding hit1.ogg
+| sound2 = Sulfur Cube fastsliding hit2.ogg
+| sound3 = Sulfur Cube fastsliding hit3.ogg
+| sound4 = Sulfur Cube fastsliding hit4.ogg
+| description = When fast sliding and kicked by a player
+| source = neutral
+| id = entity.sulfur_cube.fast_sliding.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Sulfur Cube fastsliding push1.ogg
+| sound2 = Sulfur Cube fastsliding push2.ogg
+| sound3 = Sulfur Cube fastsliding push3.ogg
+| sound4 = Sulfur Cube fastsliding push4.ogg
+| description = When fast sliding and pushed by a player
+| source = neutral
+| id = entity.sulfur_cube.fast_sliding.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+<!-- High Resistance -->
+| {{SoundLine
+| sound = Sulfur Cube highresistance hit1.ogg
+| sound2 = Sulfur Cube highresistance hit2.ogg
+| sound3 = Sulfur Cube highresistance hit3.ogg
+| sound4 = Sulfur Cube highresistance hit4.ogg
+| description = When high resistance and kicked by a player
+| source = neutral
+| id = entity.sulfur_cube.high_resistance.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Sulfur Cube highresistance push1.ogg
+| sound2 = Sulfur Cube highresistance push2.ogg
+| sound3 = Sulfur Cube highresistance push3.ogg
+| sound4 = Sulfur Cube highresistance push4.ogg
+| description = When high resistance and pushed by a player
+| source = neutral
+| id = entity.sulfur_cube.high_resistance.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+<!-- Hot -->
+| {{SoundLine
+| sound = Sulfur Cube hot hit1.ogg
+| sound2 = Sulfur Cube hot hit2.ogg
+| sound3 = Sulfur Cube hot hit3.ogg
+| sound4 = Sulfur Cube hot hit4.ogg
+| description = When hot and kicked by a player
+| source = neutral
+| id = entity.sulfur_cube.hot.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Sulfur Cube hot push1.ogg
+| sound2 = Sulfur Cube hot push2.ogg
+| sound3 = Sulfur Cube hot push3.ogg
+| sound4 = Sulfur Cube hot push4.ogg
+| description = When hot and pushed by a player
+| source = neutral
+| id = entity.sulfur_cube.hot.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+<!-- Light -->
+| {{SoundLine
+| sound = Sulfur Cube light hit1.ogg
+| sound2 = Sulfur Cube light hit2.ogg
+| sound3 = Sulfur Cube light hit3.ogg
+| sound4 = Sulfur Cube light hit4.ogg
+| description = When light and kicked by a player
+| source = neutral
+| id = entity.sulfur_cube.light.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Sulfur Cube light push1.ogg
+| sound2 = Sulfur Cube light push2.ogg
+| sound3 = Sulfur Cube light push3.ogg
+| sound4 = Sulfur Cube light push4.ogg
+| description = When light and pushed by a player
+| source = neutral
+| id = entity.sulfur_cube.light.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+<!-- Slow Bouncy -->
+| {{SoundLine
+| sound = Sulfur Cube hot hit1.ogg
+| sound2 = Sulfur Cube hot hit2.ogg
+| sound3 = Sulfur Cube hot hit3.ogg
+| sound4 = Sulfur Cube hot hit4.ogg
+| description = When slow bouncy and kicked by a player
+| source = neutral
+| id = entity.sulfur_cube.slow_bouncy.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Sulfur Cube hot push1.ogg
+| sound2 = Sulfur Cube hot push2.ogg
+| sound3 = Sulfur Cube hot push3.ogg
+| sound4 = Sulfur Cube hot push4.ogg
+| description = When slow bouncy and pushed by a player
+| source = neutral
+| id = entity.sulfur_cube.slow_bouncy.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+<!-- Slow Flat -->
+| {{SoundLine
+| sound = Sulfur Cube slowflat hit1.ogg
+| sound2 = Sulfur Cube slowflat hit2.ogg
+| sound3 = Sulfur Cube slowflat hit3.ogg
+| sound4 = Sulfur Cube slowflat hit4.ogg
+| description = When slow flat and kicked by a player
+| source = neutral
+| id = entity.sulfur_cube.slow_flat.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Sulfur Cube slowflat push1.ogg
+| sound2 = Sulfur Cube slowflat push2.ogg
+| sound3 = Sulfur Cube slowflat push3.ogg
+| sound4 = Sulfur Cube slowflat push4.ogg
+| description = When slow flat and pushed by a player
+| source = neutral
+| id = entity.sulfur_cube.slow_flat.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+<!-- Slow Sliding -->
+| {{SoundLine
+| sound = Sulfur cube slowsliding hit1.wav
+| sound2 = Sulfur cube slowsliding hit2.wav
+| sound3 = Sulfur cube slowsliding hit3.wav
+| sound4 = Sulfur cube slowsliding hit4.wav
+| description = When slow sliding and kicked by a player
+| source = neutral
+| id = entity.sulfur_cube.slow_sliding.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Sulfur Cube slowsliding push1.ogg
+| sound2 = Sulfur Cube slowsliding push2.ogg
+| sound3 = Sulfur Cube slowsliding push3.ogg
+| sound4 = Sulfur Cube slowsliding push4.ogg
+| description = When slow sliding and pushed by a player
+| source = neutral
+| id = entity.sulfur_cube.slow_sliding.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+<!-- Sticky -->
+| {{SoundLine
+| sound = Sulfur Cube sticky hit1.ogg
+| sound2 = Sulfur Cube sticky hit2.ogg
+| sound3 = Sulfur Cube sticky hit3.ogg
+| sound4 = Sulfur Cube sticky hit4.ogg
+| description = When sticky and kicked by a player
+| source = neutral
+| id = entity.sulfur_cube.sticky.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Sulfur Cube sticky push1.ogg
+| sound2 = Sulfur Cube sticky push2.ogg
+| sound3 = Sulfur Cube sticky push3.ogg
+| sound4 = Sulfur Cube sticky push4.ogg
+| description = When sticky and pushed by a player
+| source = neutral
+| id = entity.sulfur_cube.sticky.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+<!-- Regular -->
+| {{SoundLine
+| sound = Sulfur Cube regular hit1.ogg
+| sound2 = Sulfur Cube regular hit2.ogg
+| sound3 = Sulfur Cube regular hit3.ogg
+| sound4 = Sulfur Cube regular hit4.ogg
+| description = When regular and kicked by a player{{until|JE 26.3}}
+| source = neutral
+| id = entity.sulfur_cube.regular.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Sulfur Cube regular push1.ogg
+| sound2 = Sulfur Cube regular push2.ogg
+| sound3 = Sulfur Cube regular push3.ogg
+| sound4 = Sulfur Cube regular push4.ogg
+| description = When regular and pushed by a player{{until|JE 26.3}}
+| source = neutral
+| id = entity.sulfur_cube.regular.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Sulfur Cube regular hit1 JE2.ogg
+| sound2 = Sulfur Cube regular hit2 JE2.ogg
+| sound3 = Sulfur Cube regular hit3 JE2.ogg
+| sound4 = Sulfur Cube regular hit4 JE2.ogg
+| description = When regular and kicked by a player{{upcoming|JE 26.3}}
+| source = neutral
+| id = entity.sulfur_cube.regular.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Sulfur Cube regular push1 JE2.ogg
+| sound2 = Sulfur Cube regular push2 JE2.ogg
+| sound3 = Sulfur Cube regular push3 JE2.ogg
+| sound4 = Sulfur Cube regular push4 JE2.ogg
+| description = When regular and pushed by a player{{upcoming|JE 26.3}}
+| source = neutral
+| id = entity.sulfur_cube.regular.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+| sound = Sulfur cube ball bounce1.wav
+| sound2 = Sulfur cube ball bounce2.wav
+| sound3 = Sulfur cube ball bounce3.wav
+| sound4 = Sulfur cube ball bounce4.wav
+| sound5 = Sulfur cube ball bounce5.wav
+| sound6 = Sulfur cube ball bounce6.wav
+| sound7 = Sulfur cube ball bounce7.wav
+| sound8 = Sulfur cube ball bounce8.wav
+| description = When bouncing
+| source = neutral
+| id = entity.sulfur_cube.bounce
+| translationkey = subtitles.entity.sulfur_cube.bounce
+| subtitle = Sulfur Cube bounces
+| volume = 1.0
+| pitch = 1.0
+| distance = 16
+}}
+| {{SoundLine
+|sound=Fuse.ogg
+|subtitle=TNT fizzes
+|source=block
+|description=When a sulfur cube begins its  explosion timer
+|id=entity.tnt.primed
+|translationkey=subtitles.entity.tnt.primed​
+|volume=1.0
+|pitch=1.0
+|distance=16}}
+| {{SoundLine
+|sound=Explosion1.ogg
+|sound2=Explosion2.ogg
+|sound3=Explosion3.ogg
+|sound4=Explosion4.ogg
+|subtitle=Explosion
+|source=block
+|description=When a sulfur cube explodes
+|id=entity.generic.explode
+|translationkey=subtitles.entity.generic.explode
+|volume=4.0
+|pitch=0.56-0.84
+| distance = 16
+}}
+}}
+
+{{Edition|Bedrock}}:
+{{SoundTable
+| type = bedrock
+| {{SoundLine
+| sound = Sulfur cube ball bounce1.wav
+| sound2 = Sulfur cube ball bounce2.wav
+| sound3 = Sulfur cube ball bounce3.wav
+| sound4 = Sulfur cube ball bounce4.wav
+| sound5 = Sulfur cube ball bounce5.wav
+| sound6 = Sulfur cube ball bounce6.wav
+| sound7 = Sulfur cube ball bounce7.wav
+| sound8 = Sulfur cube ball bounce8.wav
+| description = When bouncing
+| source = neutral
+| id = mob.sulfur_cube.bounce
+| translationkey = subtitles.entity.sulfur_cube.bounce
+| subtitle = Sulfur Cube bounces
+| volume = 1.0
+| pitch = 0.8-1.2
+}}
+<!-- Bouncy -->
+| {{SoundLine
+| sound = Sulfur cube bouncy hit1.wav
+| sound2 = Sulfur cube bouncy hit2.wav
+| sound3 = Sulfur cube bouncy hit3.wav
+| sound4 = Sulfur cube bouncy hit4.wav
+| description = When bouncy and kicked by a player
+| source = neutral
+| id = mob.sulfur_cube.bouncy.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 0.5-1.5
+| pitch = 0.8-1.2
+}}
+| {{SoundLine
+| sound = Sulfur cube bouncy push1.wav
+| sound2 = Sulfur cube bouncy push2.wav
+| sound3 = Sulfur cube bouncy push3.wav
+| sound4 = Sulfur cube bouncy push4.wav
+| description = When bouncy and pushed by a player
+| source = neutral
+| id = mob.sulfur_cube.bouncy.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 0.8-1.2
+}}
+<!-- Explosive -->
+| {{SoundLine
+| sound = Sulfur cube explosive hit1.wav
+| sound2 = Sulfur cube explosive hit2.wav
+| sound3 = Sulfur cube explosive hit3.wav
+| sound4 = Sulfur cube explosive hit4.wav
+| description = When explosive and kicked by a player
+| source = neutral
+| id = mob.sulfur_cube.explosive.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 0.5-1.5
+| pitch = 0.8-1.2
+}}
+| {{SoundLine
+| sound = Sulfur cube explosive push1.wav
+| sound2 = Sulfur cube explosive push2.wav
+| sound3 = Sulfur cube explosive push3.wav
+| sound4 = Sulfur cube explosive push4.wav
+| description = When explosive and pushed by a player
+| source = neutral
+| id = mob.sulfur_cube.explosive.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 0.8-1.2
+}}
+<!-- Fast Flat -->
+| {{SoundLine
+| sound = Sulfur cube fastflat hit1.wav
+| sound2 = Sulfur cube fastflat hit2.wav
+| sound3 = Sulfur cube fastflat hit3.wav
+| sound4 = Sulfur cube fastflat hit4.wav
+| description = When fast flat and kicked by a player
+| source = neutral
+| id = mob.sulfur_cube.fast_flat.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 0.5-1.5
+| pitch = 0.8-1.2
+}}
+| {{SoundLine
+| sound = Sulfur cube fastflat push1.wav
+| sound2 = Sulfur cube fastflat push2.wav
+| sound3 = Sulfur cube fastflat push3.wav
+| sound4 = Sulfur cube fastflat push4.wav
+| description = When fast flat and pushed by a player
+| source = neutral
+| id = mob.sulfur_cube.fast_flat.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 0.8-1.2
+}}
+<!-- Fast Sliding -->
+| {{SoundLine
+| sound = Sulfur cube fastsliding hit1.wav
+| sound2 = Sulfur cube fastsliding hit2.wav
+| sound3 = Sulfur cube fastsliding hit3.wav
+| sound4 = Sulfur cube fastsliding hit4.wav
+| description = When fast sliding and kicked by a player
+| source = neutral
+| id = mob.sulfur_cube.fast_sliding.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 0.5-1.5
+| pitch = 0.8-1.2
+}}
+| {{SoundLine
+| sound = Sulfur cube fastsliding push1.wav
+| sound2 = Sulfur cube fastsliding push2.wav
+| sound3 = Sulfur cube fastsliding push3.wav
+| sound4 = Sulfur cube fastsliding push4.wav
+| description = When fast sliding and pushed by a player
+| source = neutral
+| id = mob.sulfur_cube.fast_sliding.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 0.8-1.2
+}}
+<!-- High Resistance -->
+| {{SoundLine
+| sound = Sulfur cube highresistance hit1.wav
+| sound2 = Sulfur cube highresistance hit2.wav
+| sound3 = Sulfur cube highresistance hit3.wav
+| sound4 = Sulfur cube highresistance hit4.wav
+| description = When high resistance and kicked by a player
+| source = neutral
+| id = mob.sulfur_cube.high_resistance.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 0.5-1.5
+| pitch = 0.8-1.2
+}}
+| {{SoundLine
+| sound = Sulfur cube highresistance push1.wav
+| sound2 = Sulfur cube highresistance push2.wav
+| sound3 = Sulfur cube highresistance push3.wav
+| sound4 = Sulfur cube highresistance push4.wav
+| description = When high resistance and pushed by a player
+| source = neutral
+| id = mob.sulfur_cube.high_resistance.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 0.8-1.2
+}}
+<!-- Hot -->
+| {{SoundLine
+| sound = Sulfur cube hot hit1.wav
+| sound2 = Sulfur cube hot hit2.wav
+| sound3 = Sulfur cube hot hit3.wav
+| sound4 = Sulfur cube hot hit4.wav
+| description = When hot and kicked by a player
+| source = neutral
+| id = mob.sulfur_cube.hot.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 0.5-1.5
+| pitch = 0.8-1.2
+}}
+| {{SoundLine
+| sound = Sulfur cube hot push1.wav
+| sound2 = Sulfur cube hot push2.wav
+| sound3 = Sulfur cube hot push3.wav
+| sound4 = Sulfur cube hot push4.wav
+| description = When hot and pushed by a player
+| source = neutral
+| id = mob.sulfur_cube.hot.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 0.8-1.2
+}}
+<!-- Light -->
+| {{SoundLine
+| sound = Sulfur cube light hit1.wav
+| sound2 = Sulfur cube light hit2.wav
+| sound3 = Sulfur cube light hit3.wav
+| sound4 = Sulfur cube light hit4.wav
+| description = When light and kicked by a player
+| source = neutral
+| id = mob.sulfur_cube.light.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 0.5-1.5
+| pitch = 0.8-1.2
+}}
+| {{SoundLine
+| sound = Sulfur cube light push1.wav
+| sound2 = Sulfur cube light push2.wav
+| sound3 = Sulfur cube light push3.wav
+| sound4 = Sulfur cube light push4.wav
+| description = When light and pushed by a player
+| source = neutral
+| id = mob.sulfur_cube.light.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 0.8-1.2
+}}
+<!-- Slow Bouncy -->
+| {{SoundLine
+| sound = Sulfur Cube hot hit1.ogg
+| sound2 = Sulfur Cube hot hit2.ogg
+| sound3 = Sulfur Cube hot hit3.ogg
+| sound4 = Sulfur Cube hot hit4.ogg
+| description = When slow bouncy and kicked by a player
+| source = neutral
+| id = mob.sulfur_cube.slow_bouncy.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 0.5–1.5
+| pitch = 0.8–1.2
+}}
+| {{SoundLine
+| sound = Sulfur Cube hot push1.ogg
+| sound2 = Sulfur Cube hot push2.ogg
+| sound3 = Sulfur Cube hot push3.ogg
+| sound4 = Sulfur Cube hot push4.ogg
+| description = When slow bouncy and pushed by a player
+| source = neutral
+| id = mob.sulfur_cube.slow_bouncy.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 0.8-1.2
+}}
+<!-- Slow Flat -->
+| {{SoundLine
+| sound = Sulfur cube slowflat hit1.wav
+| sound2 = Sulfur cube slowflat hit2.wav
+| sound3 = Sulfur cube slowflat hit3.wav
+| sound4 = Sulfur cube slowflat hit4.wav
+| description = When slow flat and kicked by a player
+| source = neutral
+| id = mob.sulfur_cube.slow_flat.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 0.5-1.5
+| pitch = 0.8-1.2
+}}
+| {{SoundLine
+| sound = Sulfur cube slowflat push1.wav
+| sound2 = Sulfur cube slowflat push2.wav
+| sound3 = Sulfur cube slowflat push3.wav
+| sound4 = Sulfur cube slowflat push4.wav
+| description = When slow flat and pushed by a player
+| source = neutral
+| id = mob.sulfur_cube.slow_flat.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 0.8-1.2
+}}
+<!-- Slow Sliding -->
+| {{SoundLine
+| sound = Sulfur cube slowsliding hit1.wav
+| sound2 = Sulfur cube slowsliding hit2.wav
+| sound3 = Sulfur cube slowsliding hit3.wav
+| sound4 = Sulfur cube slowsliding hit4.wav
+| description = When slow sliding and kicked by a player
+| source = neutral
+| id = mob.sulfur_cube.slow_sliding.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 0.5-1.5
+| pitch = 0.8-1.2
+}}
+| {{SoundLine
+| sound = Sulfur cube slowsliding push1.wav
+| sound2 = Sulfur cube slowsliding push2.wav
+| sound3 = Sulfur cube slowsliding push3.wav
+| sound4 = Sulfur cube slowsliding push4.wav
+| description = When slow sliding and pushed by a player
+| source = neutral
+| id = mob.sulfur_cube.slow_sliding.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 0.8-1.2
+}}
+<!-- Sticky -->
+| {{SoundLine
+| sound = Sulfur cube sticky hit1.wav
+| sound2 = Sulfur cube sticky hit2.wav
+| sound3 = Sulfur cube sticky hit3.wav
+| sound4 = Sulfur cube sticky hit4.wav
+| description = When sticky and kicked by a player
+| source = neutral
+| id = mob.sulfur_cube.sticky.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 0.5-1.5
+| pitch = 0.8-1.2
+}}
+| {{SoundLine
+| sound = Sulfur cube sticky push1.wav
+| sound2 = Sulfur cube sticky push2.wav
+| sound3 = Sulfur cube sticky push3.wav
+| sound4 = Sulfur cube sticky push4.wav
+| description = When sticky and pushed by a player
+| source = neutral
+| id = mob.sulfur_cube.sticky.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 0.8-1.2
+}}
+<!-- Regular -->
+| {{SoundLine
+| sound = Sulfur cube regular hit1.wav
+| sound2 = Sulfur cube regular hit2.wav
+| sound3 = Sulfur cube regular hit3.wav
+| sound4 = Sulfur cube regular hit4.wav
+| description = When regular and kicked by a player
+| source = neutral
+| id = mob.sulfur_cube.regular.hit
+| translationkey = subtitles.entity.sulfur_cube.hit
+| subtitle = Sulfur Cube hit
+| volume = 0.5-1.5
+| pitch = 0.8-1.2
+}}
+| {{SoundLine
+| sound = Sulfur cube regular push1.wav
+| sound2 = Sulfur cube regular push2.wav
+| sound3 = Sulfur cube regular push3.wav
+| sound4 = Sulfur cube regular push4.wav
+| description = When regular and pushed by a player
+| source = neutral
+| id = mob.sulfur_cube.regular.push
+| translationkey = subtitles.entity.sulfur_cube.push
+| subtitle = Sulfur Cube pushed
+| volume = 1.0
+| pitch = 0.8-1.2
+}}
+| {{SoundLine
+|sound=Creeper fuse.ogg
+|source=block
+|description=When a sulfur cube begins its explosion timer
+|id=random.fuse
+|translationkey=subtitles.entity.tnt.primed
+|subtitle=TNT fizzes
+|volume=1.0
+|pitch=0.5}}
+| {{SoundLine
+|sound=Explosion1.ogg
+|sound2=Explosion2.ogg
+|sound3=Explosion3.ogg
+|sound4=Explosion4.ogg
+|source=block
+|description=When a sulfur cube explodes
+|id=random.explode
+|translationkey=subtitles.entity.generic.explode
+|subtitle=Explosion
+|volume=4.0
+| pitch = 1.0
+}}
+}}
+
+== Data values ==
+=== ID ===
+{{edition|java}}:
+{{ID table
+|edition=java
+|generatetranslationkeys=y
+|displayname=Sulfur Cube
+|spritetype=entity
+|nameid=sulfur_cube
+|showentitytags=y
+|entitytags=cannot_be_pushed_onto_boats,non_controlling_rider,not_scary_for_pufferfish
+|foot=1}}
+
+{{edition|bedrock}}:
+{{ID table
+|edition=bedrock
+|shownumericids=y
+|generatetranslationkeys=y
+|displayname=Sulfur Cube
+|spritetype=entity
+|nameid=sulfur_cube
+|showentityfamily=y
+|entityfamily=sulfur_cube,animal,mob
+|id=153
+|foot=1}}
+
+=== Entity data ===
+{{expand section|Expand Java Edition entity data}}
+{{el|java}}:
+{{main|Entity format (Java Edition)}}
+<section begin="entity data" /><div class="treeview">
+* {{nbt|compound}} Entity data
+** {{nbt inherit/entity}}
+** {{nbt inherit/mob}}
+** Only on sulfur cubes, the {{cd|equipment.body}} tag represents the {{DCL|minecraft:sulfur_cube_content}} component in [[predicates]] and [[loot function]]s.
+** {{nbt inherit/cube_mob}}
+** {{nbt|int|pickup_timer}}: The ticks left before the sulfur cube picks up items from the ground. Is set to 100 when the item is removed using shears, then ticks down until it reaches 0.
+** {{nbt|byte|from_bucket}}: 1 or 0 (true/false) - 1 if the sulfur cube was spawned by using a [[Bucket of Sulfur Cube]], 0 if not.
+** {{nbt|int|fuse}}: The number of ticks before the sulfur cube explodes. For sulfur cubes that are not ignited, this value is -1.
+</div><section end="entity data" />
+The absorbed block (if any) is stored in <code>equipment.body</code>.
+
+{{el|bedrock}}:
+{{main|Entity format (Bedrock Edition)}}
+<div class="treeview">
+* {{nbt|compound}}: The entity's root tag.
+** {{bedrock nbt/entity}}
+** {{bedrock nbt/mob}}
+** {{bedrock nbt/ageable}}
+** {{nbt|byte|Size}}: The size of the sulfur cube. 1 is the smallest slime, 2 is the next larger.
+** {{nbt|list|SlotDropChances}}: List of equipment slots and the chance that the item in that slot drops when the sulfur cube dies.
+*** {{nbt|compound|}}: A slot entry.
+**** {{nbt|float|DropChance}}: The probability that the item in this slot can drop (0.0 to 1.0).
+**** {{nbt|string|Slot}}: The name of the equipment slot. Can be {{cd|mainhand}} in sulfur cube.
+** {{nbt|compound|properties}}: The sulfur cube <code>properties</code>.
+*** {{nbt|string|minecraft:sulfur_cube_archetype}}: If the sulfur cube has a block and behavior can be {{cd|none|bouncy|regular|slow_bouncy|slow_flat|fast_flat|light|fast_sliding|slow_sliding|sticky|high_resistance|explosive|hot|d=and}}.
+</div>
+
+== Achievements ==
+{{load achievements|Uh-oh.;It Spreads}}
+
+Achievements that apply to all mobs:
+{{collapse|content={{load achievements|Overkill;Over-Overkill;Mob Kabob}}
+}}
+
+== Advancements ==
+{{load advancements|Uh Oh;It Spreads}}
+
+Advancements that apply to all mobs:
+{{collapse|content={{load advancements|Take Aim;Arbalistic;A Throwaway Joke;Adventure;Over-Overkill;Mob Kabob}}
+}}
+
+== Videos ==
+{{yt|DgTM7veQ8_E|236|420}}
+{{yt|V5OrN6LA1Tc|236|420}}
+{{yt|dhwLRixmHEI|236|420}}
+{{yt|jF1Q1BQsxXQ|236|420}}
+{{yt|03gzNW4pSbI|236|420}}
+{{yt|FS3fBRCbsGA|236|420}}
+
+== History ==
+=== Announcements ===
+{{HistoryTable
+|{{HistoryLine||March 19, 2026|link=none|Sulfur cubes are teased in a series of [[social media teasers]].}}
+|{{HistoryLine||March 21, 2026|link=https://www.youtube.com/watch?v=Is5IswM87EQ|[[File:Sulfur Cube BE1.png|32px]] [[File:Sulfur Cube BE1.png|18px]] Sulfur cubes are announced at [[Minecraft Live – March 2026]].}}
+}}
+
+=== ''Java Edition'' ===
+{{HistoryTable
+|{{HistoryLine|java}}
+|{{HistoryLine||26.2|dev=snap1|[[File:Sulfur Cube JE1.png|32px]] [[File:Sulfur Cube JE1.png|18px]] Added sulfur cubes. The texture is different by a few pixels compared with the one in {{BE}}.}}
+|{{HistoryLine|||dev=snap3|Sulfur cubes can no longer be picked up by [[boat]]s.
+|Light-emitting blocks contained inside sulfur cubes now glow in the dark.<ref>{{bug|MC-307357|||resolution=Fixed}}</ref>}}
+|{{HistoryLine|||dev=snap4|[[File:Sulfur Cube JE2 BE2.png|32px]] [[File:Sulfur Cube JE2 BE2.png|18px]] The outer layer texture of the sulfur cube has been changed, namely the eyes and mouth.
+|The size of naturally-spawned small sulfur cubes has been tweaked.
+|Sulfur cubes can now spawn on Peaceful difficulty.}}
+|{{HistoryLine|||dev=snap5|Sulfur cubes with an absorbed block are now immune to explosive damage.
+|Sulfur cubes can now absorb [[TNT]], giving them the new explosive archetype.}}
+|{{HistoryLine|||dev=snap6|Sulfur cubes that have absorbed [[magma block]]s now gain the new hot archetype.
+|Many blocks that previously gave sulfur cubes the regular archetype now give the new slow bouncy archetype instead.
+|Sulfur cubes can now absorb [[redstone lamp]]s and [[observer]]s, giving them the slow bouncy archetype.
+|Sulfur cubes can no longer absorb [[sand]], [[red sand]], [[gravel]], or [[blocks of redstone]].
+|The [[Knockback]]<ref>{{bug|MC-307674|||resolution=Fixed}}</ref> and [[Punch]] enchantments now apply additional power to the launch of a sulfur cube with an absorbed block.
+|Sulfur cubes that have absorbed TNT now ignite when hit with an item enchanted with [[Fire Aspect]].<ref>{{bug|MC-307854|||resolution=Fixed}}</ref>}}
+|{{HistoryLine|||dev=snap7|The slow bouncy archetype is no longer buoyant.}}
+|{{HistoryLine|||dev=snap8|Sulfur cubes containing a block inside are now immune to damage from [[magma block]]s, as well as from other sulfur cubes that contain a magma block.}}
+|{{HistoryLine|||dev=pre1|[[File:Sulfur Cube Small JE1 BE3.png|18px]] The model and texture of the small sulfur cube has been changed.|Small sulfur cubes now have sounds playing when being fed with [[slimeball]]s.|Added unique hit and push sounds for each archetype.|Removed generic hit ({{sound||Sulfur cube ball hit1.wav}}{{sound||Sulfur cube ball hit2.wav}}{{sound||Sulfur cube ball hit3.wav}}{{sound||Sulfur cube ball hit4.wav}}) and push ({{sound||Sulfur cube ball kick1.wav}}{{sound||Sulfur cube ball kick2.wav}}{{sound||Sulfur cube ball kick3.wav}}{{sound||Sulfur cube ball kick4.wav}}) sounds.}}
+|{{HistoryLine|||dev=pre3|The block inside a sulfur cube now aligns vertically with the block grid only when the sulfur cube is invisible.|The squish animation no longer plays when a sulfur cube has a block inside.}}
+|{{HistoryLine|||dev=pre4|Now affected by the [[Knockback]] enchantment while a block is absorbed.}}
+|{{HistoryLine|||dev=pre5|The correct sound is now played when a bouncy archetype sulfur cube is hit.}}
+|{{HistoryLine|upcoming java}}
+|{{HistoryLine||26.3|dev=snap1|Changed the sounds of the "regular" sulfur cube archetype.}}
+}}
+
+=== ''Bedrock Edition'' ===
+{{HistoryTable
+|{{HistoryLine|bedrock}}
+|{{HistoryLine||26.20|dev=Preview 26.20.23|exp=Drop 2 of 2026|[[File:Sulfur Cube BE1.png|32px]] [[File:Sulfur Cube BE1.png|18px]] Added sulfur cubes, which use the same texture as the ones shown at Minecraft LIVE.
+|[[File:Small Sulfur Cube (texture) BE1.png|60px|class=pixel-image]] Added a unique texture for the small sulfur cube, but it is currently unused.}}
+|{{HistoryLine||26.30|dev=Preview 26.30.20|Sulfur cubes are now available without using the "Drop 2 of 2026" experimental toggle.
+|[[File:Sulfur Cube JE2 BE2.png|32px]] [[File:Sulfur Cube JE2 BE2.png|18px]] The outer layer texture of the sulfur cube has been changed, namely the eyes and mouth.
+|The maximum health of large sulfur cubes has been reduced from {{hp|9}} to {{hp|8}}.
+|Added sounds for absorbing and ejecting blocks.
+|Added unique hit and push sounds for each archetype.
+|Removed generic hit ({{sound||Sulfur cube ball hit1.wav}}{{sound||Sulfur cube ball hit2.wav}}{{sound||Sulfur cube ball hit3.wav}}{{sound||Sulfur cube ball hit4.wav}}) and push ({{sound||Sulfur cube ball kick1.wav}}{{sound||Sulfur cube ball kick2.wav}}{{sound||Sulfur cube ball kick3.wav}}{{sound||Sulfur cube ball kick4.wav}}) sounds.
+|Split jumping sounds ({{sound||Sulfur cube jump1.wav}}{{sound||Sulfur cube jump2.wav}}{{sound||Sulfur cube jump3.wav}}{{sound||Sulfur cube jump4.wav}}{{sound||Sulfur cube jump5.wav}}{{sound||Sulfur cube jump6.wav}}{{sound||Sulfur cube jump7.wav}}{{sound||Sulfur cube jump8.wav}}{{sound||Sulfur cube jump9.wav}}{{sound||Sulfur cube jump10.wav}}{{sound||Sulfur cube jump11.wav}}) into distinct bouncing and landing sounds.
+|Can now be knocked back based on the tap location when using a touch device input.}}
+|{{HistoryLine|||dev=Preview 26.30.25|Sulfur cubes can now absorb [[TNT]], giving them the new explosive archetype.|Small sulfur cubes no longer occasionally spawn from buckets of sulfur cube.}}
+|{{HistoryLine|||dev=Preview 26.30.27|Sulfur cubes that have absorbed [[magma block]]s now gain the new hot archetype.
+|Many blocks that previously gave the regular archetype now give the new slow bouncy archetype instead.
+|Resin family blocks now give the fast flat archetype instead of the bouncy archetype to match {{JE}}.
+|[[Ancient debris]] now gives the slow flat archetype instead of the regular archetype to match {{JE|nl=1}}.
+|[[Slime block]]s, [[honey block]]s, [[sculk]], [[ice]], [[bedrock]], [[reinforced deepslate]], [[sand]], [[red sand]], [[gravel]], and [[blocks of redstone]] can no longer be absorbed by sulfur cubes to match {{JE|nl=1}}.
+|[[Observer]]s and [[redstone lamp]]s can now be absorbed by sulfur cubes, giving them the slow bouncy archetype.
+|Added unique hit and push sounds for the explosive and hot archetypes.
+|Split small sulfur cube jumping sounds ({{sound||Sulfur cube small jump1.wav}}{{sound||Sulfur cube small jump2.wav}}{{sound||Sulfur cube small jump3.wav}}{{sound||Sulfur cube small jump4.wav}}{{sound||Sulfur cube small jump5.wav}}{{sound||Sulfur cube small jump6.wav}}{{sound||Sulfur cube small jump7.wav}}{{sound||Sulfur cube small jump8.wav}}{{sound||Sulfur cube small jump9.wav}}{{sound||Sulfur cube small jump10.wav}}) into different and distinct bouncing and landing sounds.|Updated landing subtitle from "subtitles.entity.sulfur_cube.landing" to "Sulfur cube bounces".}}
+|{{HistoryLine|||dev=Preview 26.30.28|[[File:Sulfur Cube Small JE1 BE3.png|18px]] The model and texture of the small sulfur cube has been changed.
+|Sulfur cubes can now spawn in Peaceful difficulty.
+|Sulfur cubes can no longer ride [[vehicle]]s.
+|Sulfur cubes with an absorbed block are now immune to damage from magma blocks.
+|Sulfur cubes with absorbed TNT now ignite when hit with an item enchanted with [[Fire Aspect]].
+|Sulfur cubes with absorbed TNT now ignite when hit by a flaming arrow or a [[blaze]] fireball.
+|The attack range of the hot archetype has been adjusted to be more aligned with {{JE}}.}}
+|{{HistoryLine|||dev=Preview 26.30.29|Sulfur cubes now spawn in groups of two to four within [[sulfur caves]], rather than always in groups of four, to match {{JE}}.
+|Sulfur cubes with an absorbed block are now immune to [[poison]].
+|Sulfur cubes with absorbed TNT now ignite when in contact with either a magma block or a sulfur cube that contains a magma block.
+|The fast flat archetype is no longer buoyant to match {{JE|nl=1}}.
+|The hot archetype now has the same physics properties as the regular archetype to match {{JE|nl=1}}.}}
+|{{HistoryLine||26.40|dev=Preview 26.40.26|Sulfur cubes no longer absorb observers or redstone lamps.
+|Sulfur cubes now deflect projectiles while a block is absorbed.}}
+|{{HistoryLine|||dev=Preview 26.40.27|High levels of the [[Strength]] effect now correctly increase the distance at which a sulfur cube with an absorbed block is knocked back.}}
+}}
+
+== Issues ==
+{{Issue list}}
+
+== Trivia ==
+* Prior to sulfur cubes, the idea of [[slime]]s being used as a ball appeared as a brief visual gag in [[Village & Pillage: Official Trailer]].
+* During [[Minecraft Live – March 2026]], it was stated by [[Agnes Larsson]] that the face of the cube is meant to have an ambiguous expression.
+* During the development of sulfur cubes, [[copper golem]]s were used as placeholders.<ref>{{ytl|skQgaugcKVQ|MINECRAFT LIVE - MAY 2026|Minecraft|May 30, 2026|t=327}}</ref>
+* Sulfur cubes with custom sizes split into smaller sulfur cubes until they get to normal size.
+
+== Gallery ==
+=== Renders ===
+<gallery>
+File:Sulfur Cube.png|A sulfur cube
+File:Sulfur Cube Grass Block JE2.png|A sulfur cube that has absorbed a [[grass block]]
+File:Sulfur Cube Oak Log JE2 BE2.png|A sulfur cube that has absorbed an [[oak log]]
+File:Sulfur Cube Moss Block JE2 BE2.png|A sulfur cube that has absorbed a [[moss block]]
+File:Sulfur Cube Blue Ice JE2 BE2.png|A sulfur cube that has absorbed [[blue ice]]
+File:Sulfur Cube Soul Sand JE2 BE2.png|A sulfur cube that has absorbed [[soul sand]]
+File:Sulfur Cube White Wool JE2 BE2.png|A sulfur cube that has absorbed [[white wool]]
+File:Sulfur Cube Block of Iron JE2 BE2.png|A sulfur cube that has absorbed a [[block of iron]]
+File:Sulfur Cube Red Mushroom JE2 BE2.png|A sulfur cube that has absorbed a [[red mushroom block]]
+File:Sulfur Cube Honeycomb JE2 BE2.png|A sulfur cube that has absorbed a [[honeycomb block]]
+File:Sulfur Cube TNT JE1 BE1.png|A sulfur cube that has absorbed [[TNT]]
+File:Sulfur Cube Stone JE2.png|A sulfur cube that has absorbed [[stone]]
+File:Sulfur Cube Magma JE1.png|A sulfur cube that has absorbed a [[magma block]]
+File:Sulfur Cube Sulfur (element) Render.png|A sulfur cube that has absorbed a [[Element#Sulfur|sulfur element]] (this state can be seen in-game only with commands){{note|Command {{in|BE}}: {{cmd|1=replaceitem entity @n[type=minecraft:sulfur_cube] slot.weapon.mainhand 1 element_16|long=1}}}}
+File:Sulfur Cube JE2 without Inner.png|A sulfur cube without its inner layer (this state can be seen in-game only with commands){{note|Command {{in|JE}}: {{cmd|1=data modify entity @n[type=minecraft:sulfur_cube] equipment.body set value {id:"minecraft:barrier",count:1}<nowiki/>|long=1}}<br>Command {{in|BE}}: {{cmd|1=replaceitem entity @n[type=minecraft:sulfur_cube] slot.weapon.mainhand 0 barrier|long=1}}}}
+File:Sulfur Cube JE1 BE1 without Outer.png|A sulfur cube without its outer layer (this state cannot be seen in-game)
+File:Sulfur Cube Small JE3 BE3.png|A small sulfur cube.
+File:Sulfur Cube Small JE3 BE3 without Inner.png|A small sulfur cube without its inner layer (this state cannot be seen in-game)
+File:Sulfur Cube Baby BE1 without Outer.png|A small sulfur cube without its outer layer (this state cannot be seen in-game)
+</gallery>
+
+==== Development renders in ''Java Edition'' ====
+<gallery>
+File:Sulfur Cube Oak Log JE1.png|A sulfur cube that has absorbed an [[oak log]] (texture used in ''Java Edition'' from [[26.2 Snapshot 1]] to [[26.2 Snapshot 3]])
+File:Sulfur Cube Moss JE1.png|A sulfur cube that has absorbed a [[moss block]] (texture used in ''Java Edition'' from 26.2 Snapshot 1 to 26.2 Snapshot 3)
+File:Sulfur Cube Blue Ice JE1.png|A sulfur cube that has absorbed [[blue ice]] (texture used in ''Java Edition'' from 26.2 Snapshot 1 to 26.2 Snapshot 3)
+File:Sulfur Cube Soul Sand JE1.png|A sulfur cube that has absorbed [[soul sand]] (texture used in ''Java Edition'' from 26.2 Snapshot 1 to 26.2 Snapshot 3)
+File:Sulfur Cube Wool JE1.png|A sulfur cube that has absorbed [[white wool]] (texture used in ''Java Edition'' from 26.2 Snapshot 1 to 26.2 Snapshot 3)
+File:Sulfur Cube Iron JE1.png|A sulfur cube that has absorbed a [[block of iron]] (texture used in ''Java Edition'' from 26.2 Snapshot 1 to 26.2 Snapshot 3)
+File:Sulfur Cube Red Mushroom JE1.png|A sulfur cube that has absorbed a [[red mushroom block]] (texture used in ''Java Edition'' from 26.2 Snapshot 1 to 26.2 Snapshot 3)
+File:Sulfur Cube Honeycomb JE1.png|A sulfur cube that has absorbed a [[honeycomb block]] (texture used in ''Java Edition'' from 26.2 Snapshot 1 to 26.2 Snapshot 3)
+File:Sulfur Cube Stone JE1.png|A sulfur cube that has absorbed [[stone]] (texture used in ''Java Edition'' from 26.2 Snapshot 1 to 26.2 Snapshot 3)
+File:Sulfur Cube JE1 without Inner.png|A sulfur cube without its inner layer (texture used in ''Java Edition'' from 26.2 Snapshot 1 to 26.2 Snapshot 3)
+</gallery>
+
+==== Development renders in ''Bedrock Edition'' ====
+<gallery>
+File:Sulfur Cube Oak Log BE1.png|A sulfur cube that has absorbed an [[oak log]] (texture used in ''Bedrock Edition'' from Preview 26.20.23 to Preview 26.20.28)
+File:Sulfur Cube Moss Block BE1.png|A sulfur cube that has absorbed a [[moss block]] (texture used in ''Bedrock Edition'' from Preview 26.20.23 to Preview 26.20.28)
+File:Sulfur Cube Ice BE1.png|A sulfur cube that has absorbed [[ice]] (texture used in ''Bedrock Edition'' from Preview 26.20.23 to Preview 26.20.28)
+File:Sulfur Cube Soul Sand BE1.png|A sulfur cube that has absorbed [[soul sand]] (texture used in ''Bedrock Edition'' from Preview 26.20.23 to Preview 26.20.28)
+File:Sulfur Cube White Wool BE1.png|A sulfur cube that has absorbed [[white wool]] (texture used in ''Bedrock Edition'' from Preview 26.20.23 to Preview 26.20.28)
+File:Sulfur Cube Block of Iron BE1.png|A sulfur cube that has absorbed a [[block of iron]] (texture used in ''Bedrock Edition'' from Preview 26.20.23 to Preview 26.20.28)
+File:Sulfur Cube Mushroom Block BE1.png|A sulfur cube that has absorbed a [[red mushroom block]] (texture used in ''Bedrock Edition'' from Preview 26.20.23 to Preview 26.20.28)
+File:Sulfur Cube Honeycomb BE1.png|A sulfur cube that has absorbed a [[honeycomb block]] (texture used in ''Bedrock Edition'' from Preview 26.20.23 to Preview 26.20.28)
+File:Sulfur Cube Stone BE1.png|A sulfur cube that has absorbed [[stone]] (texture used in ''Bedrock Edition'' from Preview 26.20.23 to Preview 26.20.28)
+File:Sulfur Cube BE1 without Inner.png|A sulfur cube without its inner layer (this state cannot be seen in-game)  (texture used in ''Bedrock Edition'' from Preview 26.20.23 to Preview 26.20.28)
+File:Sulfur Cube Small BE1.png|Small sulfur cube (this texture was unused at that time)
+File:Sulfur Cube Baby BE1 without Inner.png|A small sulfur cube without its inner layer (this state cannot be seen in-game)
+</gallery>
+
+=== Textures ===
+<gallery class="pixel-image">
+Sulfur Cube (inner texture) BE1.png|Inner texture
+Sulfur Cube (outer texture) BE2.png|Outer texture
+Small Sulfur Cube (inner texture) BE1.png|Small sulfur cube inner texture
+Small Sulfur Cube (outer texture) BE1.png|Small sulfur cube outer texture
+Sulfur Cube (inner tnt texture) BE1.png|Inner [[TNT]] texture {{in|be}}. {{IN|je}}, sulfur cubes reference the same texture path used by the TNT block.
+</gallery>
+
+=== Screenshots ===
+<gallery>
+File:TNT Sulfur Cubes dropped by Happy Ghast.jpg|A bunch of [[TNT]] sulfur cubes being dropped on a [[village]] by a [[player]] [[riding]] on a [[happy ghast]]
+File:Baby sulfur cube with stone.png|A small sulfur cube with the stone texture. This is possible in-game only with commands
+File:Sulfur mineshaft.jpg|A naturally generated sulfur cube in a [[mineshaft]] within a sulfur cave
+</gallery>
+
+=== Mojang images ===
+<gallery>
+File:Cubes family photo.png|The sulfur cube in a picture with the [[slime]] and [[magma cube]]
+Chaos_Cubed_Release_Date_Header_Art.jpg|Header art for the [https://www.minecraft.net/en-us/article/chaos-cubed-official-release-date article] announcing [[Chaos Cubed]]'s release date on [[Minecraft.net]]
+File:Zuri and a TNT Sulfur Cube.jpg|A sulfur cube that absorbed a TNT
+File:Zuri watches geyser.jpg|A sulfur cube being launched by a geyser
+File:TNT Sulfur Caves.jpg|A sulfur cube that absorbed a TNT in a sulfur cave
+File:Minecraft Live TwitchCon.jpg|Artwork of Chaos Cubed
+</gallery>
+
+==== Minecraft Live screenshots ====
+<gallery>
+File:Sulfurcube.png|A sulfur cube jumping
+File:Sulfurcube1.jpeg|A sulfur cube next to [[Kai]]
+File:Sulfur Cube Pumpkin.png|A sulfur cube with a [[pumpkin]] inside of it in mid air
+File:Sulfur Cube stone.jpeg|A sulfur cube with a [[stone]] block inside of it
+File:Sulfer Cube Crimson hyphea.jpg|A sulfur cube with a [[crimson hyphae]] inside of it
+File:Sulfur room.jpeg|A cage full of sulfur cubes
+File:Sulfur Cube sea lantern.jpg|A sulfur cube with a [[verdant froglight]] inside of it
+File:Sulfur Cube birch wood.jpg|A sulfur cube with a [[birch log]] inside of it
+File:Sulfur Cube jungle wood.jpg|A sulfur cube with [[jungle wood]] inside of it
+</gallery>
+
+=== In other media ===
+<gallery>
+File:Project GLOP promo.jpeg|Sulfur cubes on a promo for [[Project G.L.O.P.]]
+File:Sulfur Cube wants TNT.jpeg|A sulfur cube asking for TNT
+</gallery>
+
+== Notes ==
+{{notelist}}
+
+== References ==
+{{reflist}}
+
+*
+
+== Navigation ==
+{{Navbox new content|Chaos Cubed}}
+{{Navbox entities|mobs}}
+[[Category:Passive mobs]]
+[[Category:Monster mobs]]
+[[Category:Animal mobs]]
+
+[[de:Schwefelwürfel]]
+[[es:Cubo de azufre]]
+[[fr:Cube de soufre]]
+[[it:Cubo di zolfo]]
+[[ja:サルファーキューブ]]
+[[ko:유황 큐브]]
+[[lzh:硫方靈]]
+[[pt:Cubo de Enxofre]]
+[[ru:Серный куб]]
+[[th:สไลม์กำมะถัน]]
+[[uk:Сіркокуб]]
+[[zh:硫磺史萊姆]]

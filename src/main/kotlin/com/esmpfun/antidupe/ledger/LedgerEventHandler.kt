@@ -149,7 +149,10 @@ class LedgerEventHandler(
         val ws = worldStock ?: return
         if (tally.isEmpty()) return
         scope.launch {
-            try { ws.out(tally) } catch (e: Exception) { logger.warning("[Ledger] world stock update failed: ${e.message}") }
+            try { ws.out(tally) } catch (e: Exception) {
+            logger.warning("[Ledger] world stock update failed: ${e.message}")
+            com.esmpfun.antidupe.util.ErrorReporter.report("world-stock-update", e)
+        }
         }
     }
 
@@ -157,7 +160,10 @@ class LedgerEventHandler(
         val ws = worldStock ?: return
         if (tally.isEmpty()) return
         scope.launch {
-            try { ws.back(actor, tally, where) } catch (e: Exception) { logger.warning("[Ledger] world stock update failed: ${e.message}") }
+            try { ws.back(actor, tally, where) } catch (e: Exception) {
+            logger.warning("[Ledger] world stock update failed: ${e.message}")
+            com.esmpfun.antidupe.util.ErrorReporter.report("world-stock-update", e)
+        }
         }
     }
 

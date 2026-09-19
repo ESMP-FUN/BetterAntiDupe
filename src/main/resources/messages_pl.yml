@@ -11,6 +11,7 @@ alerts:
   drop-excess: "Podniesiono {excess} {material} ponad to, co wytworzyły pobliskie źródła ({source})"
 
 commands:
+  storage-unavailable: "&cW tej chwili nie można odczytać rejestru. Powód znajdziesz w konsoli serwera."
   no-permission: "&cNie masz uprawnień do komend rejestru."
   not-initialized: "&cChain of Custody nie został zainicjalizowany."
   unknown-subcommand: "&cNieznana podkomenda. Lista komend: &e/adp help"

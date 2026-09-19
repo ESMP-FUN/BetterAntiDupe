@@ -1,0 +1,714 @@
+{{For}}
+{{Infobox block
+| group = Oak
+| 1-1 = Oak Shelf.png
+| group2 = Spruce
+| 2-1 = Spruce Shelf.png
+| group3 = Birch
+| 3-1 = Birch Shelf.png
+| group4 = Jungle
+| 4-1 = Jungle Shelf.png
+| group5 = Acacia
+| 5-1 = Acacia Shelf.png
+| group6 = Dark Oak
+| 6-1 = Dark Oak Shelf.png
+| group7 = Mangrove
+| 7-1 = Mangrove Shelf.png
+| group8 = Cherry
+| 8-1 = Cherry Shelf.png
+| group9 = Pale Oak
+| 9-1 = Pale Oak Shelf.png
+| group10 = Poplar (upcoming)
+| 10-1 = Poplar Shelf.png
+| group11 = Bamboo
+| 11-1 = Bamboo Shelf.png
+| group12 = Crimson
+| 12-1 = Crimson Shelf.png
+| group13 = Warped
+| 13-1 = Warped Shelf.png
+| extratext = [[#Renders|View all renders]]
+| invimage = Oak Shelf
+| invimage2 = Spruce Shelf
+| invimage3 = Birch Shelf
+| invimage4 = Jungle Shelf
+| invimage5 = Acacia Shelf
+| invimage6 = Dark Oak Shelf
+| invimage7 = Mangrove Shelf
+| invimage8 = Cherry Shelf
+| invimage9 = Pale Oak Shelf
+| invimage10 = Poplar Shelf
+| invimage11 = Bamboo Shelf
+| invimage12 = Crimson Shelf
+| invimage13 = Warped Shelf
+| invimage14 = ----
+| invimage15 = Oak Shelf BE
+| invimage16 = Spruce Shelf BE
+| invimage17 = Birch Shelf BE
+| invimage18 = Jungle Shelf BE
+| invimage19 = Acacia Shelf BE
+| invimage20 = Dark Oak Shelf BE
+| invimage21 = Mangrove Shelf BE
+| invimage22 = Cherry Shelf BE
+| invimage23 = Pale Oak Shelf BE
+| invimage24 = Poplar Shelf BE
+| invimage25 = Bamboo Shelf BE
+| invimage26 = Crimson Shelf BE
+| invimage27 = Warped Shelf BE
+| transparent = Yes
+| light = No
+| tool = axe
+| renewable = Yes
+| stackable = Yes (64)
+| flammable = *{{BlockSprite|Oak Shelf}} {{BlockSprite|Spruce Shelf}} {{BlockSprite|Birch Shelf}} {{BlockSprite|Jungle Shelf}} {{BlockSprite|Acacia Shelf}} {{BlockSprite|Dark Oak Shelf}} {{BlockSprite|Mangrove Shelf}} {{BlockSprite|Cherry Shelf}} {{BlockSprite|Pale Oak Shelf}} {{BlockSprite|Bamboo Shelf}} Yes (30)
+*{{BlockSprite|Crimson Shelf}} {{BlockSprite|Warped Shelf}} No
+| lavasusceptible = *{{BlockSprite|Oak Shelf}} {{BlockSprite|Spruce Shelf}} {{BlockSprite|Birch Shelf}} {{BlockSprite|Jungle Shelf}} {{BlockSprite|Acacia Shelf}} {{BlockSprite|Dark Oak Shelf}} {{BlockSprite|Mangrove Shelf}} {{BlockSprite|Cherry Shelf}} {{BlockSprite|Pale Oak Shelf}} {{BlockSprite|Bamboo Shelf}} Yes 
+*{{BlockSprite|Crimson Shelf}} {{BlockSprite|Warped Shelf}} No
+| waterloggable = Yes
+| mapcolor = {{Collapse|title=Varies|content= 
+{{TooltipSprite||Oak Shelf}} {{Map color|Oak}}<br>
+{{TooltipSprite||Spruce Shelf}} {{Map color|Spruce}}
+<br>{{TooltipSprite||Birch Shelf}} {{Map color|Birch}}
+<br>{{TooltipSprite||Jungle Shelf}} {{Map color|Jungle}}
+<br>{{TooltipSprite||Acacia Shelf}} {{Map color|Acacia}}
+<br>{{TooltipSprite||Dark Oak Shelf}} {{Map color|Dark Oak}}
+<br>{{TooltipSprite||Mangrove Shelf}} {{Map color|Mangrove}}
+<br>{{TooltipSprite||Cherry Shelf}} {{Map color|Cherry}}
+<br>{{TooltipSprite||Pale Oak Shelf}} {{Map color|Quartz Block}}
+<br>{{TooltipSprite||Bamboo Shelf}} {{Map color|Bamboo Mosaic}} 
+<br>{{TooltipSprite||Crimson Shelf}} {{Map color|Crimson Stem}} 
+<br>{{TooltipSprite||Warped Shelf}} {{Map color|Warped Stem}}
+}}
+}}
+A '''shelf''' is a [[block]] that can store and display up to three [[stack]]s of [[item]]s. {{ctrl|Using}} an item slot exchanges its contents with the [[player]]'s [[hotbar]]. [[Redstone mechanics|Powering]] a shelf combines its three slots together and makes using it swap everything at once.
+
+Two or three adjacent shelves can merge their slots together if all are powered, which allows for swapping six or nine items at a time, respectively.
+
+== Obtaining ==
+=== Breaking ===
+Shelves can be broken by hand, but using an [[axe]] is the fastest.
+{{breaking row|horizontal=1|Shelf|link=none|Axe}}
+
+=== Crafting ===
+{{Crafting
+|A1 = Matching Stripped Log; Block of Stripped Bamboo; Matching Stripped Stem
+|B1 = Matching Stripped Log; Block of Stripped Bamboo; Matching Stripped Stem
+|C1 = Matching Stripped Log; Block of Stripped Bamboo; Matching Stripped Stem
+|A3 = Matching Stripped Log; Block of Stripped Bamboo; Matching Stripped Stem
+|B3 = Matching Stripped Log; Block of Stripped Bamboo; Matching Stripped Stem
+|C3 = Matching Stripped Log; Block of Stripped Bamboo; Matching Stripped Stem
+|Output = Matching Shelf, 6
+|name = [[Shelf]]
+|type = Decoration block
+}}
+
+== Usage ==
+[[File:Shelf demonstration.png|thumb|Oak, spruce, and pale oak shelves holding various items. Three pale oak shelves have received a redstone signal.]]
+{{IN|java}}, shelves cannot be moved by [[piston]]s.
+
+=== Holding items ===
+A shelf can store up to 3 [[item]] stacks. Each slot of the shelf can store a full stack of any stackable item, or just one of a non-stackable item. The number of items in the stack is not displayed. The shelf displays all items it contains in front of it, similar to an [[item frame]]. Interacting with any of the 3 slots swaps the player's main hand item with the content of that slot if it is not powered by redstone.
+
+=== Redstone  ===
+[[File:25w31a shelf priority.png|thumb|alt=Two in-game screenshots: the top screenshot taken before and the bottom screenshot taken after. In the before picture, five shelves are placed next to each other in a row, the two shelves on either end are powered and connected, and the shelf in the middle is unpowered. The after picture is identical, except the middle shelf is powered, connecting to the two shelves on the left.|Powered shelves connect with shelves on the left first.]]
+While a shelf is powered by [[redstone]], its front texture changes to show its powered state; when placed next to each other, up to three powered shelves can connect together. Powered shelves prioritize connecting to other shelves on the left.
+
+Powered shelves can be used to quickly swap the contents of a player's [[hotbar]], similar to the [[Saved Hotbars]]{{only|je|short=1}} function in [[Creative]] mode.
+*Interacting with a single powered shelf swaps all its contents with the 3 rightmost slots in the hotbar.
+*Interacting with two connected shelves swaps their contents with the 6 rightmost slots in the hotbar.
+*Interacting with three connected shelves swaps their contents with all 9 slots of the hotbar.
+
+It does not matter which of the connected shelves the player interacts with.
+
+{{IN|be}}, the shelf activates only on the Input/Consume redstone tick ([[C-tick]]).
+
+==== Comparators ====
+[[File:25w31a shelf comparator outputs.png|thumb|alt=Eight shelves in a row, containing the following items from left-to-right (where 0 represents no item and 1 represents an item): 000, 100, 010, 110, 001, 101, 011, 111; corresponding to signal strengths 0-7 respectively|Shelf signal strength]]
+Shelves can also act as power sources for [[redstone comparator]]s depending on what slots contain an item.
+
+* An item in the left slot emits a redstone power of 1.
+* An item in the middle slot emits a redstone power of 2.
+* An item in the right slot emits a redstone power of 4.
+
+If multiple slots contain an item, the comparator outputs the total, up to a maximum power of 7 if all slots are filled.
+
+Comparators only work when the back of the shelf is facing it.
+
+==== Hoppers and droppers ====
+Shelves can be filled automatically by using either [[hopper]]s or [[dropper]]s. Hoppers can also remove items from a shelf when placed underneath.
+
+Items from a shelf are added and removed from left to right and stack any stackable items into one slot until that slot is full.
+
+=== Fuel ===
+Overworld shelves can be used as a [[fuel]] in [[furnace]]s, smelting 1.5 items per shelf.
+
+Nether shelves cannot be used as a [[fuel]] in [[furnace]]s.
+
+== Sounds ==
+=== Generic ===
+{{Sound table/Block/Chiseled bookshelf}}
+
+Despite shelves using the <code>chiseled_bookshelf</code> sound type for its generic sounds, {{in|je}}, the following resource locations also exist: <code>block.shelf.break</code>, <code>block.shelf.place</code>, <code>block.shelf.hit</code>, <code>block.shelf.fall</code>, and <code>block.shelf.step</code>.
+
+=== Unique ===
+{{JE}}:
+{{SoundTable
+|type=java
+|{{SoundLine
+|sound=Shelf activate1.wav
+|sound2=Shelf activate2.wav
+|sound3=Shelf activate3.wav
+|subtitle=Shelf activates
+|source=block
+|description=When a shelf is activated
+|id=block.shelf.activate
+|translationkey=subtitles.block.shelf.activate
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+|{{SoundLine
+|sound=Shelf deactivate1.wav
+|sound2=Shelf deactivate2.wav
+|sound3=Shelf deactivate3.wav
+|subtitle=Shelf deactivates
+|source=block
+|description=When a shelf is deactivated
+|id=block.shelf.deactivate
+|translationkey=subtitles.block.shelf.deactivate
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+|{{SoundLine
+|sound=Shelf place item1.wav
+|sound2=Shelf place item2.wav
+|sound3=Shelf place item3.wav
+|sound4=Shelf place item4.wav
+|subtitle=Item placed
+|source=block
+|description=When an item is placed in a shelf
+|id=block.shelf.place_item
+|translationkey=subtitles.block.shelf.place_item
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+|{{SoundLine
+|sound=Shelf single swap1.wav
+|sound2=Shelf single swap2.wav
+|sound3=Shelf single swap3.wav
+|sound4=Shelf single swap4.wav
+|subtitle=Item swaps
+|source=block
+|description=When an item from the player's inventory is switched with an item in a shelf
+|id=block.shelf.single_swap
+|translationkey=subtitles.block.shelf.single_swap
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+|{{SoundLine
+|sound=Shelf multi swap1.wav
+|sound2=Shelf multi swap2.wav
+|sound3=Shelf multi swap3.wav
+|subtitle=Items swap
+|source=block
+|description=When multiple items from the player's inventory are switched with multiple items in a shelf
+|id=block.shelf.multi_swap
+|translationkey=subtitles.block.shelf.multi_swap
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+}}
+
+{{BE}}:
+{{SoundTable
+|type=bedrock
+|{{SoundLine
+|sound=Shelf activate1.wav
+|sound2=Shelf activate2.wav
+|sound3=Shelf activate3.wav
+|source=block
+|description=When a shelf is activated
+|id=block.shelf.activate
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Shelf deactivate1.wav
+|sound2=Shelf deactivate2.wav
+|sound3=Shelf deactivate3.wav
+|source=block
+|description=When a shelf is deactivated
+|id=block.shelf.deactivate
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Shelf place item1.wav
+|sound2=Shelf place item2.wav
+|sound3=Shelf place item3.wav
+|sound4=Shelf place item4.wav
+|source=block
+|description=When an item is placed in a shelf
+|id=block.shelf.place_item
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Shelf single swap1.wav
+|sound2=Shelf single swap2.wav
+|sound3=Shelf single swap3.wav
+|sound4=Shelf single swap4.wav
+|source=block
+|description=When an item from the player's inventory is switched with an item in a shelf
+|id=block.shelf.single_swap
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Shelf multi swap1.wav
+|sound2=Shelf multi swap2.wav
+|sound3=Shelf multi swap3.wav
+|source=block
+|description=When multiple items from the player's inventory are switched with multiple items in a shelf
+|id=block.shelf.multi_swap
+|volume=1.0
+|pitch=1.0
+}}
+}}
+
+== Data values ==
+=== ID ===
+{{JE}}:
+{{ID table
+|edition=java
+|showblocktags=y
+|showforms=y
+|generatetranslationkeys=y
+|displayname=Oak Shelf
+|spritetype=block
+|nameid=oak_shelf
+|blocktags=mineable/axe, wooden_shelves
+|itemtags=wodden_shelves}}
+{{ID table
+|displayname=Spruce Shelf
+|spritetype=block
+|nameid=spruce_shelf
+|blocktags=mineable/axe, wooden_shelves
+|itemtags=wodden_shelves}}
+{{ID table
+|displayname=Birch Shelf
+|spritetype=block
+|nameid=birch_shelf
+|blocktags=mineable/axe, wooden_shelves
+|itemtags=wodden_shelves}}
+{{ID table
+|displayname=Jungle Shelf
+|spritetype=block
+|nameid=jungle_shelf
+|blocktags=mineable/axe, wooden_shelves
+|itemtags=wodden_shelves}}
+{{ID table
+|displayname=Acacia Shelf
+|spritetype=block
+|nameid=acacia_shelf
+|blocktags=mineable/axe, wooden_shelves
+|itemtags=wodden_shelves}}
+{{ID table
+|displayname=Dark Oak Shelf
+|spritetype=block
+|nameid=dark_oak_shelf
+|blocktags=mineable/axe, wooden_shelves
+|itemtags=wodden_shelves}}
+{{ID table
+|displayname=Mangrove Shelf
+|spritetype=block
+|nameid=mangrove_shelf
+|blocktags=mineable/axe, wooden_shelves
+|itemtags=wodden_shelves}}
+{{ID table
+|displayname=Cherry Shelf
+|spritetype=block
+|nameid=cherry_shelf
+|blocktags=mineable/axe, wooden_shelves}}
+{{ID table
+|displayname=Pale Oak Shelf
+|spritetype=block
+|nameid=pale_oak_shelf
+|blocktags=mineable/axe, wooden_shelves
+|itemtags=wodden_shelves}}
+{{ID table
+|displayname=Poplar Shelf
+|spritetype=block
+|nameid=poplar_shelf
+|itemtags=wodden_shelves}}
+{{ID table
+|displayname=Bamboo Shelf
+|spritetype=block
+|nameid=bamboo_shelf
+|blocktags=mineable/axe, wooden_shelves
+|itemtags=wodden_shelves}}
+{{ID table
+|displayname=Crimson Shelf
+|spritetype=block
+|nameid=crimson_shelf
+|blocktags=mineable/axe, wooden_shelves
+|itemtags=wodden_shelves}}
+{{ID table
+|displayname=Warped Shelf
+|spritetype=block
+|nameid=warped_shelf
+|blocktags=mineable/axe, wooden_shelves
+|itemtags=wodden_shelves
+|foot=1}}
+{{ID table
+|displayname=Block entity
+|spritename=shelf
+|spritetype=block
+|nameid=shelf
+|foot=1}}
+
+{{BE}}:
+{{ID table2
+|edition=bedrock
+|shownumericids=y
+|showblocktags=y
+|showforms=y
+|generatetranslationkeys=y
+|displayname=Oak Shelf
+|spritetype=block
+|nameid=oak_shelf
+|blocktags=minecraft:is_axe_item_destructible,not_feature_replaceable
+|id=-1047}}
+{{ID table2
+|displayname=Spruce Shelf
+|spritetype=block
+|nameid=spruce_shelf
+|blocktags=minecraft:is_axe_item_destructible,not_feature_replaceable
+|id=-1048}}
+{{ID table2
+|displayname=Birch Shelf
+|spritetype=block
+|nameid=birch_shelf
+|blocktags=minecraft:is_axe_item_destructible,not_feature_replaceable
+|id=-1049}}
+{{ID table2
+|displayname=Jungle Shelf
+|spritetype=block
+|nameid=jungle_shelf
+|blocktags=minecraft:is_axe_item_destructible,not_feature_replaceable
+|id=-1050}}
+{{ID table2
+|displayname=Acacia Shelf
+|spritetype=block
+|nameid=acacia_shelf
+|blocktags=minecraft:is_axe_item_destructible,not_feature_replaceable
+|id=-1051}}
+{{ID table2
+|displayname=Dark Oak Shelf
+|spritetype=block
+|nameid=dark_oak_shelf
+|blocktags=minecraft:is_axe_item_destructible,not_feature_replaceable
+|id=-1052}}
+{{ID table2
+|displayname=Mangrove Shelf
+|spritetype=block
+|nameid=mangrove_shelf
+|blocktags=minecraft:is_axe_item_destructible,not_feature_replaceable
+|id=-1053}}
+{{ID table2
+|displayname=Cherry Shelf
+|spritetype=block
+|nameid=cherry_shelf
+|blocktags=minecraft:is_axe_item_destructible,not_feature_replaceable
+|id=-1054}}
+{{ID table2
+|displayname=Pale Oak Shelf
+|spritetype=block
+|nameid=pale_oak_shelf
+|blocktags=minecraft:is_axe_item_destructible,not_feature_replaceable
+|id=-1055}}
+{{ID table2
+|displayname=Bamboo Shelf
+|spritetype=block
+|nameid=bamboo_shelf
+|blocktags=minecraft:is_axe_item_destructible,not_feature_replaceable
+|id=-1056}}
+{{ID table2
+|displayname=Crimson Shelf
+|spritetype=block
+|nameid=crimson_shelf
+|blocktags=minecraft:is_axe_item_destructible,not_feature_replaceable
+|id=-1057}}
+{{ID table2
+|displayname=Warped Shelf
+|spritetype=block
+|nameid=warped_shelf
+|blocktags=minecraft:is_axe_item_destructible,not_feature_replaceable
+|id=-1058
+|foot=1}}
+{{ID table
+|displayname=Block entity
+|spritename=shelf
+|spritetype=block
+|nameid=Shelf
+|foot=1}}
+
+=== Block states ===
+{{see also|Block states}}
+
+{{JE}}:
+{{bst|facing|north|east,north,south,west|The direction the shelf is facing.<br>Opposite from the direction the player faces when placing it.}}
+{{bst|powered|false|true,false|True if the shelf is powered.}}
+{{bst|side_chain|unconnected|left,center,right,unconnected|Which side the shelf is connected to if powered.{{more info}}}}
+{{bst|waterlogged|false|true,false|Whether there's water in the same place as the shelf.|foot=1}}
+
+{{BE}}:
+{{bst|minecraft:cardinal_direction|south|south,west,north,east|The direction the shelf is facing.}}
+{{bst|powered_shelf_type|0|0,1,2,3|{{more info needed}}}}
+{{bst|powered_bit|false|true,false|True if the shelf is powered.|foot=1}}
+
+=== Block data ===
+Shelves have [[block entities]] associated with them that hold additional data about the [[block]].
+
+{{JE}}:
+{{see also|Block entity format}}
+<section begin="block data" /><div class="treeview">
+* {{nbt|compound}} Block entity data
+** {{nbt inherit/blockentity}}
+** {{nbt|list|Items}}: List of items in the shelf. Represents the {{DCL|minecraft:container}} component.
+*** {{nbt|compound}}: An item, including the slot tag. The valid slot numbers are 0-2.
+**** {{nbt inherit/item|indent=****}}
+** {{nbt|bool|align_items_to_bottom}}: 1 or 0 ({{cd|true|false|d=/}}) - if {{cd|true}}, items sit near the bottom of the shelf.
+</div><section end="block data" />
+
+{{BE}}:
+: See [[Bedrock Edition level format/Block entity format]].
+
+== History ==
+=== Announcement ===
+{{HistoryTable
+|{{HistoryLine||May 30, 2026|link=https://youtu.be/skQgaugcKVQ?si=27mKvPiwrFDvaLX8|Poplar shelves were shown in [[Minecraft Live – May 2026]].}}
+}}
+
+=== ''Java Edition'' ===
+{{HistoryTable
+|{{HistoryLine|java}}
+|{{HistoryLine||1.21.9|dev=25w31a|[[File:Oak Shelf JE1 BE2.png|32px]] [[File:Spruce Shelf JE1 BE2.png|32px]] [[File:Birch Shelf JE1 BE2.png|32px]] [[File:Jungle Shelf JE1 BE2.png|32px]] [[File:Acacia Shelf JE1 BE2.png|32px]] [[File:Dark Oak Shelf JE1 BE2.png|32px]] [[File:Mangrove Shelf JE1 BE2.png|32px]] [[File:Cherry Shelf JE1 BE2.png|32px]] [[File:Pale Oak Shelf JE1 BE2.png|32px]] [[File:Bamboo Shelf JE1 BE2.png|32px]] [[File:Crimson Shelf JE1 BE2.png|32px]] [[File:Warped Shelf JE1 BE2.png|32px]] Added shelves.
+|[[File:Oak Shelf with items JE1.png|32px]] Shelved items and blocks sit in the middle.
+|Shelved items and blocks use the same model display settings as [[item frame]]s.}}
+|{{HistoryLine|||dev=25w32a
+|[[File:Oak Shelf with items JE2.png|32px]] Shelved items and blocks now sit nearer to or at the bottom of the shelf, rather than in the middle.}}
+|{{HistoryLine|||dev=25w33a
+|[[File:Oak Shelf with items JE3 BE3.png|32px]] Shelved items and blocks now sit in the middle again.
+|Shelved items and blocks now use separate model display settings.
+|Shelved blocks and shields are now larger, and items now slightly float in front of the shelves.
+|[[File:Oak Shelf with items JE3 (align items to bottom).png|32px]] Added the {{code|align_items_to_bottom}} [[block state]] property, by default set to false, to display items at the bottom of the shelf rather than in the middle.}}
+|{{HistoryLine|||dev=25w34a
+|The {{code|align_items_to_bottom}} block state has been replaced by an equivalent boolean field for the block entity itself.}}
+|{{HistoryLine|||dev=25w36a|Powered shelves can now connect only to other powered shelves facing the exact same direction.}}
+|{{HistoryLine|upcoming java}}
+|{{HistoryLine||26.3|dev=snap1|[[File:Poplar Shelf.png|32px]] Added poplar shelves.}}
+}}
+
+=== ''Bedrock Edition'' ===
+{{HistoryTable
+|{{HistoryLine|bedrock}}
+|{{HistoryLine||1.21.111|dev=Preview 1.21.110.20|[[File:Oak Shelf BE1.png|32px]] [[File:Spruce Shelf BE1.png|32px]] [[File:Birch Shelf BE1.png|32px]] [[File:Jungle Shelf BE1.png|32px]] [[File:Acacia Shelf BE1.png|32px]] [[File:Dark Oak Shelf BE1.png|32px]] [[File:Mangrove Shelf BE1.png|32px]] [[File:Cherry Shelf BE1.png|32px]] [[File:Pale Oak Shelf BE1.png|32px]] [[File:Bamboo Shelf BE1.png|32px]] [[File:Crimson Shelf BE1.png|32px]] [[File:Warped Shelf BE1.png|32px]] Added shelves.
+|[[File:Oak Shelf with items BE1.png|32px]] Shelved items and blocks sit in the middle.
+|Only shelves of the same wood type can connect when powered.}}
+|{{HistoryLine|||dev=Preview 1.21.110.22
+|Shelves can now be [[waterlogged]].
+|A [[redstone comparator]] adjacent to a shelf now outputs a signal indicating which slots of the shelf contain items.
+|Non-solid blocks can no longer be placed on the top, bottom, front or sides of the shelf.
+|Powered shelves now connect even when they are made of different types of wood.}}
+|{{HistoryLine|||dev=Preview 1.21.110.23
+|[[File:Oak Shelf with items BE2.png|32px]] Shelved items have been slightly adjusted to fit the shelf slots, and the scale of shelved blocks has been halved. Some blocks and items such as banners and shields have kept their original display settings.
+|Shelved items and blocks now sit nearer to or at the bottom of the shelf, rather than in the middle.
+|Interacting with an unpowered shelf while in [[Creative]] now replaces the shelf item with the player's selected item instead of swapping them.}}
+|{{HistoryLine|||dev=Preview 1.21.110.24|[[File:Oak Shelf JE1 BE2.png|32px]] [[File:Spruce Shelf JE1 BE2.png|32px]] [[File:Birch Shelf JE1 BE2.png|32px]] [[File:Jungle Shelf JE1 BE2.png|32px]] [[File:Acacia Shelf JE1 BE2.png|32px]] [[File:Dark Oak Shelf JE1 BE2.png|32px]] [[File:Mangrove Shelf JE1 BE2.png|32px]] [[File:Cherry Shelf JE1 BE2.png|32px]] [[File:Pale Oak Shelf JE1 BE2.png|32px]] [[File:Bamboo Shelf JE1 BE2.png|32px]] [[File:Crimson Shelf JE1 BE2.png|32px]] [[File:Warped Shelf JE1 BE2.png|32px]] Updated shelf block model to remove overlapping texture UVs, thus making the texture match {{JE}}.}}
+|{{HistoryLine|||dev=Preview 1.21.110.25|Shelves now produce the same particles as their [[stripped log]] counterparts when they break.
+|[[File:Oak Shelf with items JE3 BE3.png|32px]] Items in the shelf render in the middle of the shelf.
+|Shelved items now slightly float in front of the shelves, and shelved blocks were restored to their original sizes.}}
+|{{HistoryLine||1.21.120|dev=Preview 1.21.120.20
+|Adding or removing redstone power to or from the shelf now emits vibrations.
+|When a player places/removes/swaps an item on an unpowered shelf, a vibration of frequency 3 is emitted.
+|When a player places/removes an item on a powered shelf, a vibration of frequency 3 is emitted.
+|When a player swaps item with one on a powered shelf, a vibration of frequency 6 is emitted.}}
+|{{HistoryLine||26.40|dev=Preview 26.40.27|exp=Drop 3 of 2026|[[File:Poplar Shelf.png|32px]] Added poplar shelves.}}
+|{{HistoryLine|upcoming bedrock}}
+|{{HistoryLine||26.50|dev=Preview 26.50.22|All features from the "Drop 3 of 2026" experiment have been fully implemented.}}
+}}
+
+== Issues ==
+{{issue list}}
+
+== Gallery ==
+{{More images|Poplar Shelf texture and renders}}
+=== Textures ===
+<gallery class="pixel-image">
+Oak Shelf (texture) JE1 BE2.png|Oak shelf
+Birch Shelf (texture) JE1 BE2.png|Birch shelf
+Spruce Shelf (texture) JE1 BE2.png|Spruce shelf
+Jungle Shelf (texture) JE1 BE2.png|Jungle shelf
+Acacia Shelf (texture) JE1 BE2.png|Acacia shelf
+Dark Oak Shelf (texture) JE1 BE2.png|Dark Oak shelf
+Mangrove Shelf (texture) JE1 BE2.png|Mangrove shelf
+Cherry Shelf (texture) JE1 BE2.png|Cherry shelf
+Pale Oak Shelf (texture) JE1 BE2.png|Pale Oak shelf
+Bamboo Shelf (texture) JE1 BE2.png|Bamboo shelf
+Crimson Shelf (texture) JE1 BE2.png|Crimson shelf
+Warped Shelf (texture) JE1 BE2.png|Warped shelf
+</gallery>
+
+=== Renders ===
+{{Collapse
+|title=Powered shelves
+|content=
+'''Oak'''
+<gallery>
+Oak Shelf (U) JE1 BE2.png|Single
+Oak Shelf (L) JE1 BE2.png|Leftmost
+Oak Shelf (C) JE1 BE2.png|Inbetween
+Oak Shelf (R) JE1 BE2.png|Rightmost
+</gallery>
+
+'''Spruce'''
+<gallery>
+Spruce Shelf (U) JE1 BE2.png|Single
+Spruce Shelf (L) JE1 BE2.png|Leftmost
+Spruce Shelf (C) JE1 BE2.png|Inbetween
+Spruce Shelf (R) JE1 BE2.png|Rightmost
+</gallery>
+
+'''Birch'''
+<gallery>
+Birch Shelf (U) JE1 BE2.png|Single
+Birch Shelf (L) JE1 BE2.png|Leftmost
+Birch Shelf (C) JE1 BE2.png|Inbetween
+Birch Shelf (R) JE1 BE2.png|Rightmost
+</gallery>
+
+'''Jungle'''
+<gallery>
+Jungle Shelf (U) JE1 BE2.png|Single
+Jungle Shelf (L) JE1 BE2.png|Leftmost
+Jungle Shelf (C) JE1 BE2.png|Inbetween
+Jungle Shelf (R) JE1 BE2.png|Rightmost
+</gallery>
+
+'''Acacia'''
+<gallery>
+Acacia Shelf (U) JE1 BE2.png|Single
+Acacia Shelf (L) JE1 BE2.png|Leftmost
+Acacia Shelf (C) JE1 BE2.png|Inbetween
+Acacia Shelf (R) JE1 BE2.png|Rightmost
+</gallery>
+
+'''Dark Oak'''
+<gallery>
+Dark Oak Shelf (U) JE1 BE2.png|Single
+Dark Oak Shelf (L) JE1 BE2.png|Leftmost
+Dark Oak Shelf (C) JE1 BE2.png|Inbetween
+Dark Oak Shelf (R) JE1 BE2.png|Rightmost
+</gallery>
+
+'''Mangrove'''
+<gallery>
+Mangrove Shelf (U) JE1 BE2.png|Single
+Mangrove Shelf (L) JE1 BE2.png|Leftmost
+Mangrove Shelf (C) JE1 BE2.png|Inbetween
+Mangrove Shelf (R) JE1 BE2.png|Rightmost
+</gallery>
+
+'''Cherry'''
+<gallery>
+Cherry Shelf (U) JE1 BE2.png|Single
+Cherry Shelf (L) JE1 BE2.png|Leftmost
+Cherry Shelf (C) JE1 BE2.png|Inbetween
+Cherry Shelf (R) JE1 BE2.png|Rightmost
+</gallery>
+
+'''Pale Oak'''
+<gallery>
+Pale Oak Shelf (U) JE1 BE2.png|Single
+Pale Oak Shelf (L) JE1 BE2.png|Leftmost
+Pale Oak Shelf (C) JE1 BE2.png|Inbetween
+Pale Oak Shelf (R) JE1 BE2.png|Rightmost
+</gallery>
+
+'''Bamboo'''
+<gallery>
+Bamboo Shelf (U) JE1 BE2.png|Single
+Bamboo Shelf (L) JE1 BE2.png|Leftmost
+Bamboo Shelf (C) JE1 BE2.png|Inbetween
+Bamboo Shelf (R) JE1 BE2.png|Rightmost
+</gallery>
+
+'''Crimson'''
+<gallery>
+Crimson Shelf (U) JE1 BE2.png|Single
+Crimson Shelf (L) JE1 BE2.png|Leftmost
+Crimson Shelf (C) JE1 BE2.png|Inbetween
+Crimson Shelf (R) JE1 BE2.png|Rightmost
+</gallery>
+
+'''Warped'''
+<gallery>
+Warped Shelf (U) JE1 BE2.png|Single
+Warped Shelf (L) JE1 BE2.png|Leftmost
+Warped Shelf (C) JE1 BE2.png|Inbetween
+Warped Shelf (R) JE1 BE2.png|Rightmost
+</gallery>
+}}
+
+=== Mojang screenshots ===
+<gallery>
+File:Copper Golem Statues and Shelf Blocks.jpg|Several shelf variations with [[copper golem statue]]s
+File:Fall Drop 2025 Shelf Block.webp|Shelves with the [[copper chest]] and [[copper armor]]
+File:Fall Drop 2025 Shelf A.jpeg|Shelves with copper chest
+File:Fall Drop 2025 Shelf B.jpeg|Shelves in the copper room
+File:Bedrock 1.21.110.22 PatchNotes.jpg|A shelf being used in a machine
+File:Wall of shelves.jpg|A wall covered in shelves
+File:Efe's shelves.jpg|[[Efe]] using mangrove shelves
+File:Four types of shelves.jpg|Birch, mangrove, cherry, and oak shelves
+File:International Day of Education.jpeg|Shelves in an [[NPC]] classroom
+</gallery>
+
+=== In other media ===
+<gallery>
+File:Steve preparing for school.jpg|A shelf above [[Steve]]'s bed on the first day of school
+File:The glorious stash.png|Shelves in {{AMCM}}
+File:What my dog thinks.jpg
+</gallery>
+
+== See also ==
+*{{ItemLink|Item Frame}}
+*{{BlockLink|Bookshelf}}
+*{{BlockLink|Chiseled Bookshelf}}
+
+== Navigation ==
+{{Navbox redstone|Components}}
+{{Navbox wood}}
+{{Navbox blocks|utility}}
+
+[[Category:Mechanisms]]
+[[Category:Storage]]
+[[Category:Utility blocks]]
+[[Category:Manufactured blocks]]
+[[Category:Readable by comparators]]
+
+[[de:Regal]]
+[[es:Estante]]
+[[fr:Étagère]]
+[[it:Scaffale]]
+[[ja:棚]]
+[[ko:선반]]
+[[lzh:櫥]]
+[[pl:Półka]]
+[[pt:Estante]]
+[[ru:Полка]]
+[[uk:Полиця]]
+[[zh:展示架]]

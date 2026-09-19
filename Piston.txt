@@ -1,0 +1,419 @@
+{{for|the sticky version|Sticky Piston}}
+{{Earth hatnote|type=block}}
+{{Infobox block
+| image = Piston.gif
+| imagecaption = {{JE}}
+| image2 = Piston BE.gif
+| image2caption = {{BE}}
+| invimage = Piston
+| waterloggable = {{jebe|No|Yes}}
+| transparent = {{jebe|No|Yes}}
+| light = No
+| tool = Pickaxe
+| renewable = Yes
+| stackable = Yes (64)
+| flammable = No
+| lavasusceptible = No
+}}
+A '''piston''' is a [[block]] capable of pushing most [[entities]] and blocks when given a [[redstone]] signal. 
+
+Some blocks cannot be moved, break when pushed or have other interactions with pistons. A piston can move up to twelve blocks at once.
+
+== Obtaining ==
+=== Breaking ===
+A piston can be broken using any [[tool]] with equal efficiency, and always drops itself.
+It is faster to break them with a [[pickaxe]]. The pickaxe is also the preferred tool for breaking the head when extended.<ref>{{bug|MC-171370|||WAI}}</ref>
+{{breaking row|horizontal=1|Piston|Pickaxe}}
+
+=== Crafting ===
+{{Crafting
+|A1=Any Planks
+|B1=Any Planks
+|C1=Any Planks
+|A2=Cobblestone
+|B2=Iron Ingot
+|C2=Cobblestone
+|A3=Cobblestone
+|B3=Redstone Dust
+|C3=Cobblestone
+|Output=Piston
+|type=Redstone
+}}
+
+== Usage ==
+{{see also|Tutorial:Piston uses|Redstone circuits/Piston}}
+=== Crafting ingredient ===
+{{Crafting usage}}
+
+=== Redstone component ===
+Pistons are always placed facing toward the player. When powered, the piston's wooden surface (the "head") tries to start extending after a [[#Start delay|start delay]]. The extension takes {{convert|2|game tick|second}} to finish. When it extends, it pushes at most 12 blocks. The piston makes a sound that can be heard within a 31×31×31 cube centered on the activating piston. Any entities in the path of an extending piston (or any block it might be moving) are pushed along, when possible. If the entities cannot be moved, the block is pushed inside them, suffocating [[mob]]s when pushed into their [[eye height]] (assuming said block is solid).
+
+When a piston loses power, its head retracts. Like the extension, the retraction starts after a [[#Start delay|start delay]] and takes {{convert|2|game tick|second}} to finish.
+
+{{IN|je}}, a piston that is de-powered during the extension process aborts its extension and starts to retract (assuming it can detect the signal change). Any block which was being pushed by that piston continues to move as if the piston was still pushing it.
+
+A piston that pushes a [[slime block]] bounces any entity that it displaces in the direction the piston is facing. Entities on top of a moving [[honey block]], or any other moving block,{{only|bedrock|short=1}} will also move with it. In addition, when a slime block or a honey block is moved by a piston, any movable block adjacent (not diagonally) to it also moves. See [[#Sticky blocks|§ Sticky blocks]] for more details.
+
+{{IN|be}}, blocks that require a support (such as levers) can be placed on the back or sides of a piston without being destroyed when that piston extends. {{IN|je}}, on the other hand, the majority of blocks that require a support are only safe to place on the back of pistons.
+
+{{IN|be}}, comparators can read the fullness of containers through pistons, despite them not being [[conductive]].
+<!--=== Basic behavior ===
+* Extension: Pushes up to 12 blocks in front of the head.
+* Retraction: Leaves any block in front of it in place. No blocks are pulled back.
+* Sound: Audible within a 31×31×31 cube centered on the piston.
+* Entities: Any mob or item in the path is pushed along. If a solid block enters a mob’s eye height, the mob suffocates.
+
+* {{IN|be}}, blocks that need support (e.g., levers, torches) can be placed on the back or sides of a piston and survive extension/retraction.
+* {{IN|je}}, such blocks are safe only on the back.
+-->
+
+=== Powering pistons ===
+[[File:Stacked pistons powered by one redstone line.png|alt=|thumb|200px|Pistons powered by one line of redstone]]
+
+Pistons can be activated from any side, excluding from the head. 
+
+{{IN|BE}}, redstone dust gets automatically redirected toward pistons if placed next to them (except for the head's side).
+
+==== Start delay ====
+A piston won't extend or retract immediately when it is activated: this phenomenon is known as "start delay".
+
+{| class="wikitable"
+! Edition !! Start delay !! Notes
+|-
+! Java
+| 0 or 1 game tick
+| 0 ticks if powered during the scheduled tick, random tick or block event phase; 1 tick if powered during the entity or block entity phase, or during player input handling.
+|-
+! Bedrock
+| Fixed 2 game ticks
+| Activation occurs only on a consume tick ([[C-tick]]).
+|}
+
+{{IN|je}}, the start delay can be 0 (activation in the same tick) or {{convert|1|game tick|second}} (activation in the next tick) depending on the [[Tick#Game process|game process]] in which the piston is powered:
+* If the piston is powered and updated in the [[Tick#Scheduled tick|scheduled tick]] phase, [[random tick]] phase or block event phase, the piston activates in this game tick's block event phase, which means the start delay in this case is 0.
+* If the piston is powered and updated during the [[entity]] phase or the [[block entity]] phase, or by player actions, the piston activates in the next game tick's block event phase, which means the start delay in this case is 1 tick. Notably, because blocks pushed by pistons arrive during the block entity phase (except when [[Sticky Piston#Block dropping|dropped]] by a sticky piston), in a chain of pistons each pushing a redstone block to activate the next, successive activations will happen 3 ticks apart.
+
+{{IN|be}}, the start delay is fixed at {{convert|2|game tick|second}}, meaning that the piston starts to extend or retract 2 game ticks after it is activated. Pistons can only activate on the input/consumer redstone tick ([[C-tick]]).
+
+==== Quasi-Connectivity ====
+{{see also|Tutorial:Quasi-connectivity}}
+{{exclusive|java|section=1}}
+{{Schematic|caption='''A lamp that's being powered normally on top of a piston that's being powered through quasi-connectivity. '''
+|SB|rt-$w!|RL-!||-
+|||pi-e!|pe-e
+}}
+Pistons can be powered from one block above compared to most redstone components: this property is called [[quasi-connectivity]] (QC). With quasi-connectivity, a piston facing up can also be powered from the head's direction, which is otherwise impossible. Due to quasi-connectivity, a piston facing up that has a [[block of redstone]] on top of itself can extend but not retract: this happens because after the piston extends, it keeps receiving power from the redstone block.
+
+Quasi-connectivity can be used to make a [[Tutorial:Block update detector|BUD switch]], taking advantage of the fact that a piston powered through QC doesn't always get immediately [[block update|updated]].
+
+==== Soft inversion ====
+{{see also|Tutorial:Soft inversion}}
+{{exclusive|bedrock|section=1}}
+{{Schematic|caption='''Flicking the lever caused the piston to extend and the redstone torch to turn off.'''
+|||pe-n|||-
+|le-$e!|SB|pi-n!|rt-$w|RL|-
+}}
+When a piston that has a [[redstone torch]] attached to it is powered, the redstone torch turns off, and when said piston is depowered, the redstone torch turns back on: this property is called ''[[soft inversion]]''.<ref>{{bug|MCPE-17909|||WF}}</ref><ref>"Explaining soft inversion: the Minecraft Bedrock Redstone bug that won't get fixed" – https://www.youtube.com/watch?v=zUgKXTsLOA0</ref> Since soft inversion works even if the piston is being powered indirectly through a block, it can be used to toggle the state of a redstone torch from farther away compared to other powering methods. It's still possible to take advantage of soft inversion even if the piston cannot extend or retract.
+
+=== Sticky blocks ===
+{{Schematic
+|caption=Piston A extends because the slime block can't stick to the adjacent obsidian. Piston B fails because the obsidian blocks the block attached to the slime block.
+|clear=right
+|le-$e!|pi-e!+A|pe-e|SL|le-$e!|pi-e+B|SL||-
+|||obsidian|obsidian|||MB|obsidian
+}}
+[[slime block|Slime]] and [[honey block|honey]] blocks are sticky: when either block is moved by a piston, adjacent (non-diagonal) blocks stick to and move with it.{{note|Despite their name, [[sticky pistons]] do not fall under this definition.}} For example, a slime block sitting on the ground attempts to move the ground block underneath itself, which in turn has to push additional ground blocks in the direction of motion just as if they were being pushed directly by a piston. The same occurs when a sticky block is moved by another adjacent sticky block of the same kind. For example, a 2×2×2 cube of honey blocks may be pushed as a single unit by a piston acting on any of the blocks in the cube. Any block that cannot be moved or can be broken by a piston does not stick to sticky blocks. However, if an adjacent block could be moved but is prevented from being moved by the presence of an immovable block, the sticky block is prevented from moving as well, and the piston does not extend.
+
+Slime and honey blocks do not stick to each other. This allows redstone contraptions to use alternating slime and honey blocks side by side without interfering with each other.
+
+Slime and honey blocks' stickiness is unilateral. They can't be pulled by a non-[[sticky piston]], and they are not moved if an adjacent (non-sticky) block is moved by a piston. The maximum of 12 blocks moved by a piston still applies. For example, a 2×2×3 structure of slime blocks may be pushed by a piston as long as no other movable block is adjacent to it. A piston cannot move itself via a "hook" constructed of sticky blocks, but [[flying machines]] can be created with multiple pistons.
+
+[[Glazed terracotta]] and the [[heavy core]]{{only|bedrock|short=1}} do not stick to adjacent slime or honey blocks, even though they can be pushed by pistons.
+
+=== Sculk detection ===
+Pistons emit vibrations detectable by [[sculk sensor]]s. A [[calibrated sculk sensor]] tuned to signal strength '''10''' detects piston retraction; strength '''11''' detects extension; strength '''12''' detects a block broken by a piston.
+
+== Limitations ==
+<!-- [[Push reaction]] redirects here. -->
+Pistons cannot push:
+* Blocks listed as such in the table below.
+* Blocks into the [[void]] or above the [[build limit]].
+* More than 12 blocks at once.
+* {{IN|je}}, blocks beyond the [[world border]].
+
+If the requirements for a block to be pushed are not met, the piston will not extend.
+
+{{:Piston/Table}}
+
+== Technical components ==
+{{main|Piston/Technical components}}
+Pistons have 2 technical blocks that cannot be obtained. These include the '''piston head''' and '''moving piston''' blocks.
+
+== Sounds ==
+=== Generic ===
+{{edition|java}}:
+{{Sound table/Block/Stone/JE}}
+{{edition|bedrock}} (piston):
+{{Sound table/Block/Stone/BE}}
+{{edition|bedrock}} (arm):
+{{Sound table/Block/Normal/BE}}
+
+=== Unique ===
+{{:Piston/Sounds}}
+
+== Data values ==
+=== ID ===
+{{edition|java}}:
+{{ID table
+|edition=java
+|showblocktags=y
+|showforms=y
+|generatetranslationkeys=y
+|displayname=Piston
+|spritetype=block
+|nameid=piston
+|foot=1}}
+
+{{edition|bedrock}}:
+{{ID table
+|edition=bedrock
+|shownumericids=y
+|showaliasids=y
+|showforms=y
+|generatetranslationkeys=y
+|displayname=Piston
+|spritetype=block
+|nameid=piston
+|id=33
+|foot=1}}
+{{ID table
+|notnamespaced=y
+|displayname=Piston block entity
+|spritename=piston
+|spritetype=block
+|nameid=PistonArm
+|foot=1}}
+
+=== Block states ===
+{{see also|Block states}}
+The <code>piston</code> block uses following block states:
+
+<section begin="block states"/>{{el|je}}:
+{{bst|extended|false|false,true|If true, the piston is extended.}}
+{{bst|facing|north|down,east,north,south,up,west|The direction the piston head is pointing.<br>The opposite from the direction the player faces while placing the piston.|foot=1}}
+
+{{el|be}}:
+{{bst|showaux=1|bits=0x1,0x2,0x4|facing_direction|0|0,1,2,3,4,5|The direction the piston is pointing.
+*0: facing down
+*1: facing up
+*2: facing south
+*3: facing north
+*4: facing east
+*5: facing west |foot=1}}<section end="block states"/>
+
+=== Block data ===
+{{exclusive|bedrock|section=1}}
+{{IN|be}}, a piston has a [[block entity]] associated with it that holds additional data about the block.
+
+: See [[Bedrock Edition level format/Block entity format]].
+
+== Achievements ==
+{{load achievements|Inception}}
+
+== Videos ==
+{{yt|dKDSUKXN138}}
+
+== History ==
+{{Needs render|Extended pistons in Legacy Console Edition look different since TU46}}
+
+=== Development ===
+{{HistoryTable
+|{{HistoryLine||May 21, 2009|link=wordofnotch:110762705|[[Notch]] shows interest in adding [[block]]s that can pull and push other blocks when a pulse from a wire is received; he called them "Pulley1", which would pull a block down, and "Pulley2", which would push a block up.}}
+|{{HistoryLine||?|[[File:Piston normal mod.png|32px]] [[File:Piston normal extended mod.png|32px]] The original piston was a [[Pistons (mod)|mod]] posted on the [[Minecraft Forums]] by Hippoplatimus.<ref>http://www.minecraftforum.net/viewtopic.php?t=247686&f=1032</ref><ref>https://web.archive.org/web/20110402064652/http://www.minecraftforum.net/viewtopic.php?t=247686&f=1032</ref> The code for that version was given to [[Jeb]], who then worked on implementing pistons into vanilla [[Minecraft]]; Hippoplatimus is in the game's credits under "Additional Programming", like other modders whose work made it into vanilla Minecraft.
+|Another user, DiEvAl, privately submitted code as well, including the idea of [[block entities]] to track moving blocks.<ref>http://www.reddit.com/r/Minecraft/comments/hvkmo/attribution_of_the_piston_mod_in_vanilla_minecraft/</ref>}}
+|{{HistoryLine||June 7, 2011|link={{tweet|jeb|78167135435759617}}|[[Jeb]] tweets an image of pistons in development.
+|[[File:Piston (U) pJE20110607.png|32px]] The piston texture as screen-captured while in development had iron bands running over the head. The bands were removed for the release, leaving only iron brackets around the corners and edges.}}
+|{{HistoryLine||June 14, 2011|link={{YouTube link|uZJr86d2IUo}}|A video showing pistons being worked on is posted on the official Minecraft YouTube channel.}}
+}}
+
+=== ''Java Edition'' ===
+{{HistoryTable
+|{{HistoryLine|java beta}}
+|{{HistoryLine||1.7|[[File:Piston (U) JE1.png|32px]] [[File:Piston (N) JE1 BE1.png|32px]] [[File:Piston (E) JE1 BE1.png|32px]] [[File:Piston (S) JE1 BE1.png|32px]] [[File:Piston (W) JE1 BE1.png|32px]] [[File:Piston (D) JE1 BE1.png|32px]]<br>[[File:Headless Piston (U) JE1 BE1.png|32px]] [[File:Headless Piston (N) JE1 BE1.png|32px]] [[File:Headless Piston (E) JE1 BE1.png|32px]] [[File:Headless Piston (S) JE1 BE1.png|32px]] [[File:Headless Piston (W) JE1 BE1.png|32px]] [[File:Headless Piston (D) JE1 BE1.png|32px]]<br>Added pistons, alongside associated head and moving blocks.
+|A bug existed in this version which caused the game to crash and lock the player out of their world when powering pistons in some scenarios (for example when trying to push a redstone torch).}}
+|{{HistoryLine||1.7_01|The aforementioned bug has been fixed and affected worlds now load normally again.
+|Headless pistons do not break upon receiving a [[block update]] anymore.}}
+|{{HistoryLine|java}}
+|{{HistoryLine||1.2.4|dev=release|Spruce, birch, and jungle [[planks]] can now be used to craft pistons.}}
+|{{HistoryLine||1.3.1|dev=12w26a|Pistons now schedule extensions and retractions rather than executing them as soon as they realize they are (un)powered.}}
+|{{HistoryLine||1.5|dev=13w10a|Pistons changing their {{code|extended}} state from {{code|false}} to {{code|true}} is now the ''last'' step of (the start of) the extension process, rather then the first. This change affects some redstone contraptions.}}
+|{{HistoryLine||1.7.2|dev=1.7.1|Acacia and dark oak [[planks]] can now be used to craft pistons.}}
+|{{HistoryLine||1.8|dev=14w17a|[[File:Piston (U) JE2.png|32px]] [[File:Piston (D) JE2.png|32px]] [[File:Headless Piston (U) JE2.png|32px]] [[File:Headless Piston (D) JE2.png|32px]] The models for pistons when facing up and down have been changed.}}
+|{{HistoryLine|||dev=14w18a|[[Slime block]]s now push and pull blocks adjacent when connected to sticky pistons.
+|Extending a piston with a slime block on top of it launches the [[entity]] ([[mob]]s, [[player]]s, [[item]]s, launched [[arrow]]s, etc) into the [[air]].}}
+|{{HistoryLine|||dev=14w19a|Slime blocks can now push entities sideways and downward when attached to a piston.}}
+|{{HistoryLine|||dev=14w26a|Pistons do not check if they are receiving power in the moment in which their {{code|extended}} state changes from {{code|false}} to {{code|true}} anymore.}}
+|{{HistoryLine||1.9|dev=15w38b|Retracting pistons can now pull [[entities]] through them.<ref>{{bug|MC-89030}}</ref> This behavior was known as "piston translocation" by the community.}}
+|{{HistoryLine|||dev=15w49a|Unextended pistons, downward-facing pistons, and upward-facing piston heads are now considered to have a solid top surface, like upside-down [[stairs]] and top [[slab]]s.}}
+|{{HistoryLine||1.11|dev=16w40a|Retracting pistons can no longer pull [[entities]] through them. "Piston translocation" has been removed.}}
+|{{HistoryLine||1.12|dev=17w16a|When pistons move [[slime block]]s, they do not move glazed terracotta attached to the side of the slime block.}}
+|{{HistoryLine|||dev=pre3|Glazed terracotta does not stick to slime blocks in some situations anymore.<ref>{{bug|MC-116373|||fixed}}</ref>}}
+|{{HistoryLine||1.13|dev=17w47a|Pistons now can push [[note block]]s.}}
+|{{HistoryLine|||dev=17w48a|Piston heads are no longer removed when breaking a piston while it is extending.<ref>{{bug|MC-122711|}}</ref>}}
+|{{HistoryLine|||dev=17w49a|Piston heads are now once again removed when breaking a piston while it is extending.}}
+|{{HistoryLine|||dev=pre7|Pistons now have the same block dropping behavior of sticky pistons.<ref>{{bug|MC-133273}}</ref>}}
+|{{HistoryLine||1.13.1|dev=18w30b|Pistons don't drop blocks anymore.}}
+|{{HistoryLine||1.14|dev=18w43a|[[File:Piston (U) JE3.png|32px]] [[File:Piston (N) JE2.png|32px]] [[File:Piston (E) JE2.png|32px]] [[File:Piston (S) JE2.png|32px]] [[File:Piston (W) JE2.png|32px]] [[File:Piston (D) JE3.png|32px]]<br>[[File:Headless Piston (U) JE3.png|32px]] [[File:Headless Piston (N) JE2.png|32px]] [[File:Headless Piston (E) JE2.png|32px]] [[File:Headless Piston (S) JE2.png|32px]] [[File:Headless Piston (W) JE2.png|32px]] [[File:Headless Piston (D) JE3.png|32px]]<br>The textures associated with pistons have been changed.
+|While the texture for oak planks was later updated in subsequent snapshots, the piston texture is yet to be changed to reflect this.<ref>{{bug|MC-248841|||WAI}}</ref>}}
+|{{HistoryLine|||dev=18w44a|Non-extended pistons now block [[light]].}}
+|{{HistoryLine|||dev=18w46a|Added support for directional opacity of blocks. As such, extended pistons now allow light to only pass through certain faces.}}
+|{{HistoryLine||1.15|dev=19w41a|Added honey blocks, which have multiple different types of interactions with pistons.}}
+|{{HistoryLine||1.16|dev=20w06a|The hardness of pistons has been increased from 0.5 to 1.5.
+|The blast resistance of pistons has been increased from 0.5 to 1.5.
+|[[Pickaxe]]s are now the tool for breaking pistons.
+|Pistons no longer pop off redstone components placed on the back when retracting.
+|Crimson and warped [[planks]] can now be used to craft pistons.}}
+|{{HistoryLine||1.17|dev=20w45a|Particles now appear if a block is broken by a piston.}}
+|{{HistoryLine||1.19|dev=22w11a|[[Mangrove planks]] can now be used to craft pistons.}}
+|{{HistoryLine|||dev=22w17a|[[File:Piston (U) JE4.png|32px]] [[File:Piston (N) JE3.png|32px]] [[File:Piston (E) JE3.png|32px]] [[File:Piston (S) JE3.png|32px]] [[File:Piston (W) JE3.png|32px]] [[File:Piston (D) JE4.png|32px]] Changed piston textures, to match the color of the oak planks on the piston head.}}
+|{{HistoryLine||1.19.3|exp=Update 1.20|dev=22w42a|[[Bamboo planks]] can now be used to craft pistons.}}
+|{{HistoryLine||1.19.4|exp=Update 1.20|dev=23w07a|[[Cherry planks]] can now be used to craft pistons.}}
+|{{HistoryLine||1.21|dev=24w20a|Piston sounds have been updated to be quieter and less harsh.<br>[[File:Piston extend JE2.ogg]]<br>[[File:Piston contract JE2.ogg]]}}
+|{{HistoryLine|||dev=24w21a|Piston sounds have been reverted to what they previously were, but the attenuation distance and sound level has been halved.}}
+|{{HistoryLine||1.21.5|dev=25w10a|Blocks that are broken by a piston now play their breaking sound.}}
+}}
+
+=== ''Bedrock Edition'' ===
+{{HistoryTable
+|{{HistoryLine|pocket alpha}}
+|{{HistoryLine||v0.15.0|dev=build 1|[[File:Piston (U) JE2 BE1.png|32px]] Added pistons.
+|Pistons have a version exclusive animation and the ability to push [[block entities]].}}
+|{{HistoryLine|bedrock}}
+|{{HistoryLine||1.10.0|dev=beta 1.10.0.3|[[File:Piston BE2.png|32px]] The texture of pistons has been changed.}}
+|{{HistoryLine||1.20.30|dev=Preview 1.20.20.21|Increased the hardness and blast resistance of pistons from 0.5 to 1.5.}}
+}}
+
+=== Legacy Console Edition ===
+{{HistoryTable
+|{{HistoryLine|console}}
+|{{HistoryLine||xbox=TU3|xbone=CU1|ps3=1.00|psvita=1.00|ps4=1.00|wiiu=Patch 1|switch=1.0.1|[[File:Piston (U) JE1.png|32px]] Added pistons.}}
+|{{HistoryLine||xbox=TU14|ps3=1.04|psvita=1.00|ps4=1.00|Pistons have been changed to make them less error-prone, thus they also appear to update slower. This also alters the way pistons work, so the [[player]] might have to adapt their [[repeater]] delays and similar.}}
+|{{HistoryLine||xbox=TU46|xbone=CU36|ps3=1.38|psvita=1.38|ps4=1.38|wiiu=Patch 15|switch=1.0.1|Retracting pistons can now pull [[entities]] through them. This was known as "piston translocation" by the community.}}
+|{{HistoryLine||xbox=TU54|xbone=CU44|ps3=1.52|psvita=1.52|ps4=1.52|wiiu=Patch 24|switch=1.0.4|Retracting pistons can no longer pull [[entities]] through them. "Piston translocation" has been removed.}}
+|{{HistoryLine||xbox=TU57|xbone=CU49|ps3=1.57|psvita=1.56|ps4=1.56|wiiu=Patch 27|switch=1.0.7|Pistons can now move [[daylight detector]]s.}}
+|{{HistoryLine||xbox=TU60|xbone=CU51|ps3=1.64|psvita=1.64|ps4=1.64|wiiu=Patch 30|switch=1.0.11|Pistons can no longer move cauldrons.}}
+|{{HistoryLine||xbox=TU62|xbone=CU52|ps3=1.66|psvita=1.66|ps4=1.66|wiiu=Patch 31|switch=1.0.12|Pistons can now move small chests but only if the new position would have been valid for players to place a new chest. This limitation can however be bypassed by moving the chests simultaniously.|Pistons can move cauldrons again.}}
+|{{HistoryLine||xbox=none|xbone=none|ps3=none|psvita=none|ps4=1.90|wiiu=none|switch=none|[[File:Piston (U) BE2.png|32px]] The texture of pistons has been changed.}}
+}}
+
+=== ''New Nintendo 3DS Edition'' ===
+{{HistoryTable
+|{{HistoryLine|3ds}}
+|{{HistoryLine||0.1.0|[[File:Piston (U) JE2 BE1.png|32px]] Added pistons.}}
+}}
+
+=== Data history ===
+==== ''Java Edition'' ====
+{{HistoryTable
+|{{HistoryLine|java beta}}
+|{{HistoryLine||1.7|[[Six-sided piston]]s exist as extreme metadata variants of pistons.}}
+|{{HistoryLine|java}}
+|{{HistoryLine||1.8|dev=14w26a|Pistons now use block states instead of metadata. As such, weird pistons have been removed.}}
+|{{HistoryLine||1.13|dev=17w47a|Prior to ''[[The Flattening]]'', this block's numeral ID was 33.}}
+}}
+
+==== ''Bedrock Edition'' ====
+{{HistoryTable
+|{{HistoryLine|pocket alpha}}
+|{{HistoryLine||v0.15.0|dev=build 1|Weird pistons also existed, but they didn't look six-sided.}}
+|{{HistoryLine|bedrock}}
+|{{HistoryLine||1.13.0|dev=beta 1.13.0.1|Weird pistons have been removed.}}
+}}
+
+==== Legacy Console Edition ====
+{{HistoryTable
+|{{HistoryLine|console}}
+|{{HistoryLine||?|Weird pistons definitely existed at one point.}}
+}}
+
+== Issues ==
+{{Issue list}}
+
+== Trivia ==
+* Mojang stated that the 12-block push limit for pistons would not be changed, because "the current limitations are by design".<ref>
+{{cite
+|url=https://feedback.minecraft.net/hc/en-us/articles/360005029872-Previously-Considered-Suggestions
+|title=Piston Push Limits (and increases). The current limitations are by design.
+|website=Minecraft Feedback
+|date=January 3, 2019}}
+</ref>
+* Carpets can be placed on top of [[moving piston|moving blocks]].
+
+== Gallery ==
+=== Screenshots===
+<gallery>
+Pistongates.png|Fundamental logic gates, implemented purely with pistons and [[redstone repeater]]s, clockwise from upper left: AND, OR, XOR, and NOT
+Pistonslowclockgenerator.png|Slow clock generator with pistons and redstone
+Piston Waterflow control.png|An example of a piston-controlled waterflow
+Moving piston from the inside.png|Moment when the piston rod appears
+</gallery>
+
+=== Mojang screenshots ===
+<gallery>
+Pistonscreen.png|First screenshot of pistons
+Pistons.png|Another screenshot of in-development pistons
+Piston Light.png|Light shining through an extended piston
+Pocket Edition Pistons.jpg|Redstone connecting to pistons in ''Bedrock Edition''
+Fish Piston.jpg|A piston being crafted with a fish. This is a joke about the piston sounds heard in Java Edition 24w20a, which have been said to sound wet.
+Makena's pistons.jpg|"[[Makena]] tinkering with a Redstone contraption made up of Pistons pushing a Lime Wool block"<ref>{{mcnet|minecraft-java-edition-1-20-3|Minecraft Java Edition 1.20.3|December 5, 2023|Java Team}}</ref>
+</gallery>
+
+=== Concept artwork ===
+<gallery>
+PistonParadox.png|Notch's explanation on how the rod (a full block long when extended) fits into the piston box (whose depth is a block ''minus'' the face's thickness)<ref>{{tweet|notch|83513677654929408|@danstonchat @jeb_ https://i.imgur.com/VLfl0.png|June 22, 2011}}</ref>
+</gallery>
+
+=== In other media ===
+<gallery>
+File:Piston Artwork.png|Artwork of an incorrectly-rotated piston connected to a [[lever]] via [[redstone dust]]
+File:Minecraft - Shape Your World (13).png|Pistons as they appear in ''[[Minecraft: Shape Your World]]''
+File:AMCM Two pistons.png|Pistons as they appear in {{AMCM}}
+</gallery>
+
+== See also ==
+*[[Slime block]]
+*[[Redstone]]
+*[[Tutorial:Piston uses]]
+*[[Tutorial:Headless pistons]]
+*[[Mechanics/Redstone/Piston circuits]]
+
+== Notes ==
+{{Notelist}}
+
+== References ==
+{{Reflist}}
+
+== External links ==
+*{{Mcnet|block-week-piston|Block of the Week: Piston|October 13, 2017|[[Duncan Geere]]}}
+
+== Navigation ==
+{{Navbox redstone|components}}
+{{Navbox blocks|utility}}
+[[Category:Block entities]]
+[[Category:Mechanisms]]
+[[Category:Manufactured blocks]]
+
+[[de:Kolben]]
+[[es:Pistón]]
+[[fr:Piston]]
+[[hu:Dugattyú]]
+[[it:Pistone]]
+[[ja:ピストン]]
+[[ko:피스톤]]
+[[nl:Zuiger]]
+[[pl:Tłok]]
+[[pt:Pistão]]
+[[ru:Поршень]]
+[[th:ลูกสูบ]]
+[[uk:Поршень]]
+[[zh:活塞]]

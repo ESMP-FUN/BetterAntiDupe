@@ -11,6 +11,7 @@ alerts:
   drop-excess: "{excess} {material} coletado(s) além do que as fontes próximas produziram ({source})"
 
 commands:
+  storage-unavailable: "&cNão é possível ler o registro agora. Veja o motivo no console do servidor."
   no-permission: "&cVocê não tem permissão para usar os comandos do registro."
   not-initialized: "&cO Chain of Custody não foi inicializado."
   unknown-subcommand: "&cSubcomando desconhecido. Use &e/adp help&c para ver os comandos."

@@ -1,0 +1,395 @@
+{{Uses bug}}
+{{Dynamic list}}
+{{cleanup}}
+This page seeks to teach you how to '''clone [[item]]s and [[block]]s''' without building a separate farm for them, in vanilla Survival mode. It can be treated as an "everything farm," since it can "farm" things that can't normally be farmed, like [[blocks of diamond]], [[dragon egg]]s, and other [[non-renewable resource|non-renewable]] blocks.
+
+If any of these do get patched, you must either go back versions or use third-party applications in order to replicate them again. For {{JE}}, this can happen in the Minecraft Launcher, but on {{BE}}, you must use third party applications in order to replicate these again. These third-party applications are NOT owned or endorsed by Mojang, so use at your own risk.
+
+Note that these techniques are considered "cheating" by many people and Mojang tries to remove the ability to duplicate in Survival during almost every update, except for primed TNT duplication, which has been left in on purpose until a suitable replacement exists. '''On many servers, duping inventory items is a bannable offense.'''
+
+The best way to duplicate a block is to turn it into an item first, then duplicate the item. However, there are other ways to duplicate the blocks themselves, though they only work for certain blocks. [[Shulker box]]es make item duplication much easier because they allow for up to 1,729 items to be cloned at once (including the shulker box).
+
+== Background ==
+
+=== Why duplicate ===
+* '''Duplicate your most valuable gear:''' if you lose them to lava or the Void, you can just pull a backup from your backup chest! More specifically, you make a duplicate from your backup, so you can go through the entire process if you lose them again.
+* '''Duplicate Enchanted Books / Diamonds / Ancient Debris / Netherite Ingots / Emeralds:''' Once you have one, you'll have an infinite amount by duplicating it. Again, it is important to leave some stock as backup; you never know if you need more.
+* '''Duplicate Enchanted tools / Blocks:''' You'll never have to worry about running out of your tool / block of choice, since you can just duplicate them as well. Duplicate in bulk for items/blocks that will be used in large quantities.
+* '''Duplicate Shulker Boxes (with items inside):''' theoretically you can duplicate both the shulker box and the items it contains, since that info is stored within the shulker box itself. Use this to duplicate blocks in excessive quantities.
+* '''Duplicate Enchanted Equipment:''' combined with a grindstone, you can farm an infinite amount of EXP by removing enchantments from duplicated enchanted gear. While a decent, safe and consistent method of getting exp, building an Enderman Farm is faster.
+* '''Griefing servers (not endorsed):''' Item duplication is sometimes used to inflate a server's economy by duplicating valuable items and distributing them to other players. This type of behavior is most notably used against pay-to-win servers that sell in-game items or other advantages for real money. This is considered cheating and can get you banned on the server in question. In addition, most duplication glitches are patched using third-party plugins.
+
+If you happen to be a speedrunner, duplication allowed in glitched categories can cut down a lot in your game time. One extreme example is the [https://www.youtube.com/watch?v=7Wv_jJQ3XCE TAS Any% speedrun] done in 29.19, complete with the dragon dead. Alt+F4 is usually used for this purpose.
+
+=== How to use this guide ===
+This guide is in the process of restructuring. When it's done, all methods will have something like this in front:
+<blockquote>
+{| class="wikitable"
+!Java version range
+!Mod patched?
+!Realms
+|-
+|1.x.x ~ 1.x.x
+|Paper x.x.x build #xxx
+|Yes
+|-
+|}
+{| class="wikitable"
+!Bedrock version range
+!Realms
+|-
+|1.x.x ~ 1.x.x
+|Yes
+|-
+|}
+</blockquote>
+
+These tables are there to save you some time with testing no longer useful methods.
+
+'''Why do we care about mods?''' Although we, being the official wiki, do not endorse the use of mods, mods are a fact of life we must accept. Servers commonly use them to fix the very glitches we are talking about here and, by some tweaking of the game, do whatever the server owner wants the game to do.
+
+* Spigot is one of the modded server softwares you will bump into. They are mostly focused on performance, but do fix a glitch or two from time to time.
+* Paper is a server software that branched off Spigot. They too care about performance, but they take out glitches with a burning hatred. They even killed TNT duplication!
+
+'''Why single out Realms?''' Realms works a bit differently from your normal multiplayer server, Java or Bedrock. As a result, different glitches may occur.
+
+== Legitimate duplication ==
+These are not actually duplicating items, but instead are legitimate (or mostly legitimate) methods of obtaining certain items.
+=== Dirt duplication ===
+Start by obtaining at least 2 [[dirt]] and [[gravel]] from [[bartering]]. Next, craft coarse dirt using 2 dirt and 2 gravel for 4 coarse dirt, then till the dirt and mine it to obtain 2 extra dirt. With a bartering farm, a good hoe, and a good shovel, you can mass produce dirt in a matter of minutes.  However, this is not perfect duplication, as you will need a constant supply of gravel.
+=== Bone Meal duplication ===
+By using [[bone meal]] and [[composting]] the yield, the player gets bone meal back. Usually, this method yields significantly less bone meal than is used, and is therefore not profitable, but the following methods do duplicate bone meal:
+* Using bone meal on a [[moss block]] and composting the blocks produced.
+** The player should leave a moss block uncomposted, to repeat the cycle.
+** {{IN|bedrock}}, the azaleas can be further grown into azalea trees, and one then composts the leaves. Again, this is less effective {{in|java}}, due to the 45% success rate of bone meal.
+* Using bone meal on a [[sapling]], [[azalea]], [[mangrove propagule]], [[mushroom]], or [[Nether fungus]], and composting the blocks created.
+** This is less effective {{in|java}}, since it generally takes multiple bone meal to grow a single [[tree]]/[[huge mushroom]]/[[huge fungus]].{{needs testing|There are probably some trees where this method doesn't work at all in Java Edition: which ones?}}
+** {{IN|bedrock}}, this method is most effective for trees that have a lot of leaves, such as [[cherry]].
+** For [[mangrove]]s, the player must use bone meal to create and grow a propagule.
+** For trees, the player must break some of the leaves, preferably with a [[Fortune]] III [[hoe]], to replenish saplings. Similarly, for [[huge mushroom]]s, the player must break some of the [[mushroom block]]s, which have a significantly higher drop rate than leaves, but Fortune does not work.
+** For azalea trees and huge fungi, the player must obtain azaleas and Nether fungi, respectively, preferably using the methods above.
+
+== ''Java Edition'' ==
+Currently, work as of the latest release of ''vanilla'' Minecraft. They may be patched in modified servers (such as Spigot, or Paper), which many servers use, but have been tested and they still work in unmodified conditions. In singleplayer, these will work but in multiplayer, these will ''usually'' not work. 
+=== Singleplayer ===
+==== Basic save file manipulation  ====
+This method is safe and reliable; it only requires the items to be duplicated and a chest. You need to have access to save files, so this is impractical on servers.
+
+# Have the desired items to be duplicated on you, either in your inventory, on your hotbar, or equipped.
+# Exit and save the game. Returning to the main menu is quickest.
+# Navigate to your save folder. In Windows, it's at <code>%appdata%\.minecraft\saves</code>. On macOS, it's at <code>~/Library/Application Support/minecraft/saves</code>. On Linux, it is located at <code>~/.minecraft/saves</code>.
+## Making a backup folder of the target world folder is advised but not required.
+# Open the target world folder and duplicate the <code>level.dat</code> and <code>level.dat_old</code> files.
+## You should keep the duplicates in a place that is easy to access, usually the world save folder itself. This especially applies if you plan to duplicate items multiple times.
+## Alternatively, have multiple folders on screen to simply select, copy, and paste from one to another.
+# Enter the target world and deposit the desired items to be duplicated into a chest.
+# Exit the world and return to the main menu; the game should save.
+# Copy and paste the duplicated <code>level.dat</code> files back into the target world folder.
+# Enter the target world. The desired items should be both in the inventory and in the chest.
+
+Extra info: These files also contain your current location and your exp. Theoretically, you can enchant some gear, deposit it in a chest, then load the level.dat file to preserve your level and keep the enchanted gear. Another potential use is to use up your inventory while building then load a backup to keep your progress and refill your inventory with the building material. You could even use this to try multiple times to kill the Ender Dragon or Wither without risking your gear and inventory.
+
+Disclaimer: The environment and mobs are not saved with this method, so do not attempt to summon the Wither near places of importance or important mobs. Instead, back up the entire target world folder and load it in event of failure. Perform test runs to ensure that this method works.
+
+This method is unlikely to be patched because it requires access to the save files and is not an in-game mechanic.
+
+==== Task Manager ====
+<!-- This is NOT patched, and I am able to reproduce on a vanilla 1.16.x singleplayer world. It may not always work, but you can keep trying. -->
+Alt+F4 is patched, but using Task Manager to end the task, on the other hand, is NOT patched, and still works. This is very similar to the Alt+F4 method.
+Steps:
+
+# Open task manager
+# Go into the world you want to dupe the items in
+# Make sure 'Pause on Lost Focus' is off. Do this by pressing F3+P until you see something like "[Debug] Pause on lost focus: disabled" in chat
+# Put the items that you would like to dupe in your inventory
+# Close the world and open it up again
+# When it loads drop the items on ground by pressing opening your inventory and dragging and tossing them out, or place the items in a chest. Don't close the inventory.
+# Quickly press ALT+TAB or  CTRL+SHIFT+ESC to get into Task Manager
+# End the task "Java(TM) Platform SE Binary" or "OpenJDK Platform Binary". You may have to wait a moment if you’ve placed items in a chest.
+# Open Minecraft and load the world again
+# Collect your items
+From testing, it doesn't always work. Try playing with different timings.
+Video here:{{yt|zrV4PHtJ06c}}
+
+=== Void trading ===
+{{exclusive|java|section=1|customtext=This feature is exclusive to {{JE}}.}}
+{| class="wikitable"
+!Java version range
+!Mod patched?
+|-
+|1.14+
+|Paper
+|-
+|}
+"Void trading" is a way to trade with villagers and wandering traders without restocking. To do that, a player unloads the villager before closing the trading interface, so that the villager never "remembers" having been used for trading. Infinite trading is good for turning farmed items such as [[Stick]]s from a Bamboo farm into emeralds, or for buying things.
+
+A few ways are possible:
+* The original "void trading" involves going out into The End. By setting up a villager trading hall on the end of one [[End gateway]], the player can leave instantly and unload the villager. When the player comes back, the villager would have not remembered the trade.
+* The rail-based method uses powered rails to leave the simulation range and can be set up in the overworld. See {{ytl|FGFoCfRaljM|Minecraft Elegance: Voidless Void Trading (Java 1.17-1.19)|ianxofour}}.
+* The multiplayer method uses two players logging in and out to do the trading. See {{ytl|tYfdvg4bhLE|1.16.4 PaperMC & Spigot Multiplayer Infinite Villager Trades Exploit! (Currently Unpatched)}}.
+
+=== SP and MP ===
+==== Explosive fireworks + elytra duplication (MP only) ====
+{{Expand section}}
+{| class="wikitable"
+!Java version range
+!Mod patched?
+!Bedrock version range
+|-
+|1.16.5
+|Paper, Spigot
+|none
+|}
+This duplication glitch works on 1.16.5 multiplayer. It requires an elytra and firework rockets that deal damage to the player. If the rockets do not damage the player, the duplication will not work. Video below: (duplication glitch starts at 0:33)
+{{yt|2lUK-2yo_zo}}
+This is known to work in vanilla servers and realms, however Spigot has patched the bug and Paper has patched it long before its discovery.
+
+==== Dirt duplication ====
+{| class="wikitable"
+!Java version range
+!Mod patched?
+|-
+|1.16 snapshot
+|?
+|}
+The mechanism for growing giant [[spruce]] trees is known to be glitched in JE 1.16 snapshot. Instead of growing a giant tree on the saplings, the game grows the tree on the first position where space is sufficient and a dirt block is present in the north-west position. When the tree is grown, all the dirt blocks are filled in. With bone meal and piston automation, a semi-auto dirt duplicator can be produced ([https://www.youtube.com/watch?v=WaiFAjcZUaw YouTube by ilmango]).
+
+==== Lead duplication ====
+{{outdated tutorial|section=1|Lead duplication has been patched in [[Java Edition 1.16.4|1.16.4]].}}
+{{Expand section}}
+{| class="wikitable"
+!Java version range
+!Mod patched?
+|-
+|? - 1.16.4
+|?
+|}
+Bring an animal to the end, put a lead on it, and then lead it into the end portal. When you get back, it should have dropped two leads. Sometimes one of the leads ends up in the end, so make sure to check there. It may not always be in the end, though. This also works when bringing animals into the nether.
+
+==== Book player-profile rollback glitch ====
+{| class="wikitable"
+!Java version range
+!Mod patched?
+|-
+|? - 1.18?
+|?
+|}
+This duplication glitch works on Singleplayer and Multiplayer. All you have to do is place a chest in front of you and then leave the server as it saves your player data, then relog and put the items you want to dupe from your inventory in the chest, get a book and quill, overload the book with excessive characters and it will cause you to get kicked from the server and rolling back your player data to last save while server files stay the same. As a result, the items will be in both your inventory and the chest.
+
+The book mod (requires fabric download and custom download to work) automates the process.
+
+Video here: https://youtu.be/ml3HkqNfUH4
+
+==== Piston-based duplication of rails and carpets ====
+{| class="wikitable"
+!Java version range
+!Mod patched?
+|-
+|? (useful in 1.19)
+|Paper (1.15.2 Build #358, has option to disable)
+|}
+Carpets can be duplicated using a contraption made of two [[slime block]]s, a [[sticky piston]], and an [[observer]]. This glitch gives infinite fuel and is very easy to automate for thousands of carpets per hour. This tutorial demonstrates the contraption: https://www.youtube.com/watch?v=ezM2Hs_-hbE 
+
+{{layered blueprint|name=simple carpet duplication|default=Design|S=Slime Block|P=Sticky Piston|C=Red Carpet|O=Observer|B=Smooth Stone|A=Air
+|----Bottom Layer|
+OB
+SP
+|----Top Layer|
+AA
+SC
+}}
+https://www.youtube.com/watch?v=U-9ihB7EmKI
+and
+https://www.youtube.com/watch?v=mGQLDJ8dNGs&t=3s
+are in-depth tutorials that show how to do so
+
+A larger carpet duplicator requires 1 [[coral fan]], 3 [[carpets]] of any color, 4 [[slime block]]s, 1 [[sticky piston]] and 2 [[observer]]s. It is also recommended that you build the carpet duplication machine off the ground so that you can use [[water]] to push the [[Carpet|carpets]] into a [[hopper]] for collection purposes.
+
+You build the carpet duplication machine by putting the 4 slime blocks vertically 3 blocks off the floor.
+
+After you have done that you put the [[coral fan]] on the bottom block and the [[carpet]]s above the coral fan.
+
+Finally, put the [[sticky piston]] facing any [[slime block]] so it pushes the slime blocks forward and then pulls them back. To do this you can put the 2 [[observer]]s facing each other so they give a 1 [[tick]] pulse to the sticky piston.
+
+This next part is optional but recommended. Put walls around all sides of the duplicator because it has a tendency to fire carpets in random directions.
+
+==== Dragon's Breath duplication ====
+{| class="wikitable"
+!Java version range
+!Mod patched?
+|-
+|?
+|?
+|}
+Whenever the dragon lands on the end portal and releases the purple fog, be above or below the purple fog, look at the fog at a steep angle, and proceed to harvest the [[dragon's breath]]. The fog will first shrink as intended, but after it reaches the smallest size, it will expand with each bottle used, and keep expanding until the fog disappears as too much time passed. ([https://www.youtube.com/watch?v=E8ylwONrlfk YouTube by Underscored Frisk])
+==== Shulker Box breaking glitch ====
+{| class="wikitable"
+!Java version range
+!Mod patched?
+|-
+|? - 1.19
+|Spigot, Paper
+|}
+[[Shulker Box]] dupe allows you to duplicate any item in Minecraft singleplayer or Realms. This glitch works with 2 players or with an auto mine mod. So you quickly spam your item in and out while it being broken. The key is to take the item out just before the shulker box breaks. This may take a few tries but eventually you will dupe your items.
+
+You can also use autoclicker with these settings: time between clicks- 1sec 487milisecs. Then you bind the autoclicker to key n, and automine to key m and press n,m,right click at the same time. This opens shulker. Hover over item you want to duplicate; shulkerbox should break and item in it, and item on the ground.
+
+Video here https://www.youtube.com/watch?v=6hLxebiG3EA
+
+==== Piston-based TNT duplication ====
+{| class="wikitable"
+!Java version range
+!Mod patched?
+|-
+|1.14+
+|Paper (1.15.2 Build #358, has option to disable)
+|}
+[[TNT]] duplication works in a similar way as rail duplication. A TNT block is BUD-powered, such that when the contraption is pushed by a piston, the TNT is updated and ignites into a primed TNT entity. Then, the piston moves the TNT from the list of TNT block left. This doesn't so much duplicate the TNT block as it creates free primed TNT entities from it without deleting it. Many TNT duplicators still work, but unless properly constructed will blow themselves up.
+
+One common TNT duplication design uses a [[minecart]] on a [[Detector Rail|detector rail]] to power the slime block it is placed on, and moves a TNT block next to a [[Coral Fan|coral fan]] underneath, the combination of the TNT and the coral duplicates the TNT whenever the whole contraption is moved forward with a piston. For an indepth tutorial of this one checkout Cheesysponges video https://youtu.be/3Izrj2m6Li4
+
+{{Schematic
+|caption=Slice 1
+| | | |dr-$ew|SL|-
+| | |wl-$e|SL|SL|-
+| |vi-$s|tnt-$| |
+}}
+
+{{Schematic
+|caption=Slice 2
+|clear=both
+| | | | | |-
+| | |SL| | |-
+| |SL|SL| |
+}}
+The second slice may be placed on either side, and the coral fan has been marked with vines. To prime the mechanism, the upper slime blocks must first be moved forward, pushing the TNT under the rail. After this, moving the whole assemblage forward with a piston will duplicate the TNT, spawning a lit TNT entity directly below the TNT block.
+
+For a list of variations, see e.g. [https://random-j-farmer.github.io/random-minecraft/2021/01/03/tnt-dupers.html]. TNT duping as a glitch is notable in that it has been patched by Mojang several times in the past but was ultimately allowed in the vanilla game due to its immense value to the technical community. In the words of [[Mikael Hedberg]], [https://www.reddit.com/r/Minecraft/comments/fkt9jf/anchor_yourself_to_the_nether_snapshot_20w12a_is/fkv2yyv/ "TNT dupers fill a slot in the game that the intended game mechanics still cannot."]
+
+==== Gravity block duplication  ====
+{| class="wikitable"
+!Java version range
+!Mod patched?
+|-
+|1.14+
+|Paper 1.15.2 Build #358
+|}
+There are many ways to do this, but the basic idea is the same.
+
+A gravity-affected block is pushed toward an [[end portal]]. It becomes an entity as it falls into the portal, and it travels into the other dimension's "spawn point.", but before it's removed from the original dimension, it bounces off an entity in the portal (in a vehicle so it won't go through), and is caught by some [[piston]]s. It then turns into a block and is returned to its original location. This process can be looped using [[redstone]]. It works for any block that is affected by gravity, except for primed TNT because it would blow up the contraption and cannot become a block again in any case.
+
+[[Dragon egg]]s and [[anvil]]s fall differently from each other and other gravity-affected blocks such as sand, gravel, and concrete powder. Neither dragon eggs nor anvils work in a sand/gravel/concrete powder duplicator because of this. However, it is possible to create a machine that can duplicate dragon eggs and anvils but not sand/gravel/concrete powder. They both can be duplicated and sent into [[the End]] as either falling entities or items.
+
+== ''Bedrock Edition'' ==
+=== Sand duplication (works as of 1.21.121) ===
+This method works by using redstone torches to power large dripleaves with sand blocks placed above them to duplicate sand. It's recommended to build this in either the Nether or the End. 
+
+1. Gather at least 2 [[sand]] blocks, 1 [[redstone torch]], 1 [[dirt]] (or any other block dripleaf can be placed on) and 1 [[big dripleaf]].
+
+2. Build a [[Nether portal]].
+
+3. Secure the portal and either build a shelter or dig as many blocks down respective to the amount of sand you're using to safely house your duplication system.
+
+4. Place the block(s) you're using to plant your dripleaf.
+
+5. Place the redstone torch adjacent to your dripleaf to power it.
+
+6. Place the sand on top of the dripleaf.
+
+7. Leave the [[Nether]].
+
+8. Re-enter the Nether portal.
+
+9. The sand should be duplicated once you re-enter the Nether.
+
+It works for all falling block ([[Anvil]], [[Gravel]],[[Concrete Powder]])
+
+Explanation: https://www.youtube.com/watch?v=noV9JczPFBM
+
+=== Crafting table duplication (works as of 26.12) ===
+This method is for [[Realms]]. It is performed by putting items in a [[crafting table]] then forcibly closing or crashing the game.
+
+First, get 65 of the item you wish to duplicate, a crafting table, and 35 of any other item.
+
+Now place down the crafting table and put a stack of the duplication items on to the crafting grid. Leave the other one in your inventory.
+
+Use the 35 other items to fill your inventory (1 in each slot). 
+
+Wait approximately 10-15 seconds then open task manager and end the task of Minecraft, crashing the game. On consoles or mobile, use the system's home button/menu to forcibly close the game.
+
+Reopen the game and rejoin the Realm.
+
+There should now be a full stack of the duped item in your inventory, and when you open the crafting GUI, there will be another stack on the crafting grid.
+
+=== Dropper dupe (previously known as Bundle Duplication Glitch) (works in 26.10) ===
+This can be done using two [[dropper]]s, ten [[redstone dust]], a [[redstone comparator]], a [[lever]], and [[bundle]]. One dropper could also be replaced with a dropper{{verify|does this still work? The video says it is outdated}} as seen in the video.
+
+# Place the droppers facing each other.
+# Place redstone dust so they both can be powered but no redstone dust except the ones used for the circuit should be touching.
+# Place a comparator next to the lever (Two redstone dust must be touching the comparator. And all the redstone torches should be on) as the power source so it flickers as in the video.
+# Place the bundle in the dropper.
+# It should be ready to use. It will take a few attempts but you will dupe your items. (Note: Never try to put the items in while the [[bundle]] is cycling in the hoppers or the [[dropper]], as they might disappear. Instead put them in the bundle before putting the bundle in the hopper.)
+# If you don't understand how to build it then the blueprint below can show you:
+
+{{Schematic
+|rd-se|Dr-e+{{ItemSprite|bundle}}|Dr-w|rd-sw|-
+|rd-ns|||rd-ns|-
+|rd-ne|rd-ew|rd-sew|rd-nsw|-
+|||rs-n|rd-nw|-
+|||le-d|
+}}
+
+The video below shows an older version of the dupe.{{yt|LNJH1U0ndhg}}
+
+=== Using simulation distance (works as of 1.21.93) ===
+This method works by using a hopper or [[Minecart with Hopper|minecart with hopper]] to drag items from a chest outside of simulation distance.
+
+==== Method 1 ====
+
+# Turn on game rule showCoordinates and figure out the exact area of two adjacent chunks. Coordinate X=16x (x is any integer) is the western edge of a chunk, while Z=16z (z is any integer) is the northern edge.
+# At the border between the two chunks, place a switch within one of the two chunks, and activate it.
+# Within the other chunk, place 15 redstone dust into a straight line next to the switch and a redstone repeater at the other end of the line. Now the repeater should be at the edge of the chunk. These will be called as a group below.
+# Make another n-1 groups in the same direction, where n is your current simulation distance. It is recommended to set simulation distance to 4 temporarily if it isn't already 4.
+# Replace the repeater in the last group with a hopper.
+# Place two chest on the hopper, creating a large chest spanning chunk border. '''Note that you must place the chest on the hopper before placing the chest located in another chunk.'''  The facing direction of the chest doesn't matter.
+# Place the item you want to duplicate in the '''LAST''' slot of the large chest, optimally an unstackable one. If you want to duplicate multiple items at once, you should put them into a bundle or shulker box, then duplicate it.
+# Go back to the chunk the switch is in, and reload the chunk.
+#* In singleplayer, log out and log back in.
+#* In singleplayer or multiplayer, build a nether portal within that chunk, go to the nether and then go back to overworld. Note that there can't be other players nearby as they cause the chunks to stay loaded.
+# Don't leave the chunk. Deactivate the switch and activate it again.
+# Reload the chunk again with aforementioned methods.
+# Check the hopper and the chest. If duplication succeeded, there should be an item in both of them.
+# If you want to duplicate more, repeat from step 7.
+
+==== Method 2 (This method does not guarantee 100% success) ====
+
+# Do the same as step 1-4 in method 1, but don't activate the switch.
+# In the last group, remove the last redstone dust and the repeater; replace them with a [[redstone conductor]] block and powered rail respectively. Place a minecart with hopper on the rail. Note that after duplication the minecart with hopper should be moved back.
+# Behind the powered rail (in another chunk), place another powered rail, a chest above it and a block behind it.
+# Put the item you want to duplicate into the chest, optimally an unstackable one. If you want to duplicate multiple items at once, you should put them into a bundle or shulker box.
+# Go back to the chunk the switch is in, and activate it.
+# Log out and log back in. In multiplayer, make sure that there is no player near the chest.
+# Check the minecart with hopper, and the duplicated item should be in it.
+
+=== Chunk save stating ===
+
+This method works by causing the game to crash in a way that only the chunk you are standing in will not save correctly, this will cause the chunk you are standing in to revert to the last save, allowing you to dupe in that chunk.  
+
+Explanation of how it works:
+{{YouTube|XTkivXhbcMA}}
+
+=== Hopper duplication (works as of 26.30) ===
+This method relies on moving hoppers back and forth and unlocking them to cause duplicate items to appear. Only works with a single unstackable item at a time.
+{{YouTube|1=https://www.youtube.com/watch?v=QevGs7y54Ag&pp=ugUEEgJlbg%3D%3D}}
+
+=== Shelf Duplication (works as of 26.30) ===
+Works by moving shelf blocks back and forth.
+{{YouTube|1=https://www.youtube.com/watch?v=H3UQ3IZ-uK4}}
+
+== Navigation ==
+{{Navbox tutorials|farming}}
+
+[[Category:Modernized tutorials]]
+
+[[ja:チュートリアル:ブロックとアイテムの複製]]
+[[zh:Tutorial:方块和物品复制]]

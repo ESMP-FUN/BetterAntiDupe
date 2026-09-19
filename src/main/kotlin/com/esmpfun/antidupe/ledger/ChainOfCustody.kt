@@ -130,6 +130,7 @@ class ChainOfCustody private constructor(
                     worldStock.seedIfNeeded(ledgerStorage.getTrackedPlayers())
                 } catch (e: Exception) {
                     logger.warning("[Ledger] Could not count stored items from history, so storage dupe alerts stay off until the next start: ${e.message}")
+                    com.esmpfun.antidupe.util.ErrorReporter.report("world-stock-seed", e)
                 }
             }
             coc.startMaintenance()
@@ -175,6 +176,21 @@ class ChainOfCustody private constructor(
         val marker = java.io.File(plugin.dataFolder, "chain-migration-done")
         if (marker.exists()) return
 
+        // Written before the stamping, not after: the marker is the only thing that stops this
+        // running again, and a busy player's stamp falls out of the 200-entry window below, so a
+        // failed write would re-stamp them on every startup.
+        try {
+            plugin.dataFolder.mkdirs()
+            marker.writeText(
+                "Written once, after per-player chain verification was set up." +
+                    " Delete this file only if you restore a database from before that change."
+            )
+        } catch (e: Exception) {
+            logger.warning("[CoC] Could not write the chain-migration marker, so the one-time history migration is skipped: ${e.message}")
+            com.esmpfun.antidupe.util.ErrorReporter.report("chain-migration-marker", e)
+            return
+        }
+
         val players = ledgerStorage.getTrackedPlayers()
         var stamped = 0
         for (player in players) {
@@ -188,15 +204,6 @@ class ChainOfCustody private constructor(
                 metadata = LedgerMetadata(notes = "legacy-global-chain")
             )
             stamped++
-        }
-        try {
-            plugin.dataFolder.mkdirs()
-            marker.writeText(
-                "Written once, after per-player chain verification was set up." +
-                    " Delete this file only if you restore a database from before that change."
-            )
-        } catch (e: Exception) {
-            logger.warning("[CoC] Could not write the chain-migration marker: ${e.message}")
         }
         if (stamped > 0) {
             logger.info("[CoC] Migrated $stamped legacy chain(s) to per-player verification - old entries kept for history, new chain verifies clean")
@@ -214,6 +221,7 @@ class ChainOfCustody private constructor(
                 }
             } catch (e: Exception) {
                 logger.log(Level.WARNING, "[CoC] integrity check failed", e)
+                com.esmpfun.antidupe.util.ErrorReporter.report("integrity-check", e)
             }
         }
     }
@@ -306,6 +314,7 @@ class ChainOfCustody private constructor(
                     sweepOnce()
                 } catch (e: Exception) {
                     logger.warning("[CoC] Balance sweep error: ${e.message}")
+                    com.esmpfun.antidupe.util.ErrorReporter.report("balance-sweep", e)
                 }
                 delay(intervalMs)
             }
@@ -354,6 +363,7 @@ class ChainOfCustody private constructor(
                     logger.fine("[CoC] Maintenance completed")
                 } catch (e: Exception) {
                     logger.warning("[CoC] Maintenance error: ${e.message}")
+                    com.esmpfun.antidupe.util.ErrorReporter.report("maintenance", e)
                 }
             }
         }
