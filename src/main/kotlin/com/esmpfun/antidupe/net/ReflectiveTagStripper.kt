@@ -51,7 +51,9 @@ class ReflectiveTagStripper(
         val cleaned = whitelistNamespaces.map { it.lowercase().trim() }.filter { it.isNotEmpty() }.toSet()
         val rejected = cleaned intersect ours
         if (rejected.isNotEmpty()) {
-            logger.warning("[TagStripper] strip_whitelist may not contain our own namespace(s) $rejected - ignored")
+            logger.warning("[TagStripper] In config.yml, strip_whitelist includes $rejected, which is this" +
+                " plugin's own item data. That entry is ignored, because the hidden owner mark has to stay" +
+                " hidden. The rest of your list still works.")
         }
         cleaned - ours
     }
@@ -141,7 +143,9 @@ class ReflectiveTagStripper(
                 }
             }
         } catch (e: Exception) {
-            logger.warning("[TagStripper] inject failed for ${player.name}: ${e.message}")
+            logger.warning("[TagStripper] Could not start hiding the owner mark from ${player.name}'s game" +
+                " client, so they may be able to see it. Tracking and dupe detection still work as normal." +
+                " Details: ${e.message}")
         }
     }
 
@@ -176,15 +180,19 @@ class ReflectiveTagStripper(
                 // container packet ships the tag straight through.
                 try { rewriteBundle(msg) ?: msg } catch (e: Throwable) {
                     if (loggedPacketNames.add(name)) {
-                        logger.warning("[TagStripper] could not process a bundle packet, forwarding it unchanged: ${e.message}")
+                        logger.warning("[TagStripper] Could not check part of what the server sent to a player," +
+                            " so the hidden owner mark may show up in their game client. Tracking and dupe" +
+                            " detection still work as normal. Details: ${e.message}")
                     }
                     msg
                 }
             } else if (name in targetPackets) {
                 try { rewritePacket(msg) ?: msg } catch (e: Throwable) {
                     if (loggedPacketNames.add(name)) {
-                        logger.warning("[TagStripper] could not rewrite $name, forwarding it unchanged" +
-                            " - an ownership tag on that packet reaches the client: ${e.message}")
+                        logger.warning("[TagStripper] Could not take the owner mark out of something the server" +
+                            " sent to a player, so it may show up in their game client. Tracking and dupe" +
+                            " detection still work as normal. Please report this with your server version and" +
+                            " these details: $name, ${e.message}")
                     }
                     msg
                 }
@@ -193,9 +201,10 @@ class ReflectiveTagStripper(
                 val expected = !stripAll && name in unstrippedUnlessStrict
                 if (!expected && name !in loggedPacketNames && loggedPacketNames.add(name) &&
                     runCatching { looksItemBearing(msg.javaClass) }.getOrDefault(false)) {
-                    logger.warning("[TagStripper] The server sends item data in a way this version does not" +
-                        " recognise ($name), so the hidden owner mark may be visible to players' game clients." +
-                        " Detection is unaffected. Please report this with your server version.")
+                    logger.warning("[TagStripper] This server sends some item information in a way this version" +
+                        " of BetterAntiDupe does not know about, so the hidden owner mark may show up in" +
+                        " players' game clients. Tracking and dupe detection still work as normal. Please" +
+                        " report this with your server version and this detail: $name")
                 }
                 msg
             }
@@ -217,8 +226,10 @@ class ReflectiveTagStripper(
             val replaced = if (p != null && p.javaClass.simpleName in targetPackets) {
                 try { rewritePacket(p) } catch (e: Throwable) {
                     if (loggedPacketNames.add(p.javaClass.simpleName)) {
-                        logger.warning("[TagStripper] bundled ${p.javaClass.simpleName} could not be rewritten," +
-                            " forwarded unchanged: ${e.message}")
+                        logger.warning("[TagStripper] Could not take the owner mark out of something the server" +
+                            " sent to a player, so it may show up in their game client. Tracking and dupe" +
+                            " detection still work as normal. Please report this with your server version and" +
+                            " these details: ${p.javaClass.simpleName}, ${e.message}")
                     }
                     null
                 }

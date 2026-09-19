@@ -33,14 +33,18 @@ class OwnershipKeys(
 
             var primary = NamespacedKey.fromString("$ns:$key")
             if (primary == null || ns == "minecraft") {
-                logger.warning("[Ownership] invalid ownership.namespace/key ('$ns:$key') - falling back to $defaultNs:adp_owner")
+                logger.warning("[Ownership] In config.yml, ownership.namespace and ownership.key do not make a" +
+                    " usable name ('$ns:$key'), so the standard one is being used instead ($defaultNs:adp_owner)." +
+                    " Letters, numbers, dots, dashes and underscores only, and the first part cannot be 'minecraft'.")
                 primary = NamespacedKey.fromString("$defaultNs:adp_owner")!!
             }
 
             val legacy = LinkedHashSet<NamespacedKey>()
             for (raw in cfg.getStringList("ownership.legacy_keys")) {
                 val parsed = NamespacedKey.fromString(raw.lowercase().trim())
-                if (parsed == null) logger.warning("[Ownership] ignoring invalid legacy key '$raw'")
+                if (parsed == null) logger.warning("[Ownership] In config.yml, ownership.legacy_keys includes" +
+                    " '$raw', which is not a usable name, so it is being skipped. It should look like" +
+                    " 'someplugin:some_name'.")
                 else legacy.add(parsed)
             }
 
@@ -60,7 +64,9 @@ class OwnershipKeys(
                 }
                 marker.writeText(primary.toString())
             } catch (e: Exception) {
-                logger.warning("[Ownership] could not read/write key marker: ${e.message}")
+                logger.warning("[Ownership] Could not save a note of which owner mark this server uses. If you" +
+                    " change it later, items marked with the old one may stop being recognised." +
+                    " Details: ${e.message}")
             }
 
             legacy.remove(primary)
