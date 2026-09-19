@@ -11,6 +11,7 @@ alerts:
   drop-excess: "{excess} {material} aufgehoben — mehr als die Quellen in der Nähe erzeugt haben ({source})"
 
 commands:
+  storage-unavailable: "&cDas Register kann gerade nicht gelesen werden. Der Grund steht in der Server-Konsole."
   no-permission: "&cDu hast keine Berechtigung für die Register-Befehle."
   not-initialized: "&cChain of Custody ist nicht initialisiert."
   unknown-subcommand: "&cUnbekannter Unterbefehl. Nutze &e/adp help&c für alle Befehle."

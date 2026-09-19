@@ -44,6 +44,7 @@ alerts:
     stash-hover: "Show where {player} put tracked items"
 
 commands:
+  storage-unavailable: "&cThe item records cannot be read right now. Check the server console for the reason."
   no-permission: "&cYou don't have permission to use ledger commands."
   no-permission-update: "&cYou don't have permission to manage plugin updates."
   no-permission-admin: "&cYou don't have permission to do that."

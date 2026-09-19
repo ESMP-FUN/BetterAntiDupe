@@ -6,6 +6,9 @@ All notable changes to BetterAntiDupe will be documented in this file.
 
 ### Fixed
 - **Starts on hosts where the temporary folder cannot be used.** The database needs to unpack a small helper file before it can run, and it used the server's temporary folder to do it. Many hosts do not allow that folder to be used this way, or keep it full, and the plugin then stopped with a confusing "no native library found" message. It now unpacks into its own folder instead.
+- **Problems that happen while the server is running are now reported.** Error reporting only ever covered startup, so a database that stopped working later, a failed history check or a failed clean-up pass was never sent in and only appeared in your console. Repeated failures are grouped so one broken thing cannot flood anything.
+- **Ledger commands now answer when the records cannot be read.** If the database was unreachable, `/adp ledger` commands replied with nothing at all and staff had no way to tell the command apart from a broken one. They now say so and point at the console.
+- **Clearer console messages when the plugin cannot start or cannot track items.** A read-only plugin folder, a full disk or an unreachable Redis database used to produce only a technical error. The console now names the folder or the address and says what to check. If item tracking cannot start, the console now also says that the protections against duping machines keep running.
 - **Starts on network storage and when the disk is full.** The plugin asks the database to use a faster way of saving, which does not work when the plugin folder lives on network storage, and fails when the disk is full. That stopped the whole plugin. It now says so in the console and switches to the slower, safe way instead. Nothing is lost and no setting needs changing.
 
 ## [4.5.0] - 2026-09-17

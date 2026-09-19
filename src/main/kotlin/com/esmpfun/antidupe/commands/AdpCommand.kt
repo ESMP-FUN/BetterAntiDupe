@@ -185,12 +185,29 @@ class AdpCommand(
         }
     }
 
+    /**
+     * Reads run off the main thread, so a storage failure would otherwise leave the sender with
+     * no reply at all and the stack trace only in the console.
+     */
+    private fun launchReplying(sender: CommandSender, block: suspend () -> Unit) {
+        scope.launch {
+            try {
+                block()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                com.esmpfun.antidupe.util.ErrorReporter.report("command", e)
+                scheduler.runMain(Runnable { sender.sendMessage(Messages.msg("commands.storage-unavailable")) })
+            }
+        }
+    }
+
     private fun showLedgerHelp(sender: CommandSender) {
         sender.sendMessage(Messages.list("commands.ledger-help").joinToString("\n"))
     }
 
     private fun ledgerStatus(sender: CommandSender, coc: ChainOfCustody) {
-        scope.launch {
+        launchReplying(sender) {
             val stats = coc.getSystemStats()
             val tip = coc.getChainTip()
             scheduler.runMain(Runnable {
@@ -212,7 +229,7 @@ class AdpCommand(
 
     private fun ledgerBalance(sender: CommandSender, coc: ChainOfCustody, playerName: String) {
         resolvePlayer(playerName, sender) { uuid ->
-            scope.launch {
+            launchReplying(sender) {
                 val balances = coc.getAllBalances(uuid)
                 scheduler.runMain(Runnable {
                     if (balances.isEmpty()) {
@@ -230,7 +247,7 @@ class AdpCommand(
 
     private fun ledgerHistory(sender: CommandSender, coc: ChainOfCustody, playerName: String) {
         resolvePlayer(playerName, sender) { uuid ->
-            scope.launch {
+            launchReplying(sender) {
                 val history = coc.getPlayerHistory(uuid, limit = 15)
                 scheduler.runMain(Runnable {
                     if (history.isEmpty()) {
@@ -290,7 +307,7 @@ class AdpCommand(
 
     private fun ledgerStash(sender: CommandSender, coc: ChainOfCustody, playerName: String) {
         resolvePlayer(playerName, sender) { uuid ->
-            scope.launch {
+            launchReplying(sender) {
                 val stashes = coc.getPlayerStashes(uuid, limit = 20)
                 scheduler.runMain(Runnable {
                     if (stashes.isEmpty()) {
@@ -511,7 +528,7 @@ class AdpCommand(
 
     private fun ledgerVerify(sender: CommandSender, coc: ChainOfCustody) {
         sender.sendMessage(Messages.msg("commands.verify.start"))
-        scope.launch {
+        launchReplying(sender) {
             val result = coc.verifyIntegrity()
             scheduler.runMain(Runnable {
                 if (result.valid) sender.sendMessage(Messages.msg("commands.verify.ok", "count" to result.entriesVerified))

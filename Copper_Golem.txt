@@ -1,0 +1,890 @@
+{{about|the mob|the block|Copper Golem Statue|other uses|Golem}}
+{{Infobox entity
+| defaultimagesize = 100px
+| group1 = Unoxidized
+| 1-1 = Copper Golem.png
+| group2 = Exposed
+| 2-1 = Exposed Copper Golem.png
+| group3 = Weathered
+| 3-1 = Weathered Copper Golem.png
+| group4 = Oxidized
+| 4-1 = Oxidized Copper Golem.png
+| invimage = Copper Golem Spawn Egg
+| health = {{hp|12}}
+| behavior = Passive
+| size = Height: 0.98 blocks<br/>Width: 0.49 blocks
+| speed = 0.2
+| spawn = * When built by the player.
+* When a player uses an axe on an unwaxed and unoxidized [[copper golem statue]].
+| usableitems = * {{Drop|Item|Axe}} 
+* {{Drop|Item|Honeycomb}} 
+* {{Drop|Item|Lead}}
+* {{Drop|Item|Name Tag}} 
+* {{Drop|Item|Shears}}<small>(when a flower is on its head)</small>
+}}
+
+A '''copper golem''' is a buildable [[passive mob]] that takes [[item]]s out of [[copper chest]]s, and attempts to store them in nearby wooden [[chest]]s and [[trapped chest]]s. A chest examined by a copper golem must either be empty, or contain the [[item]] type it is holding, for the golem to place anything inside of it. 
+
+If not [[waxed]], a copper golem [[oxidize]]s over time and eventually turns into a [[copper golem statue]], dropping its currently held items.
+
+== Spawning ==
+=== Creation ===
+{{FakeImage|align=none|style=display:block;float:right;margin:0 1em 1em 0;|{{BlockGrid|scale=2|p=Carved Pumpkin|s=Block of Copper| p | s}}|Copper golem build configuration. The block of copper may be any oxidation stage or waxed state.}}
+A copper golem is created by placing a [[block of copper]] of any [[oxidation]] stage, then placing a [[carved pumpkin]] or [[jack o’lantern]] on top. The [[pumpkin]] must be placed last, whether by the player, a [[dispenser]], or an [[enderman]]. The building pattern also works horizontally or upside-down, as long as the pumpkin is the final block placed. If a more oxidized [[copper chest]] is spawned beside a less oxidized chest, the combined double chest will always retain the less oxidized stage, the same effect will occur when the [[copper chest]] is placed manually.
+
+On creation, the [[block of copper]] is replaced by a [[copper chest]], and a copper golem spawns at the location of the [[carved pumpkin]] or [[jack o'lantern]]. The [[oxidation]] stage of the copper golem and the copper chest matches that of the block of copper used to create it. A [[waxed]] block of copper can also be used, but the golem and the chest are not waxed.<ref>{{bug|MCPE-223868|||WAI}}</ref> If a golem is built with the block of copper placed next to an existing copper chest that is not already part of a large copper chest, the two chests combine into a large copper chest as they would if the new copper chest had been placed manually.
+
+=== Reanimation ===
+{{ctrl|Using}} an axe on an unwaxed and unoxidized [[copper golem statue]] causes it to reanimate into a copper golem.
+
+When using a [[copper golem spawn egg]], it spawns the golem on its own, without a [[copper chest]]. A copper golem spawned this way is unoxidized and unwaxed.
+{{-}}
+
+== Drops ==
+=== On death ===
+{{DropTable
+|{{DropLine|name=Copper Ingot|quantity=1-3|lootingquantity=0-1|edition=java}}
+|{{DropLine|name=Copper Ingot|quantity=1-3|edition=bedrock}}
+}}
+
+=== Shearing ===
+When a copper golem has been given a [[poppy]] by an [[iron golem]], it can be [[shear]]ed to drop 1 poppy.
+
+== Behavior ==
+When idle, copper golems wander aimlessly while avoiding obstacles and environmental hazards. Copper golems can also open and close non-iron [[door]]s (and try to open them whenever possible). They occasionally spin their heads or stare at players. They are completely passive to players and other mobs, and run around in a panic if attacked. Unlike most other passive mobs, copper golems do not suspend their behavior when more than 32 blocks from a player.
+
+When in a body of [[water]], copper golems sink to the bottom. They do not swim or [[drown]], but they can still move laterally and step up full [[block]]s as if they were on land, similar to [[iron golem]]s and [[undead]] mobs.
+
+Like iron golems and [[snow golem]]s, copper golems do not take fall damage. However, they still avoid walking off drops that would otherwise cause them harm.
+
+The yellow eyes of copper golems are emissive with [[Vibrant Visuals]], and the rest of the body is metallic, reflecting all types of light.
+
+=== Chest interactions and item transportation ===
+[[File:Copper golem take item BE1.gif|thumb|200px|A copper golem taking an item from a copper chest (the chest is excluded for clarity)]]
+If a copper golem is not holding an item, it opens the nearest [[copper chest]] and attempts to take out up to 16 of the first item it finds. It takes 3 seconds to stop and examine each copper chest it visits. If the copper chest is empty, the copper golem moves on to the nearest copper chest it has not opened. The copper golem can remember up to 9 copper chests that it has previously opened. If it checks 10 copper chests and still cannot find an item, it wanders around for 7 seconds, forgets which copper chests it has opened, and continues searching for a copper chest to take items from.
+
+If a copper golem is holding one or more items, it opens the nearest wooden [[chest]] or [[trapped chest]] and attempts to put the items into it. It takes 3 seconds to stop and examine each chest it opens. If the chest is empty or if the chest contains the same type of item that the copper golem is holding, the golem attempts to add its items to the chest. {{IN|je}}, a copper golem cannot distinguish between different [[potion]] contents, types of [[tipped arrow]]s, or [[suspicious stew]] types, but it can {{in|bedrock}}. In both editions, a copper golem ignores [[durability]], [[enchantment]]s, the contents of [[shulker box]]es and [[bundle]]s, custom names, or any other data. Copper golems do not search the contents of [[Bundle|bundles]] or shulker boxes when determining if a chest contains an item. While a copper golem is holding an item, the player can press {{ctrl|use}} on the golem with an empty hand to take the item from it, dropping the item on the ground.
+
+If it cannot add items to a chest, the copper golem moves on to the nearest chest that it hasn't visited. The copper golem can remember up to 9 chests it has previously visited. If it checks 10 chests and still cannot place its items, it wanders around for 7 seconds, forgets which chests it has opened, and continues searching for a chest to put its items in. The copper golem forgets all the chests that it has previously visited when it successfully deposits an item in a chest.
+
+Copper golems cannot see the contents of chests (either wooden or copper) without manually opening and examining them, and do not remember correct item matches.
+
+When a copper golem deposits items in a chest, it attempts to add them to the frontmost available slot. If the deposited item is stackable, it avoids adding to existing stacks in any slot other than the frontmost available one.
+
+If the chest or copper chest a copper golem is walking toward can no longer be opened (e.g. it has a [[cat]] sitting on it) or is destroyed, the copper golem marks the position as visited and moves on.
+
+Copper golems do not simultaneously open a chest that another non-player entity, such as another copper golem, is already interacting with.
+
+Copper golems search for chests and copper chests in a 65×17×65 area centered on the copper golem's block position. Copper golems cannot interact with chests located more than one block above them or more than two blocks below them. However, they try to reach chests if they can find a path. If a chest is two blocks below them, copper golems fall on the chest, even if they cannot come back up.
+
+Copper golems interact only with wooden chests, trapped chests and copper chests. They ignore [[Item (entity)|items dropped on the ground]], [[ender chest]]s, [[minecarts with chest]]s, [[barrel]]s, [[boats with chest]]s, and all other containers.
+
+Copper golems can interact with chests while in a minecart or a boat if copper chest and other chest are within reach distance and they have enough time to interact with the chest.
+
+=== Oxidation ===
+[[file:Four stages of Copper golem oxidation.png|thumb|right|The four stages of copper golem oxidation]]
+
+Non-waxed copper golems have four stages of oxidation (unoxidized, exposed, weathered, and oxidized). Shortly after becoming fully oxidized, a copper golem turns into a [[Copper Golem Statue|statue]]. {{control|Using}} an [[axe]] on an oxidized copper golem removes the oxidation from the golem one stage at a time, as do [[lightning bolt]]s.
+
+Copper golems can be waxed with a [[honeycomb]] to prevent the oxidation from progressing, lightning bolts from removing the oxidization, or fully oxidized golems from turning into statues. Wax can be removed by {{control|using}} an axe on the golem. {{IN|je}}, unlike copper blocks, waxing or unwaxing a copper golem does not grant the "Wax On" and "Wax Off" advancements.<ref>{{bug|MC-300096||Waxing copper golems doesn't grant the advancement "Wax On"|WAI}}</ref><ref>{{bug|MC-300099||Scraping wax off copper golems doesn't grant the advancement "Wax Off"|WAI}}</ref>
+
+A copper golem takes between 7 hours and 7 hours and 40 minutes (420&ndash;460 minutes, or 21&ndash;23 in-game days; plus one tick if the mob is in its initial state or was just scraped with an axe) to oxidize to the next stage. Since the timer is based on [[gametime]], it advances even if the golem is not located in a loaded [[chunk]]. As the mob begins to oxidize (exposed copper golem), it becomes discolored and develops green spots. As the oxidation continues (weathered copper golem), the mob becomes a green color with brown spots. In the last stage (oxidized copper golem), the mob is teal with several green spots. Like [[copper bulb]]s, the texture of the eyes of the copper golem dims as it oxidizes. However, the golem itself does not emit any [[light]], regardless of oxidation level.
+
+=== Turning into a statue ===
+{{main|Copper Golem Statue}}
+Once fully oxidized, a copper golem has a 0.58% chance per [[tick]] to become a [[copper golem statue]] and take a random pose, provided it is ''not'' [[waxed]] and is fully located in [[air]] (that is, a copper golem cannot turn into a statue while underwater or standing on a partial block such as a [[slab]], as part of its hitbox is not located within an air block). Copper golems also cannot turn into statues when above or below the build height limit. This process takes on average 8.62 seconds. During the transformation, any items held by the copper golem are [[drops|dropped]]. If the golem was named using a [[name tag]], it keeps its custom name.
+
+{{control|Using}} an axe on a copper golem statue removes the oxidization one stage at a time. If the statue is unoxidized, scraping it with an axe reanimates it into an unoxidized copper golem.
+
+=== Poppy ===
+[[File:Iron golems with Copper golems poppy request.png|thumb|A copper golem with a poppy on its head.]]
+[[Iron golem]]s occasionally hold out a [[poppy]], which a copper golem can take and place on top of the rod on its head. Using [[shears]] on the copper golem drops the poppy. Alternatively, it drops when the copper golem turns into a [[copper golem statue]].
+
+== Sounds ==
+=== Generic ===
+{{JE}}:
+{{SoundTable
+|type=java
+|{{SoundLine
+|sound=Copper golem regular spawn.wav
+|subtitle=Copper Golem appears
+|source=neutral
+|description=When a copper golem is spawned
+|id=entity.copper_golem.spawn
+|translationkey=subtitles.entity.copper_golem.spawn
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+|{{SoundLine
+|sound=Copper golem put item.wav
+|subtitle=Copper Golem is placing an item
+|source=neutral
+|description=When a copper golem puts an item in a chest
+|id=entity.copper_golem.item_drop
+|translationkey=subtitles.entity.copper_golem.item_drop
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+|{{SoundLine
+|sound=Copper golem put item fail.wav
+|subtitle=Copper Golem can't place item
+|source=neutral
+|description=When a copper golem fails to put an item in a chest
+|id=entity.copper_golem.item_no_drop
+|translationkey=subtitles.entity.copper_golem.item_no_drop
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+|{{SoundLine
+|sound=Copper golem take item.wav
+|subtitle=Copper Golem is picking up item
+|source=neutral
+|description=When a copper golem takes an item from a copper chest
+|id=entity.copper_golem.no_item_get
+|translationkey=subtitles.entity.copper_golem.no_item_get
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+|{{SoundLine
+|sound=Copper golem take item fail.wav
+|subtitle=Copper Golem can't pick up item
+|source=neutral
+|description=When a copper golem fails to take an item from a copper chest
+|id=entity.copper_golem.no_item_no_get
+|translationkey=subtitles.entity.copper_golem.no_item_no_get
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+|{{SoundLine
+|sound=Copper golem become statue1.wav
+|sound2=Copper golem become statue2.wav
+|sound3=Copper golem become statue3.wav
+|sound4=Copper golem become statue4.wav
+|subtitle=Copper Golem is petrified
+|source=neutral
+|description=When a copper golem turns into a statue
+|id=entity.copper_golem_become_statue
+|translationkey=subtitles.entity.copper_golem_become_statue
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+}}
+
+{{BE}}:
+{{SoundTable
+|type=bedrock
+|{{SoundLine
+|sound=Copper golem regular spawn.wav
+|source=neutral
+|description=When a copper golem is spawned
+|id=mob.copper_golem.spawn
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Copper golem put item.wav
+|source=neutral
+|description=When a copper golem puts an item in a chest
+|id=mob.copper_golem.chest_interaction.put_item
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Copper golem put item fail.wav
+|source=neutral
+|description=When a copper golem fails to put an item in a chest
+|id=mob.copper_golem.chest_interaction.put_item_fail
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Copper golem take item.wav
+|source=neutral
+|description=When a copper golem takes an item from a copper chest
+|id=mob.copper_golem.chest_interaction.take_item
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Copper golem take item fail.wav
+|source=neutral
+|description=When a copper golem fails to take an item from a copper chest
+|id=mob.copper_golem.chest_interaction.take_item_fail
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Copper golem become statue1.wav
+|sound2=Copper golem become statue2.wav
+|sound3=Copper golem become statue3.wav
+|sound4=Copper golem become statue4.wav
+|source=neutral
+|description=When a copper golem turns into a statue
+|id=mob.copper_golem.becoming_statue
+|volume=1.0
+|pitch=1.0
+}}
+}}
+
+=== Regular and exposed sounds ===
+{{JE}}:
+{{SoundTable
+|type=java
+|{{SoundLine
+|sound=Copper golem regular hurt1.wav
+|sound2=Copper golem regular hurt2.wav
+|sound3=Copper golem regular hurt3.wav
+|sound4=Copper golem regular hurt4.wav
+|subtitle=Copper Golem hurts
+|source=neutral
+|description=When a copper golem is damaged
+|id=entity.copper_golem.hurt
+|translationkey=subtitles.entity.copper_golem.hurt
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+|{{SoundLine
+|sound=Copper golem regular death.wav
+|subtitle=Copper Golem dies
+|source=neutral
+|description=When a copper golem dies
+|id=entity.copper_golem.death
+|translationkey=subtitles.entity.copper_golem.death
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+|{{SoundLine
+|sound=Copper golem regular spin1.wav
+|sound2=Copper golem regular spin2.wav
+|sound3=Copper golem regular spin3.wav
+|sound4=Copper golem regular spin4.wav
+|sound5=Copper golem regular spin5.wav
+|sound6=Copper golem regular spin6.wav
+|sound7=Copper golem regular spin7.wav
+|subtitle=Copper Golem's head spins
+|source=neutral
+|description=When a copper golem spins
+|id=entity.copper_golem.spin
+|translationkey=subtitles.entity.copper_golem.spin
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+|{{SoundLine
+|sound=Copper golem regular step1.wav
+|sound2=Copper golem regular step2.wav
+|sound3=Copper golem regular step3.wav
+|sound4=Copper golem regular step4.wav
+|sound5=Copper golem regular step5.wav
+|sound6=Copper golem regular step6.wav
+|sound7=Copper golem regular step7.wav
+|sound8=Copper golem regular step8.wav
+|sound9=Copper golem regular step9.wav
+|subtitle=Footsteps
+|source=neutral
+|description=While a copper golem is walking
+|id=entity.copper_golem.step
+|translationkey=subtitles.entity.copper_golem.step
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+}}
+
+{{BE}}:
+{{SoundTable
+|type=bedrock
+|{{SoundLine
+|sound=Copper golem regular hurt1.wav
+|sound2=Copper golem regular hurt2.wav
+|sound3=Copper golem regular hurt3.wav
+|sound4=Copper golem regular hurt4.wav
+|source=neutral
+|description=When a copper golem is damaged
+|id=mob.copper_golem.hurt
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Copper golem regular death.wav
+|source=neutral
+|description=When a copper golem dies
+|id=mob.copper_golem.death
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Copper golem regular look1.wav
+|sound2=Copper golem regular look2.wav
+|sound3=Copper golem regular look3.wav
+|sound4=Copper golem regular look4.wav
+|sound5=Copper golem regular look5.wav
+|sound6=Copper golem regular look6.wav
+|sound7=Copper golem regular look7.wav
+|source=neutral
+|description=When a copper golem looks around
+|id=mob.copper_golem.regular.look
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Copper golem regular spin1.wav
+|sound2=Copper golem regular spin2.wav
+|sound3=Copper golem regular spin3.wav
+|sound4=Copper golem regular spin4.wav
+|sound5=Copper golem regular spin5.wav
+|sound6=Copper golem regular spin6.wav
+|sound7=Copper golem regular spin7.wav
+|source=neutral
+|description=When a copper golem spins
+|id=mob.copper_golem.regular.spin
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Copper golem regular step1.wav
+|sound2=Copper golem regular step2.wav
+|sound3=Copper golem regular step3.wav
+|sound4=Copper golem regular step4.wav
+|sound5=Copper golem regular step5.wav
+|sound6=Copper golem regular step6.wav
+|sound7=Copper golem regular step7.wav
+|sound8=Copper golem regular step8.wav
+|sound9=Copper golem regular step9.wav
+|source=neutral
+|description=While a copper golem is walking
+|id=mob.copper_golem.step
+|volume=1.0
+|pitch=1.0
+}}
+}}
+
+=== Weathered sounds ===
+{{JE}}:
+{{SoundTable
+|type=java
+|{{SoundLine
+|sound=Copper golem weathered hurt1.wav
+|sound2=Copper golem weathered hurt2.wav
+|sound3=Copper golem weathered hurt3.wav
+|sound4=Copper golem weathered hurt4.wav
+|subtitle=Copper Golem hurts
+|source=neutral
+|description=When a weathered copper golem is damaged
+|id=entity.copper_golem_weathered.hurt
+|translationkey=subtitles.entity.copper_golem_weathered.hurt
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+|{{SoundLine
+|sound=Copper golem weathered death.wav
+|subtitle=Copper Golem dies
+|source=neutral
+|description=When a weathered copper golem dies
+|id=entity.copper_golem_weathered.death
+|translationkey=subtitles.entity.copper_golem_weathered.death
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+|{{SoundLine
+|sound=Copper golem weathered spin1.wav
+|sound2=Copper golem weathered spin2.wav
+|sound3=Copper golem weathered spin3.wav
+|sound4=Copper golem weathered spin4.wav
+|sound5=Copper golem weathered spin5.wav
+|sound6=Copper golem weathered spin6.wav
+|sound7=Copper golem weathered spin7.wav
+|subtitle=Copper Golem's head spins
+|source=neutral
+|description=When a weathered copper golem spins
+|id=entity.copper_golem_weathered.spin
+|translationkey=subtitles.entity.copper_golem_weathered.spin
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+|{{SoundLine
+|sound=Copper golem weathered step1.wav
+|sound2=Copper golem weathered step2.wav
+|sound3=Copper golem weathered step3.wav
+|sound4=Copper golem weathered step4.wav
+|sound5=Copper golem weathered step5.wav
+|sound6=Copper golem weathered step6.wav
+|sound7=Copper golem weathered step7.wav
+|sound8=Copper golem weathered step8.wav
+|sound9=Copper golem weathered step9.wav
+|subtitle=Footsteps
+|source=neutral
+|description=While a weathered copper golem is walking
+|id=entity.copper_golem_weathered.step
+|translationkey=subtitles.entity.copper_golem_weathered.step
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+}}
+
+{{BE}}:
+{{SoundTable
+|type=bedrock
+|{{SoundLine
+|sound=Copper golem weathered hurt1.wav
+|sound2=Copper golem weathered hurt2.wav
+|sound3=Copper golem weathered hurt3.wav
+|sound4=Copper golem weathered hurt4.wav
+|source=neutral
+|description=When a weathered copper golem is damaged
+|id=mob.copper_golem.weathered.hurt
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Copper golem weathered death.wav
+|source=neutral
+|description=When a weathered copper golem dies
+|id=mob.copper_golem.weathered.death
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Copper golem weathered look1.wav
+|sound2=Copper golem weathered look2.wav
+|sound3=Copper golem weathered look3.wav
+|sound4=Copper golem weathered look4.wav
+|sound5=Copper golem weathered look5.wav
+|sound6=Copper golem weathered look6.wav
+|sound7=Copper golem weathered look7.wav
+|source=neutral
+|description=When a weathered copper golem looks around
+|id=mob.copper_golem.weathered.look
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Copper golem weathered spin1.wav
+|sound2=Copper golem weathered spin2.wav
+|sound3=Copper golem weathered spin3.wav
+|sound4=Copper golem weathered spin4.wav
+|sound5=Copper golem weathered spin5.wav
+|sound6=Copper golem weathered spin6.wav
+|sound7=Copper golem weathered spin7.wav
+|source=neutral
+|description=When a weathered copper golem spins
+|id=mob.copper_golem.weathered.spin
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Copper golem weathered step1.wav
+|sound2=Copper golem weathered step2.wav
+|sound3=Copper golem weathered step3.wav
+|sound4=Copper golem weathered step4.wav
+|sound5=Copper golem weathered step5.wav
+|sound6=Copper golem weathered step6.wav
+|sound7=Copper golem weathered step7.wav
+|sound8=Copper golem weathered step8.wav
+|sound9=Copper golem weathered step9.wav
+|source=neutral
+|description=While a weathered copper golem is walking
+|id=mob.copper_golem.weathered.step
+|volume=1.0
+|pitch=1.0
+}}
+}}
+
+=== Oxidized sounds ===
+{{JE}}:
+{{SoundTable
+|type=java
+|{{SoundLine
+|sound=Copper golem oxidized hurt1.wav
+|sound2=Copper golem oxidized hurt2.wav
+|sound3=Copper golem oxidized hurt3.wav
+|sound4=Copper golem oxidized hurt4.wav
+|subtitle=Copper Golem hurts
+|source=neutral
+|description=When an oxidized copper golem is damaged
+|id=entity.copper_golem_oxidized.hurt
+|translationkey=subtitles.entity.copper_golem_oxidized.hurt
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+|{{SoundLine
+|sound=Copper golem oxidized death.wav
+|subtitle=Copper Golem dies
+|source=neutral
+|description=When an oxidized copper golem dies
+|id=entity.copper_golem_oxidized.death
+|translationkey=subtitles.entity.copper_golem_oxidized.death
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+|{{SoundLine
+|sound=Copper golem oxidized spin1.wav
+|sound2=Copper golem oxidized spin2.wav
+|sound3=Copper golem oxidized spin3.wav
+|sound4=Copper golem oxidized spin4.wav
+|sound5=Copper golem oxidized spin5.wav
+|sound6=Copper golem oxidized spin6.wav
+|sound7=Copper golem oxidized spin7.wav
+|subtitle=Copper Golem's head spins
+|source=neutral
+|description=When an oxidized copper golem spins
+|id=entity.copper_golem_oxidized.spin
+|translationkey=subtitles.entity.copper_golem_oxidized.spin
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+|{{SoundLine
+|sound=Copper golem oxidized step1.wav
+|sound2=Copper golem oxidized step2.wav
+|sound3=Copper golem oxidized step3.wav
+|sound4=Copper golem oxidized step4.wav
+|sound5=Copper golem oxidized step5.wav
+|sound6=Copper golem oxidized step6.wav
+|sound7=Copper golem oxidized step7.wav
+|sound8=Copper golem oxidized step8.wav
+|sound9=Copper golem oxidized step9.wav
+|subtitle=Footsteps
+|source=neutral
+|description=While an oxidized copper golem is walking
+|id=entity.copper_golem_oxidized.step
+|translationkey=subtitles.entity.copper_golem_oxidized.step
+|volume=1.0
+|pitch=1.0
+|distance=16
+}}
+}}
+
+{{BE}}:
+{{SoundTable
+|type=bedrock
+|{{SoundLine
+|sound=Copper golem oxidized hurt1.wav
+|sound2=Copper golem oxidized hurt2.wav
+|sound3=Copper golem oxidized hurt3.wav
+|sound4=Copper golem oxidized hurt4.wav
+|source=neutral
+|description=When an oxidized copper golem is damaged
+|id=mob.copper_golem.oxidized.hurt
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Copper golem oxidized death.wav
+|source=neutral
+|description=When an oxidized copper golem dies
+|id=mob.copper_golem.oxidized.death
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Copper golem oxidized look1.wav
+|sound2=Copper golem oxidized look2.wav
+|sound3=Copper golem oxidized look3.wav
+|sound4=Copper golem oxidized look4.wav
+|sound5=Copper golem oxidized look5.wav
+|sound6=Copper golem oxidized look6.wav
+|sound7=Copper golem oxidized look7.wav
+|source=neutral
+|description=When an oxidized copper golem looks around
+|id=mob.copper_golem.oxidized.look
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Copper golem oxidized spin1.wav
+|sound2=Copper golem oxidized spin2.wav
+|sound3=Copper golem oxidized spin3.wav
+|sound4=Copper golem oxidized spin4.wav
+|sound5=Copper golem oxidized spin5.wav
+|sound6=Copper golem oxidized spin6.wav
+|sound7=Copper golem oxidized spin7.wav
+|source=neutral
+|description=When an oxidized copper golem spins
+|id=mob.copper_golem.oxidized.spin
+|volume=1.0
+|pitch=1.0
+}}
+|{{SoundLine
+|sound=Copper golem oxidized step1.wav
+|sound2=Copper golem oxidized step2.wav
+|sound3=Copper golem oxidized step3.wav
+|sound4=Copper golem oxidized step4.wav
+|sound5=Copper golem oxidized step5.wav
+|sound6=Copper golem oxidized step6.wav
+|sound7=Copper golem oxidized step7.wav
+|sound8=Copper golem oxidized step8.wav
+|sound9=Copper golem oxidized step9.wav
+|source=neutral
+|description=While an oxidized copper golem is walking
+|id=mob.copper_golem.oxidized.step
+|volume=1.0
+|pitch=1.0
+}}
+}}
+
+== Data values ==
+=== ID ===
+{{JE}}:
+{{ID table
+|edition=java
+|generatetranslationkeys=y
+|displayname=Copper Golem
+|spritetype=entity
+|nameid=copper_golem
+|showentitytags=y
+|entitytags=accepts_iron_golem_gift,can_breathe_under_water,fall_damage_immune
+|foot=1}}
+
+{{BE}}:
+{{ID table
+|edition=bedrock
+|shownumericids=y
+|generatetranslationkeys=y
+|displayname=Copper Golem
+|spritetype=entity
+|nameid=copper_golem
+|showentityfamily=y
+|entityfamily=copper golem,mob
+|id=148
+|foot=1}}
+
+=== Entity data ===
+Copper golems have entity data associated with them that contain various properties.
+
+{{JE}}:
+{{main|Entity format}}
+<section begin="entity data" /><div class="treeview">
+* {{nbt|compound}} Entity data
+** {{nbt inherit/entity}}
+** {{nbt inherit/mob}}
+** {{nbt|string|weather_state}}: <code>unaffected</code>, <code>exposed</code>, <code>weathered</code>, or <code>oxidized</code> - the oxidation level of the copper golem
+** {{nbt|long|next_weather_age}}: The number of ticks <code>gametime</code> must reach for the copper golem's oxidation level to change. Setting the value to <code>-1</code> automatically sets the oxidation time randomly from <code>504000</code> to <code>552000</code> + the current <code>gametime</code>. If the value is <code>-2</code>, the copper golem is waxed (it remains unchanged over time).
+</div><section end="entity data" />
+
+{{BE}}:
+: See [[Bedrock Edition level format/Entity format]].
+
+== Achievements ==
+Achievements that apply to all mobs:
+{{collapse|content={{load achievements|Overkill;Over-Overkill;Mob Kabob}}
+}}
+
+== Advancements ==
+Advancements that apply to all mobs:
+{{collapse|content={{load advancements|Take Aim;Arbalistic;A Throwaway Joke;Adventure;Over-Overkill;Mob Kabob}}
+}}
+
+== Videos ==
+{{yt|542rY0DQHIM}}
+{{yt|jVdBhu0KgJo}}
+
+== History ==
+=== Announcement ===
+{{HistoryTable
+|{{HistoryLine||September 4, 2021|link=https://x.com/_Ulraf_/status/1433889361913909292|The copper golem is teased as the next mob vote candidate by Ulraf through the use of emojis.}}
+|{{HistoryLine||October 13, 2021|link=https://www.minecraft.net/article/mob-vote-2021-copper-golem|[[File:CopperGolemPixel.png|32px]] The copper golem is announced as a candidate for the [[Minecraft Live 2021]] mob vote. It was featured alongside the [[allay]] and [[glare]].<ref name="copper-tweet">{{tweet|Minecraft|1448302795266875392|Are you forever pushing buttons? Want to craft a new friend? Are Tiny Agnes and Tiny Jens really saved – were they ever lost? Will the Copper Golem get your vote at #MinecraftLive on Oct 16? Learn more about the mob with some-assembly-required.|October 13, 2021}}, video is entitled ''Meet the Copper Golem!''</ref><ref>{{mcnet|mob-vote-2021-copper-golem|Minecraft Mob Vote 2021: Copper Golem|December 12, 2021|Sofia Dankis}}</ref>|During the mob vote, it was planned for the copper golem to press random copper buttons and have the oxidation removed with either an axe,<ref>{{tweet|SemajLovesTV|1448304056661909518|Is there a way to unfreeze them or are they just stuck in the world?|October 13, 2021}}<br>{{tweet|_Ulraf_|1448304488570363905|Like with copper blocks, you can use an axe to scrape away the golem to clean it!|October 13, 2021}}</ref> or by being struck by lightning.<ref>{{tweet|_Ulraf_|1448306663585456137|That lightning rod on its head is not just for show 😉 Yes it will!<br><br>x.com/XdPetergamer/status/1448304838249488391|October 13, 2021}}</ref> It would also have turned into a statue at full oxidation.<ref>{{tweet|AlexCraft05|1448305276839469057|Sooo, when he oxidized become a statue? 🤩|October 13, 2021}}<br>{{tweet|_Ulraf_|1448307567323750403|YES 🤩|October 13, 2021}}</ref>}}
+|{{HistoryLine||October 16, 2021|link=Minecraft Live 2021|The copper golem lost the final round of vote with 45.7% of the votes.}}
+|{{HistoryLine||June 30, 2025|link=https://www.youtube.com/shorts/ynfjkH93ly0|The copper golem is teased in a series of [[Social media teasers#The Copper Age|social media teasers]].}}
+|{{HistoryLine||July 1, 2025|link=https://www.minecraft.net/article/a-new-friend-with-a-familiar-patina|The copper golem, now a mob that sorts items from [[copper chest]]s, is announced for the then-unnamed [[The Copper Age]] drop with its functionality completely redone and design slightly tweaked.}}
+}}
+
+=== ''Java Edition'' ===
+{{HistoryTable
+|{{HistoryLine|java}}
+|{{HistoryLine||1.21.9|dev=25w31a|[[File:Copper Golem JE1 BE1.png|32px]] [[File:Exposed Copper Golem JE1 BE1.png|32px]] [[File:Weathered Copper Golem JE1 BE1.png|32px]] [[File:Oxidized Copper Golem JE1 BE1.png|32px]] Added copper golems. They sort chests instead of randomly pressing buttons}}
+|{{HistoryLine|||dev=25w33a|[[File:Copper Golem Flower JE1 BE1.png|32px]] [[File:Exposed Copper Golem Flower JE1 BE1.png|32px]] [[File:Weathered Copper Golem Flower JE1 BE1.png|32px]] [[File:Oxidized Copper Golem Flower JE1 BE1.png|32px]]<br>Decorative flowers can now be planted on by [[iron golem]]s, these flowers can be removed with [[shears]] and drop upon turning into a [[copper golem statue|statue]].}}
+|{{HistoryLine|||dev=25w34a|The eyes of the copper golem are now invisible as well when splashed with [[potion of Invisibility]].|The hitbox has been tweaked.|Copper golems are now audible from up to 12 blocks away.|The copper sorting sounds have been tweaked to be quieter.}}
+|{{HistoryLine|||dev=25w35a|Copper golems hitbox height is reduced to 0.98 blocks, from 1 block.|The copper golem now uses the saddle equipment slot for blocks placed atop of its lightning rod.}}
+|{{HistoryLine|||dev=25w37a|The hitbox has been tweaked, the hitbox is now 0.49 blocks in width to be able to pathfind through narrow spaces.|Copper golems can now open [[door]]s.}}
+|{{HistoryLine|||dev=pre1|Lightning bolts now deoxidize copper golems.|Now only tries to open [[chest]]s that are neighboring blocks when it's a passenger.}}
+|{{HistoryLine|||dev=pre2|Copper golems no longer need to be close to the center of an empty block position in order to turn into a statue.|Copper golems now have the possibility to turn into a statue as soon as they become fully oxidized.}}
+}}
+
+=== ''Bedrock Edition'' ===
+{{HistoryTable
+|{{HistoryLine|bedrock}}
+| {{HistoryLine||1.21.100|dev=Preview 1.21.100.23|experiment=Drop 3 2025|[[File:Copper Golem JE1 BE1.png|32px]] [[File:Exposed Copper Golem JE1 BE1.png|32px]] [[File:Weathered Copper Golem JE1 BE1.png|32px]] [[File:Oxidized Copper Golem JE1 BE1.png|32px]] Added copper golems.}}
+|{{HistoryLine||1.21.111|dev=Preview 1.21.110.20|All features behind the "Drop 3 2025" experimental toggle have been fully implemented.|Interacting with a copper golem that is holding an item makes the copper golem drop the item.|Copper golems that fully oxidize turn into a [[copper golem statue]] and freeze into a random pose, dropping any items it was holding.}}
+|{{HistoryLine|||dev=Preview 1.21.110.23|The collision box for Copper Golems has been reduced.|Copper golems can now open non-iron doors.|Copper golems no longer attempt to transport items when leashed.|Added code for copper golems taking [[poppies]] from [[iron golem]]s and wearing them on their lightning rod, however the feature cannot be seen in-game.}}
+|{{HistoryLine|||dev=Preview 1.21.110.24|[[File:Copper Golem Flower JE1 BE1.png|32px]] [[File:Exposed Copper Golem Flower JE1 BE1.png|32px]] [[File:Weathered Copper Golem Flower JE1 BE1.png|32px]] [[File:Oxidized Copper Golem Flower JE1 BE1.png|32px]]<br>Decorative flowers can now be planted on by [[iron golem]]s, these flowers can be removed with [[shears]] and drop upon turning into a [[copper golem statue|statue]].}}
+|{{HistoryLine|||dev=Preview 1.21.110.25|Copper golems can now pathfind through 1 block high passages.|The copper golem no longer interacts with chests and copper chests that it cannot see.|Chests now close immediately when a copper golem starts panicking while looking inside.}}
+}}
+
+== Issues ==
+{{issue list}}
+
+== Trivia ==
+* The copper golem's original design pitch was made by developer [[Ulraf]].<ref> https://youtu.be/2cxUNoWNy50?t=2542</ref>
+* Spinning animation variants for the weathered and oxidized copper golem exist within the animation files, but as of now they share the same animation as the unoxidized spinning animation.
+* Sprites of copper golems appeared as an easter egg in the [[2022 Mob Vote Event]], [[2023 Mob Vote Event]], and the [[Eerie Mojang Office Party]] server.
+* The copper golem became the second [[community vote]] losing mob to be later added to the game, having lost the [[2021 mob vote]] to the [[allay]], after the [[frog]] and [[mangrove swamp]] content was implemented in [[The Wild Update]].
+
+== Gallery ==
+
+=== Textures ===
+<gallery class="pixel-image">
+Copper Golem (texture).png|Texture of a copper golem
+Exposed Copper Golem (texture).png|Texture of an exposed copper golem
+Weathered Copper Golem (texture).png|Texture of a weathered copper golem
+Oxidized Copper Golem (texture).png|Texture of an oxidized copper golem
+Copper Golem (eyes texture).png|Texture of a copper golem's eyes
+Exposed Copper Golem (eyes texture).png|Texture of an exposed copper golem's eyes
+Weathered Copper Golem (eyes texture).png|Texture of a weathered copper golem's eyes
+Oxidized Copper Golem (eyes texture).png|Texture of an oxidized copper golem's eyes
+</gallery>
+
+=== Renders ===
+<gallery>
+Copper_golem_hold_item_BE1.png|Copper golem holding an invisible item
+Exposed_copper_golem_hold_item_BE1.png|Exposed copper golem holding an invisible item
+Weathered_copper_golem_hold_item_BE1.png|Weathered copper golem holding an invisible item
+Oxidized_copper_golem_hold_item_BE1.png|Oxidized Copper golem holding an invisible item
+Copper_Golem_Flower_JE1_BE1.png|Copper golem with flower
+Exposed_Copper_Golem_Flower_JE1_BE1.png|Exposed copper golem with flower
+Weathered_Copper_Golem_Flower_JE1_BE1.png|Weathered copper golem with flower
+Oxidized_Copper_Golem_Flower_JE1_BE1.png|Oxidized copper golem with flower
+</gallery>
+
+=== Animations ===
+'''Unoxidized'''
+<gallery>
+Copper golem spawn JE1 BE1.gif|Spawn
+Copper golem walk JE1 BE1.gif|Walking
+Copper golem walk holding item JE1 BE1.gif|Walking while holding an item
+Copper golem walk with item JE1 BE1.gif|Walking while holding an item without the hold item animation attached to it (this state cannot been seen in game) 
+Copper golem put item JE1 BE1.gif|Putting an item in a chest
+Copper golem put item fail JE1 BE1.gif|Failing to put an item in a chest 
+Copper golem take item JE1 BE1.gif|Taking an item from a chest
+Copper golem take item fail JE1 BE1.gif|Failing to take an item from a chest
+Copper golem spin JE1 BE1.gif|Spinning
+</gallery>
+
+'''Exposed'''
+<gallery>
+Exposed copper golem spawn JE1 BE1.gif|Spawn
+Exposed copper golem walk JE1 BE1.gif|Walking
+Exposed copper golem walk holding item JE1 BE1.gif|Walking while holding an item
+Exposed copper golem walk with item JE1 BE1.gif|Walking while holding an item without the hold item animation attached to it (this state cannot be seen in-game)
+Exposed copper golem put item JE1 BE1.gif|Putting an item in a chest
+Exposed copper golem put item fail JE1 BE1.gif|Failing at putting an item in a chest
+Exposed copper golem take item JE1 BE1.gif|Taking an item from a chest
+Exposed copper golem take item fail JE1 BE1.gif|Failing at taking an item from a chest
+Exposed copper golem spin JE1 BE1.gif|Spinning
+</gallery>
+
+'''Weathered'''
+<gallery>
+Weathered copper golem spawn JE1 BE1.gif|Spawn
+Weathered copper golem walk JE1 BE1.gif|Walking
+Weathered copper golem walk holding item JE1 BE1.gif|Walking while holding an item
+Weathered copper golem walk with item JE1 BE1.gif|Walking while holding an item without the hold item animation attached to it (this state cannot be seen in-game)
+Weathered copper golem put item JE1 BE1.gif|Putting an item in a chest
+Weathered copper golem put item fail JE1 BE1.gif|Failing at putting an item in a chest
+Weathered copper golem take item JE1 BE1.gif|Taking an item from a chest
+Weathered copper golem take item fail JE1 BE1.gif|Failing at taking an item from a chest
+Weathered copper golem spin JE1 BE1.gif|Spinning
+</gallery>
+
+'''Oxidized'''
+<gallery>
+Oxidized copper golem spawn JE1 BE1.gif|Spawn
+Oxidized copper golem walk JE1 BE1.gif|Walking
+Oxidized copper golem walk holding item JE1 BE1.gif|Walking while holding an item
+Oxidized copper golem walk with item JE1 BE1.gif|Walking while holding an item without the hold item animation attached to it (this state cannot be seen in-game)
+Oxidized copper golem put item JE1 BE1.gif|Putting an item in a chest
+Oxidized copper golem put item fail JE1 BE1.gif|Failing at putting an item in a chest
+Oxidized copper golem take item JE1 BE1.gif|Taking an item from a chest
+Oxidized copper golem take item fail JE1 BE1.gif|Failing at taking an item from a chest
+Oxidized copper golem spin JE1 BE1.gif|Spinning
+</gallery>
+
+=== Screenshots ===
+<gallery>
+File:Golems with flower.png|A copper golem with poppy on the head
+File:Copper.golem.opening.chest.png|A copper golem checking a [[copper chest]]
+</gallery>
+
+=== Mojang screenshots ===
+<gallery>
+The Copper Age player-made workshop.png|alt=A screenshot of a player-made workshop in Minecraft with several copper golems walking around|A player-made workshop with several copper golems walking around
+The Copper Age copper golem and copper chest.jpg|alt=A screenshot of a copper golem standing next to an open copper chest inside a cherry blossom grove|A copper golem standing next to an open [[copper chest]] inside a [[cherry grove]]
+The Copper Age oxidized copper golem.jpeg|An oxidized copper golem
+The Copper Age oxidized copper house.jpeg|A copper golem in front of an oxidized copper house
+The Copper Age copper golem oxidation stages.jpeg|The oxidation stages of copper golems
+25w32a.jpg|A copper golem opening a copper chest in a cave
+</gallery>
+
+=== Concept artwork ===
+<gallery>
+Copper golem concept art.png|Copper golem concept art
+</gallery>
+
+=== In other media ===
+<gallery class="pixel-image">
+File:Copper Golem Hologram.png|Hologram of a copper golem in the [[Eerie Mojang Office Party]]
+File:Fall Drop 2025 Making the copper golem.jpeg|alt=A side-by-side image featuring a copper golem and copper armor, a copper pickaxe, and a copper sword|Thumbnail with a copper golem and copper equipment
+File:Minecraft Live September 2025 Key Art.jpg|Artwork featuring copper golems with [[Sunny]] and [[Noor]]
+File:Copper Golem on a floating boat.jpeg|A copper golem Promoting [[Minecraft LIVE – September 2025]] with a [[sign]]
+File:Time to deoxidize.jpg|A copper golem being scraped by a human
+File:Screenshot 2025-09-25 171245.png|A line of copper golems in a [[savanna]] [[village]] as seen in the [https://www.youtube.com/watch?v=5QU20HMPZ3M Minecraft LIVE Official Trailer– September 2025]
+File:CopperFINAL1.jpg|alt=Poster-style graphic of a copper golem in Minecraft with glowing eyes, feature list, and a note about a new copper chest included|Poster of a copper golem along with a feature list and a note about copper chests
+File:CopperFinal2.jpeg|alt=Instructional poster showing how to build a copper golem in Minecraft, its oxidation stages, and a tip for preserving its look|Instructional poster showing a copper golem and its [[oxidation]] stages
+File:CopperFinal3.jpeg|alt=Poster with tips for caring for a Minecraft copper golem, including sorting items, no batteries needed, and wearing copper armor|Poster with tips regarding copper golems
+File:Copper penny.jpeg|A copper golem on a penny
+File:Congratulations from a copper golem.jpeg|A meme of a copper golem congratulating the viewer for making it through the week
+File:Long Day Factory.jpeg|A meme of a copper golem having a long day
+File:Storage room floor plan.png
+File:Golems on a ski lift.jpg
+File:Copper golem reaching out.jpg
+</gallery>
+
+==== Mob vote artwork ====
+<gallery class="pixel-image">
+File:CopperGolemPixel.png|The copper golem shown at [[Minecraft Live 2021]]
+File:OxidizedCopperGolemPixel.png|Re-creation of the oxidized copper golem statue
+File:Copper Golem Idle Animation Pixel art.gif|The copper golem idle animation
+File:Copper Golem Walking Animation Pixel art.gif|The copper golem walking animation
+File:Copper-golem-winner.gif|The copper golem animation that could have played if the copper golem had won the mob vote
+File:Pip-copper-golem-winner.gif|Ditto
+File:MCLive2021MobVoteAllOptions.png|The copper golem as one of the three options for the mob vote
+File:MobVote coppergolem header.jpeg|Header for the copper golem article
+File:Copper Golem Vote.png|The copper golem inside a room
+</gallery>
+
+== References ==
+{{Reflist}}
+
+== Navigation ==
+{{Navbox copper}}
+{{Navbox entities|mobs}}
+{{Featured}}
+[[Category:Golem mobs]]
+[[Category:Passive mobs]]
+
+[[de:Kupfergolem]]
+[[es:Gólem de cobre]]
+[[fr:Golem de cuivre]]
+[[it:Golem di rame]]
+[[ja:カッパーゴーレム]]
+[[ko:구리 골렘]]
+[[lzh:銅傀儡]]
+[[pl:Miedziany golem]]
+[[pt:Golem de Cobre]]
+[[ru:Медный голем]]
+[[uk:Мідний ґолем]]
+[[zh:铜傀儡]]

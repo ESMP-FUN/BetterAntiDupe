@@ -39,11 +39,20 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
         quantity: Int,
         metadata: LedgerMetadata
     ): LedgerEntry = lockFor(player).withLock {
-        val tip = readPlayerTip(player)
-        val entry = LedgerEntry.create(player, action, material, quantity, metadata, tip?.lastHash)
-        writeEntry(entry)
-        if (!sharedBackend) balanceCache[player to material]?.addAndGet(quantity)
-        entry
+        try {
+            val tip = readPlayerTip(player)
+            val entry = LedgerEntry.create(player, action, material, quantity, metadata, tip?.lastHash)
+            writeEntry(entry)
+            if (!sharedBackend) balanceCache[player to material]?.addAndGet(quantity)
+            entry
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // A failing write means items stop being tracked, so it must reach the owner and
+            // the error report even though the caller decides what to do about it.
+            com.esmpfun.antidupe.util.ErrorReporter.report("ledger-write", e)
+            throw e
+        }
     }
 
     /** Most recent entry across all players. Display only: last write wins, unordered. */
@@ -170,15 +179,30 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
                         plugin.config.getInt("ledger.redis_database", 1)
                     else plugin.config.getInt("redis.database", 1)
                     val timeout = plugin.config.getLong("redis.timeout", 10L)
-                    RedisLedgerStorage.create(host, port, pw, db, timeout, logger)
+                    try {
+                        RedisLedgerStorage.create(host, port, pw, db, timeout, logger)
+                    } catch (e: Exception) {
+                        logger.severe("[Ledger] Could not reach the Redis database at $host:$port.")
+                        logger.severe("[Ledger] Check that Redis is running, and that redis.host, redis.port and redis.password in config.yml are right.")
+                        logger.severe("[Ledger] The plugin will not fall back to its own file, because that would quietly split your records across servers.")
+                        throw e
+                    }
                 }
                 "MEMORY" -> MemoryLedgerStorage(logger)
-                "SQLITE" -> SqliteLedgerStorage.create(plugin, logger)
+                "SQLITE" -> createSqlite(plugin, logger)
                 else -> {
                     logger.warning("Unknown storage.backend '$backend', falling back to SQLITE")
-                    SqliteLedgerStorage.create(plugin, logger)
+                    createSqlite(plugin, logger)
                 }
             }
+        }
+
+        private suspend fun createSqlite(plugin: JavaPlugin, logger: Logger): LedgerStorage = try {
+            SqliteLedgerStorage.create(plugin, logger)
+        } catch (e: Exception) {
+            logger.severe("[Ledger] Could not open the ledger database in ${plugin.dataFolder.absolutePath}.")
+            logger.severe("[Ledger] The usual causes are a full disk, a read-only plugin folder, or a second server using the same folder.")
+            throw e
         }
     }
 }
