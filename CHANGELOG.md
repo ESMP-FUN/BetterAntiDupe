@@ -4,14 +4,19 @@ All notable changes to BetterAntiDupe will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- **Console messages are written in plain English.** The warnings about hiding the owner mark, about the ownership settings in config.yml, and about an item the server no longer has used wording aimed at programmers. They now say what happened, whether anything is affected, and what to do about it.
+- **Built against the newest Minecraft 26.3 build.** No behaviour changes; the 26.3 download now matches the current Paper release.
+
 ### Fixed
 - **Starts on hosts where the temporary folder cannot be used.** The database needs to unpack a small helper file before it can run, and it used the server's temporary folder to do it. Many hosts do not allow that folder to be used this way, or keep it full, and the plugin then stopped with a confusing "no native library found" message. It now unpacks into its own folder instead.
+- **Starts on network storage and when the disk is full.** The plugin asks the database to use a faster way of saving, which does not work when the plugin folder lives on network storage, and fails when the disk is full. That stopped the whole plugin. It now says so in the console and switches to the slower, safe way instead. Nothing is lost and no setting needs changing.
 - **The last few item movements before a stop are no longer lost.** While the server shuts down, anything the plugin still had to finish was refused, because the server will not accept new work from a plugin that is closing. Those final records now go through, and staff alerts raised at that moment are delivered instead of disappearing.
 - **Webhook addresses are kept out of the console.** If a Discord, Slack, Telegram or custom webhook address was wrong, the failure message repeated the whole address, which includes the secret part that lets anyone post to your channel. Console logs get pasted into support channels, so the address is now left out.
+- **Error reports no longer include the folder your server lives in.** When a file or database problem was reported, the message quoted the full path, which names your hosting account. Reports now show it as `plugins/BetterAntiDupe` instead. Your own console keeps the full path, because that is where it is useful.
 - **Problems that happen while the server is running are now reported.** Error reporting only ever covered startup, so a database that stopped working later, a failed history check or a failed clean-up pass was never sent in and only appeared in your console. Repeated failures are grouped so one broken thing cannot flood anything.
 - **Ledger commands now answer when the records cannot be read.** If the database was unreachable, `/adp ledger` commands replied with nothing at all and staff had no way to tell the command apart from a broken one. They now say so and point at the console.
 - **Clearer console messages when the plugin cannot start or cannot track items.** A read-only plugin folder, a full disk or an unreachable Redis database used to produce only a technical error. The console now names the folder or the address and says what to check. If item tracking cannot start, the console now also says that the protections against duping machines keep running.
-- **Starts on network storage and when the disk is full.** The plugin asks the database to use a faster way of saving, which does not work when the plugin folder lives on network storage, and fails when the disk is full. That stopped the whole plugin. It now says so in the console and switches to the slower, safe way instead. Nothing is lost and no setting needs changing.
 
 ## [4.5.0] - 2026-09-17
 

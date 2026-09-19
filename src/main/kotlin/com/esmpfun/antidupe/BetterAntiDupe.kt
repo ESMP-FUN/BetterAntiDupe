@@ -81,7 +81,7 @@ class BetterAntiDupe : JavaPlugin() {
         }
 
         try {
-            com.esmpfun.antidupe.util.ErrorReporter.init(logger) { metrics }
+            com.esmpfun.antidupe.util.ErrorReporter.init(logger, dataFolder) { metrics }
             pluginScope = CoroutineScope(
                 Dispatchers.IO + SupervisorJob() +
                     com.esmpfun.antidupe.util.ErrorReporter.handler("background-task")

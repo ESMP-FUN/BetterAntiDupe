@@ -413,8 +413,9 @@ class SqliteLedgerStorage private constructor(
         val matStr = rs.getString(5)
         val material = LedgerEntry.materialOrNull(matStr) ?: Material.AIR
         if (material == Material.AIR && matStr != "AIR" && warnedUnknownMaterials.add(matStr)) {
-            logger.warning("[Ledger] ledger rows name a material '$matStr' unknown on this server" +
-                " (renamed or removed since they were written) - history stays readable, that material's balance is treated as 0")
+            logger.warning("[Ledger] The history mentions an item called '$matStr' that this server does not" +
+                " have, so it was probably renamed or removed by a Minecraft update. The history still reads" +
+                " fine, and that item counts as none held.")
         }
         return LedgerEntry(
             id = UUID.fromString(rs.getString(1)),
