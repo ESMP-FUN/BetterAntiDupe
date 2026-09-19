@@ -25,9 +25,9 @@ The lines right after it say why. The usual causes:
 
 **The likely cause:** Java is too old, or you have the wrong download.
 
-* Minecraft 1.21.x needs Java 21 and the plain `BetterAntiDupe-4.5.0.jar`.
-* Minecraft 26.0 to 26.2 needs Java 25 and `BetterAntiDupe-4.5.0-mc26.jar`.
-* Minecraft 26.3 needs Java 25 and `BetterAntiDupe-4.5.0-mc263.jar`.
+* Minecraft 1.21.x needs Java 21 and the plain `BetterAntiDupe-4.5.1.jar`.
+* Minecraft 26.0 to 26.2 needs Java 25 and `BetterAntiDupe-4.5.1-mc26.jar`.
+* Minecraft 26.3 needs Java 25 and `BetterAntiDupe-4.5.1-mc263.jar`.
 
 </details>
 

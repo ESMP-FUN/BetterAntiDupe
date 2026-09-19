@@ -14,7 +14,7 @@ group = "com.esmpfun"
 //   ./gradlew shadowJar -Pmc=263  ->  BetterAntiDupe-4.5.0-mc263.jar   (26.3,         Java 25)
 // 1.21.x servers run JDK21 and can't load Java 25 bytecode. The 26.3 jar declares
 // api-version 26.3, so an older server refuses it, and it follows its own update track.
-val pluginVersion = "4.5.0"
+val pluginVersion = "4.5.1"
 val mcLine = (findProperty("mc") as String?) ?: "26"
 
 data class McTarget(val paperApi: String, val suffix: String, val apiVersion: String, val java: Int, val runMc: String)

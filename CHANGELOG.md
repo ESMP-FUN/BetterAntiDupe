@@ -2,7 +2,7 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
-## [Unreleased]
+## [4.5.1] - 2026-09-19
 
 ### Changed
 - **Console messages are written in plain English.** The warnings about hiding the owner mark, about the ownership settings in config.yml, and about an item the server no longer has used wording aimed at programmers. They now say what happened, whether anything is affected, and what to do about it.
