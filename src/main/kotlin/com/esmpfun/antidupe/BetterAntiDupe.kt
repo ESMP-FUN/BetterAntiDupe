@@ -149,6 +149,7 @@ class BetterAntiDupe : JavaPlugin() {
         } catch (e: Exception) {
             logger.warning("Error during shutdown: ${e.message}")
         }
+        com.esmpfun.antidupe.util.ErrorReporter.shutdown()
         logger.info("=== BetterAntiDupe disabled ===")
     }
 

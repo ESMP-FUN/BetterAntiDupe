@@ -27,8 +27,20 @@ class PlatformScheduler(private val plugin: Plugin) {
         server.javaClass.getMethod("getAsyncScheduler").invoke(server)
     } catch (e: Throwable) { null }
 
+    /**
+     * Bukkit refuses to schedule anything for a disabled plugin, and shutdown blocks the main
+     * thread while in-flight ledger writes finish, so a queued task would never run anyway.
+     * Running it here keeps that last work from being lost.
+     */
+    private fun runningNow(task: Runnable): Boolean {
+        if (plugin.isEnabled) return false
+        task.run()
+        return true
+    }
+
     /** Runs on the global region thread when there is one, the main thread otherwise. */
     fun runMain(task: Runnable) {
+        if (runningNow(task)) return
         val sched = paperGlobalScheduler
         if (sched != null) {
             try {
@@ -42,6 +54,7 @@ class PlatformScheduler(private val plugin: Plugin) {
 
     /** On Folia the task follows [entity] across teleports between regions. */
     fun runForEntity(entity: Entity, task: Runnable) {
+        if (runningNow(task)) return
         if (isFolia) {
             try {
                 val entityScheduler = entity.javaClass.getMethod("getScheduler").invoke(entity)
@@ -59,6 +72,7 @@ class PlatformScheduler(private val plugin: Plugin) {
 
     /** The task still runs if [entity] is retired before the delay elapses. */
     fun runForEntityLater(entity: Entity, delayTicks: Long, task: Runnable) {
+        if (runningNow(task)) return
         if (isFolia) {
             try {
                 val entityScheduler = entity.javaClass.getMethod("getScheduler").invoke(entity)
@@ -77,6 +91,7 @@ class PlatformScheduler(private val plugin: Plugin) {
     }
 
     fun runAsync(task: Runnable) {
+        if (runningNow(task)) return
         val sched = paperAsyncScheduler
         if (sched != null) {
             try {

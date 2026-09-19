@@ -28,6 +28,14 @@ object ErrorReporter {
         lastReported.clear()
     }
 
+    /** Releases the plugin, so a server reload can let go of the old copy of it. */
+    fun shutdown() {
+        logger = null
+        metrics = { null }
+        lastLogged.clear()
+        lastReported.clear()
+    }
+
     /** [where] is a fixed label, never a player, world or file name: it is the throttle key. */
     fun report(where: String, t: Throwable) {
         val now = System.currentTimeMillis()

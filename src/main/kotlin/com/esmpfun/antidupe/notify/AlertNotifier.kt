@@ -159,9 +159,15 @@ class AlertNotifier(
                 "HTTP ${response.statusCode()}".also { warnThrottled(target, it) }
             } else null
         } catch (e: Exception) {
-            (e.message ?: e.javaClass.simpleName).also { warnThrottled(target, it) }
+            redact(e.message ?: e.javaClass.simpleName).also { warnThrottled(target, it) }
         }
     }
+
+    /**
+     * A webhook address is itself a password, and a bad one is reported by quoting it back in
+     * full. Console logs get pasted into support channels, so keep addresses out of them.
+     */
+    private fun redact(reason: String): String = WEB_ADDRESS.replace(reason, "<the address you set>")
 
     private fun warnThrottled(target: String, reason: String) {
         val now = System.currentTimeMillis()
@@ -174,5 +180,6 @@ class AlertNotifier(
 
     private companion object {
         private val COLOR_CODES = Regex("[§&][0-9a-fk-orx]", RegexOption.IGNORE_CASE)
+        private val WEB_ADDRESS = Regex("""https?://\S*""", RegexOption.IGNORE_CASE)
     }
 }
