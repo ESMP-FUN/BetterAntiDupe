@@ -157,9 +157,12 @@ redis:
 # carpet sitting on it, which is the detach-mid-move trick every rail and
 # carpet duper is built around. Also covers the version where a moving slime
 # or honey block drags the rail or carpet off its side or underside.
-# Worth knowing: contraptions that pop carpets or rails off with pistons stop
-# working, and a slime flying machine will not move while pressed against a
-# rail or carpet. Both are legal in vanilla but rare outside dupers.
+# Worth knowing: while TNT dupers are also blocked below, contraptions that
+# pop carpets or rails off with pistons stop working, and a slime flying
+# machine will not move while pressed against a rail or carpet. Both are legal
+# in vanilla but rare outside dupers. Allowing TNT dupers below switches these
+# two settings to the gentler method described there, and those contraptions
+# keep working again.
 prevent-rail-dupers: true
 prevent-carpet-dupers: true
 
@@ -170,9 +173,11 @@ prevent-gravity-dupers: true
 
 # Pistons are not allowed to move TNT. Turn this off if your players run TNT
 # duper world eaters on purpose, as some anarchy and tech servers allow.
-# With this off, detector rails are left out of the rail check above, since
-# TNT dupers use a detector rail and minecart to power themselves. Other rails
-# and all carpets stay protected.
+# With this off, the rail and carpet settings above switch to a gentler method:
+# the piston is left alone so the machine keeps running, and the extra rail or
+# carpet is removed the moment it pops out. TNT duper world eaters carry a rail
+# and a minecart to work, so they keep running, they just stop handing out free
+# rails. Every kind of rail is covered, including detector rails.
 prevent-tnt-dupers: true
 
 # Close a container's window when the container itself goes away: a shulker

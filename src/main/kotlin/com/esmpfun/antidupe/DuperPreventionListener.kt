@@ -15,8 +15,10 @@ import org.bukkit.event.block.BlockPistonExtendEvent
 import org.bukkit.event.block.BlockPistonRetractEvent
 import org.bukkit.event.entity.EntityExplodeEvent
 import org.bukkit.event.entity.EntityPortalEvent
+import org.bukkit.event.entity.ItemSpawnEvent
 import org.bukkit.event.world.ChunkUnloadEvent
 import org.bukkit.inventory.InventoryHolder
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import java.util.logging.Logger
 
@@ -28,6 +30,11 @@ import java.util.logging.Logger
  * attached block in the same tick it moves its support, and the update order leaves both the
  * block and a dropped item. No inventory event fires, so the ledger only ever sees the later
  * pickup surplus; cancelling the piston movement removes the exploit at its root.
+ *
+ * With TNT dupers allowed the piston has to keep running, so the contraption is left alone and
+ * the duplicate rail or carpet is deleted as it drops instead. The rail in a TNT duper is only
+ * there to deliver a block update, and duped TNT arrives as an entity rather than a dropped
+ * item, so the TNT duper is unaffected while no rail of any kind can be duplicated.
  *
  * The cost, documented in config.yml: a piston can no longer move a block with a rail or carpet
  * on top (vanilla pops it off, which is the interaction being abused) or a TNT block while that
@@ -45,12 +52,12 @@ class DuperPreventionListener(
     // Contraptions clock piston dupers several times a second, so only one console line per 10s
     // window gets through. The counter is still bumped every time; only the log is throttled.
     private val lastLogAt = AtomicLong(0)
-    private fun logBlocked(reason: String, block: Block) {
+    private fun logBlocked(reason: String, block: Block, action: String = "Cancelled piston movement") {
         com.esmpfun.antidupe.metrics.DetectionCounters.recordPreventionBlock(counterKey(reason))
         val now = System.currentTimeMillis()
         val prev = lastLogAt.get()
         if (now - prev < 10_000 || !lastLogAt.compareAndSet(prev, now)) return
-        logger.info("[DuperPrevention] Cancelled piston movement ($reason) at " +
+        logger.info("[DuperPrevention] $action ($reason) at " +
             "${block.world.name},${block.x},${block.y},${block.z}")
     }
 
@@ -78,9 +85,36 @@ class DuperPreventionListener(
         BlockFace.DOWN, BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST
     )
 
-    // TNT dupers are powered by a detector rail and minecart riding on their slime, so with TNT
-    // dupers allowed a detector rail no longer counts as a rail duper.
-    private fun isTntDuperRail(b: Block) = !preventTnt && b.type == Material.DETECTOR_RAIL
+    // Positions where a piston just moved a rail or carpet, and the moment that mark expires.
+    // The duplicate item appears a couple of ticks after the piston event, once the moving block
+    // finishes and the game destroys what could not survive the trip.
+    private val dropSuppressUntil = ConcurrentHashMap<String, Long>()
+
+    private fun keyOf(world: String, x: Int, y: Int, z: Int) = "$world|$x|$y|$z"
+
+    private inline fun forEachRailCarpet(moved: List<Block>, action: (Block) -> Unit) {
+        if (!preventRail && !preventCarpet) return
+        for (block in moved) {
+            val above = block.getRelative(BlockFace.UP)
+            if (railCarpetVector(above.type) != null) action(above)
+            if (isSlimeLike(block.type)) {
+                for (face in slimeDragFaces) {
+                    val neighbor = block.getRelative(face)
+                    if (railCarpetVector(neighbor.type) != null) action(neighbor)
+                }
+            }
+        }
+    }
+
+    private fun markRailCarpetDrops(moved: List<Block>, headBlock: Block?) {
+        if (!preventRail && !preventCarpet) return
+        val now = System.currentTimeMillis()
+        if (dropSuppressUntil.size > 512) dropSuppressUntil.values.removeIf { it < now }
+        val expiry = now + 500
+        fun mark(b: Block) { dropSuppressUntil[keyOf(b.world.name, b.x, b.y, b.z)] = expiry }
+        forEachRailCarpet(moved) { mark(it) }
+        if (headBlock != null && railCarpetVector(headBlock.type) != null) mark(headBlock)
+    }
 
     /** A short reason string when this piston movement matches a duper signature, else null. */
     private fun dupeVector(moved: List<Block>): Pair<String, Block>? {
@@ -88,11 +122,10 @@ class DuperPreventionListener(
             val type = block.type
             if (preventTnt && type == Material.TNT) return "TNT duper" to block
             val above = block.getRelative(BlockFace.UP)
-            if (!isTntDuperRail(above)) railCarpetVector(above.type)?.let { return it to above }
+            railCarpetVector(above.type)?.let { return it to above }
             if ((preventRail || preventCarpet) && isSlimeLike(type)) {
                 for (face in slimeDragFaces) {
                     val neighbor = block.getRelative(face)
-                    if (isTntDuperRail(neighbor)) continue
                     railCarpetVector(neighbor.type)?.let { return it to neighbor }
                 }
             }
@@ -100,9 +133,34 @@ class DuperPreventionListener(
         return null
     }
 
+    /**
+     * Deletes the duplicate rail or carpet on its way out of a piston that was deliberately left
+     * running. Only fires while a mark from that piston is still fresh, so breaking a rail by
+     * hand is untouched.
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    fun onItemSpawn(event: ItemSpawnEvent) {
+        if (dropSuppressUntil.isEmpty()) return
+        val type = event.entity.itemStack.type
+        val reason = railCarpetVector(type) ?: return
+        val block = event.location.block
+        val now = System.currentTimeMillis()
+        for (dx in -1..1) for (dy in -1..1) for (dz in -1..1) {
+            val until = dropSuppressUntil[keyOf(block.world.name, block.x + dx, block.y + dy, block.z + dz)]
+            if (until == null || until < now) continue
+            event.isCancelled = true
+            logBlocked(reason, block, "Removed duplicated drop")
+            return
+        }
+    }
+
     // LOWEST so the cancellation is visible to every other plugin's handler.
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     fun onPistonExtend(event: BlockPistonExtendEvent) {
+        if (!preventTnt) {
+            markRailCarpetDrops(event.blocks, null)
+            return
+        }
         val vector = dupeVector(event.blocks) ?: return
         event.isCancelled = true
         logBlocked(vector.first, vector.second)
@@ -114,7 +172,11 @@ class DuperPreventionListener(
         // head block, which never appears in event.blocks, and a plain retract moves nothing at
         // all, yet pulling the arm back is exactly what dislodges and dupes it.
         val aboveHead = event.block.getRelative(event.direction).getRelative(BlockFace.UP)
-        if (!isTntDuperRail(aboveHead)) railCarpetVector(aboveHead.type)?.let { reason ->
+        if (!preventTnt) {
+            markRailCarpetDrops(event.blocks, aboveHead)
+            return
+        }
+        railCarpetVector(aboveHead.type)?.let { reason ->
             event.isCancelled = true
             logBlocked(reason, aboveHead)
             return

@@ -2,6 +2,11 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
+## [4.5.2] - 2026-09-20
+
+### Fixed
+- **Rail dupers no longer work when TNT dupers are allowed.** With `prevent-tnt-dupers` off, detector rails were skipped by the rail check entirely, so anyone could dupe detector rails on purpose. Now the piston is left alone so TNT duper world eaters keep running, and the duplicated rail or carpet is removed the moment it pops out instead. TNT duper world eaters are unaffected, they just stop handing out free rails. Every kind of rail is covered, including detector rails.
+
 ## [4.5.1] - 2026-09-19
 
 ### Changed
