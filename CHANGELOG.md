@@ -2,6 +2,11 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
+## [4.5.3] - Unreleased
+
+### Changed
+- **Smaller download.** The plugin carried its own copy of the database driver and the networking library, but every Paper and Spigot server already includes both, and the server's copy is always the one used. They are no longer included, so the file is about 7 MB smaller. Nothing changes in how the plugin works.
+
 ## [4.5.2] - 2026-09-20
 
 ### Fixed
