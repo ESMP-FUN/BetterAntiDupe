@@ -56,7 +56,9 @@ dependencies {
     // and must be listed here or the Redis backend dies with NoClassDefFoundError on enable.
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactive:1.11.0")
     implementation("io.lettuce:lettuce-core:7.7.0.RELEASE")
-    implementation("org.xerial:sqlite-jdbc:3.53.4.0")
+    // Every Paper and Spigot server ships sqlite-jdbc, and the plugin class loader asks the server
+    // first, so a shaded copy was never loaded. Compiled against the oldest bundled version.
+    compileOnly("org.xerial:sqlite-jdbc:3.49.1.0")
     implementation("org.json:json:20260814")
 
     // PluginPulse — update checking + verified install staging. Spigot-safe:
@@ -134,23 +136,12 @@ tasks.shadowJar {
     // Netty is deliberately NOT relocated. The packet tag stripper works against the server's
     // own Netty pipeline, so its types have to stay the ones the server loaded.
 
-    // SQLite native binaries — keep only platforms that realistically host
-    // a Paper / Spigot server. Saves ~13 MB of jar.
-    exclude("org/sqlite/native/Linux-Android/**")  // Minecraft server doesn't run on Android
-    exclude("org/sqlite/native/FreeBSD/**")        // vanishingly rare for MC hosting
-    exclude("org/sqlite/native/Linux/arm/**")      // 32-bit ARM, modern MC needs 64-bit
-    exclude("org/sqlite/native/Linux/armv6/**")
-    exclude("org/sqlite/native/Linux/armv7/**")
-    exclude("org/sqlite/native/Linux/x86/**")      // 32-bit Linux (glibc)
-    exclude("org/sqlite/native/Linux-Musl/x86/**") // 32-bit Linux (musl / Alpine)
-    exclude("org/sqlite/native/Linux/ppc64/**")    // PowerPC
-    // Linux/riscv64 appeared in sqlite-jdbc 3.53 and is deliberately KEPT (about 760 KB).
-    // RISC-V Linux boxes are rare for game hosting but they do exist, and dropping a platform
-    // means that server cannot start at all. Re-check this list whenever sqlite-jdbc is bumped:
-    // a platform added upstream is shipped silently unless someone looks.
-    exclude("org/sqlite/native/Windows/aarch64/**")
-    exclude("org/sqlite/native/Windows/armv7/**")
-    exclude("org/sqlite/native/Windows/x86/**")    // 32-bit Windows
+    // The server already provides Netty, and the plugin class loader asks the server first, so
+    // only the DNS modules Lettuce needs and the server lacks are ever loaded from this jar.
+    exclude {
+        it.path.startsWith("io/netty/") && !it.path.startsWith("io/netty/resolver/dns/") &&
+            !it.path.startsWith("io/netty/handler/codec/dns/")
+    }
 
     // Build / tooling artefacts that have no runtime purpose
     exclude("META-INF/com.android.tools/**")   // Android-specific tooling
