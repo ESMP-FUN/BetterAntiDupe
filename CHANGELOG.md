@@ -4,6 +4,10 @@ All notable changes to BetterAntiDupe will be documented in this file.
 
 ## [4.5.3] - Unreleased
 
+### Added
+- **`/adp ledger accept <player> <item> [amount]`.** Records items a player got legitimately (a reward or a shop) so they stop being flagged, and clears the alert.
+- **A hook for other plugins.** `BetterAntiDupe.recordGrant(player, material, amount, source)` declares items handed out outside normal play; Better End Cities uses it for elytras bought from frames.
+
 ### Changed
 - **Smaller download.** The plugin carried its own copy of the database driver and the networking library, but every Paper and Spigot server already includes both, and the server's copy is always the one used. They are no longer included, so the file is about 7 MB smaller. Nothing changes in how the plugin works.
 
