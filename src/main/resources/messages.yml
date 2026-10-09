@@ -87,6 +87,7 @@ commands:
     - "&e/adp ledger trust <player> &7- Trust score details"
     - "&e/adp ledger confirm <player> &7- Confirm a real duper (pins suspicion)"
     - "&e/adp ledger clear <player> &7- Mark a false positive (resets suspicion)"
+    - "&e/adp ledger accept <player> <item> [amount] &7- They got this item legitimately (a reward or a shop): record it, so it stops being flagged"
     - "&e/adp ledger verify &7- Verify chain integrity"
 
   status:
@@ -141,6 +142,9 @@ commands:
     world-not-found: "&cWorld not found: {world}"
     success: "&aTeleported to {world} {x}, {y}, {z}."
 
+  accept:
+    done: "&aRecorded &e{amount} {item}&a as legitimately owned by &e{player}&a and cleared their alert."
+    unknown-item: "&c'{item}' isn't an item. Use its Minecraft name, like elytra or diamond_block."
   verdict:
     confirmed: "&cConfirmed &e{player} &cas a duper. Suspicion pinned high."
     cleared: "&aCleared &e{player}&a (false positive). Suspicion reset."

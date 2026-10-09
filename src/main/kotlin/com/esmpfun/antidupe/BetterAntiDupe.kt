@@ -127,6 +127,19 @@ class BetterAntiDupe : JavaPlugin() {
         }
     }
 
+    /**
+     * For other plugins: declares that [amount] of [material] was handed to [player] outside
+     * normal play (a reward, a shop), so the ledger expects it. Safe to call from any thread.
+     */
+    fun recordGrant(player: java.util.UUID, material: org.bukkit.Material, amount: Int, source: String) {
+        val coc = chainOfCustody ?: return
+        if (!::pluginScope.isInitialized) return
+        pluginScope.launch {
+            runCatching { coc.recordSystemGrant(player, material, amount, source) }
+                .onFailure { logger.warning("Could not record a grant from $source: ${it.message}") }
+        }
+    }
+
     override fun onDisable() {
         logger.info("=== BetterAntiDupe shutting down ===")
         try {

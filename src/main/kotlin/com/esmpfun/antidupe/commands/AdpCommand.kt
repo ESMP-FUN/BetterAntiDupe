@@ -100,12 +100,12 @@ class AdpCommand(
             if (!sender.hasPermission("antidupe.ledger") || chainOfCustody == null) return emptyList()
             return when (args.size) {
                 2 -> listOf("status", "balance", "history", "witness", "suspects", "stash",
-                            "reconcile", "remove", "trust", "confirm", "clear", "verify", "help")
+                            "reconcile", "remove", "trust", "confirm", "clear", "accept", "verify", "help")
                     .filter { it.startsWith(args[1].lowercase()) }
                 3 -> when (args[1].lowercase()) {
                     // reconcile needs the player online; the rest accept offline names too.
                     "reconcile", "remove" -> onlineNames(args[2])
-                    "balance", "history", "witness", "trust", "stash", "confirm", "clear" ->
+                    "balance", "history", "witness", "trust", "stash", "confirm", "clear", "accept" ->
                         suspectAndOnlineNames(args[2])
                     else -> emptyList()
                 }
@@ -170,6 +170,8 @@ class AdpCommand(
                          else ledgerVerdict(sender, coc, args[1], confirm = true)
             "clear" -> if (args.size < 2) usage(sender, "/adp ledger clear <player>")
                        else ledgerVerdict(sender, coc, args[1], confirm = false)
+            "accept" -> if (args.size < 3) usage(sender, "/adp ledger accept <player> <item> [amount]")
+                        else ledgerAccept(sender, coc, args[1], args[2], args.getOrNull(3))
             "reconcile" -> if (args.size < 2) usage(sender, "/adp ledger reconcile <player>")
                            else ledgerReconcile(sender, coc, args[1])
             "remove" -> if (args.size < 2) usage(sender, "/adp ledger remove <player>")
@@ -402,6 +404,25 @@ class AdpCommand(
             } else {
                 coc.clearVerdict(uuid)
                 sender.sendMessage(Messages.msg("commands.verdict.cleared", "player" to playerName))
+            }
+        }
+    }
+
+    /** Records items the player got legitimately (a reward, a shop) and clears the alert they caused. */
+    private fun ledgerAccept(sender: CommandSender, coc: ChainOfCustody, playerName: String, itemName: String, amountText: String?) {
+        val material = org.bukkit.Material.matchMaterial(itemName)
+        if (material == null || !material.isItem) {
+            sender.sendMessage(Messages.msg("commands.accept.unknown-item", "item" to itemName)); return
+        }
+        val amount = amountText?.toIntOrNull()?.takeIf { it > 0 } ?: 1
+        resolvePlayer(playerName, sender) { uuid ->
+            launchReplying(sender) {
+                coc.recordSystemGrant(uuid, material, amount, "accepted by ${sender.name}")
+                coc.clearVerdict(uuid)
+                scheduler.runMain(Runnable {
+                    sender.sendMessage(Messages.msg("commands.accept.done",
+                        "player" to playerName, "amount" to amount, "item" to material.key.key))
+                })
             }
         }
     }
