@@ -2,7 +2,7 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
-## [4.5.3] - Unreleased
+## [4.5.3] - 2026-10-12
 
 ### Added
 - **`/adp ledger accept <player> <item> [amount]`.** Records items a player got legitimately (a reward or a shop) so they stop being flagged, and clears the alert.
