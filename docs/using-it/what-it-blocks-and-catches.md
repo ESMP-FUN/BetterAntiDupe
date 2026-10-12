@@ -89,6 +89,16 @@ The plugin puts it all back the moment it happens: the container keeps its items
 
 <details>
 
+<summary><strong>Faked owner marks</strong> (<code>ownership.signed_marks</code>)</summary>
+
+Every mark the plugin puts on an item is signed with a secret only your server knows. Someone could still make an item with a mark by hand, in creative mode, with an item editor or a command, for example to make it look like another player's. That mark does not match the signature, so it is ignored: the item counts as unmarked and changes nobody's record.
+
+Staff get an alert when someone holds an item with a faked mark. The holder may have been handed it, so it adds no suspicion and removes nothing.
+
+</details>
+
+<details>
+
 <summary><strong>Carrying more than they earned</strong></summary>
 
 The plugin records every tracked item a player mines, crafts, trades for, picks up or takes out of a container, and every one they place, drop, use or put away. Every so often it counts what they actually carry, including inside shulker boxes and bundles. Carrying more than the record explains is the alert.

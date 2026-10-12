@@ -161,6 +161,16 @@ Another plugin blocked a placement, usually the last eye of ender in an end port
 
 <details>
 
+<summary><strong>"... with a fake owner mark claiming to belong to ..." (FORGED_MARK)</strong></summary>
+
+Someone holds an item whose owner mark was made by hand, in creative mode, with an item editor or a command. Normal play cannot make one. The item already counts as unmarked, so nothing was gained from it.
+
+The player holding it may have been handed it. Ask who gave it to them, check who has creative mode or item-editing commands, and look at their history (step 3).
+
+</details>
+
+<details>
+
 <summary><strong>"Left creative mode carrying ... more ... than their record showed"</strong></summary>
 
 You set `leaving_creative_mode: ALERT`, and someone switched out of creative mode carrying more than their record showed. Items can be made in creative, so this is not proof of a dupe. It adds no suspicion and removes nothing. Check who gave them creative mode, and their history (step 3).

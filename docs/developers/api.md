@@ -145,5 +145,6 @@ With `auto_delete_dupes` on, `DupeRemovalEvent` fires on the player's thread jus
 
 * Methods that read the records return a `CompletableFuture`, which completes off the main thread. Hop back to the main thread before touching the world.
 * `api.isTracking()` is false when item tracking could not start. The protections still run, and the record methods do nothing.
+* `owner()` only returns owners the server trusts. `ownership().state(stack)` (API level 2) tells a signed mark from an old unsigned one, a faked one, or one signed by another server.
 * `BetterAntiDupeApi.API_LEVEL` goes up whenever the API gains something. Compare it with `api.apiLevel()` before using anything newer than the version you built against.
 * New alert kinds and protections may be added later, so keep a `default` branch when you switch on them.

@@ -131,6 +131,22 @@ Check these in order:
 
 <details>
 
+<summary><strong>The console says some items carry owner marks "signed with a key this server does not have"</strong></summary>
+
+**What it means:** the items came from another server, usually through an inventory sync plugin, and that server signs marks with its own secret. Until this server has the same secret, those items count as unmarked. Nobody is flagged for it.
+
+**What to do:**
+
+1. Copy `plugins/BetterAntiDupe/mark-signing.key` from the server the items come from.
+2. Put it in the same place on this server, replacing the one there.
+3. Restart. Do the same on every server that shares items.
+
+Servers that share a Redis database do this by themselves.
+
+</details>
+
+<details>
+
 <summary><strong>The console says "The server sends item data in a way this version does not recognise"</strong></summary>
 
 **What it means:** a server update changed how item data is sent to players, and the plugin cannot hide its ownership mark in that part yet. Players with a mod that shows hidden item data might see the mark there. Detection is not affected.

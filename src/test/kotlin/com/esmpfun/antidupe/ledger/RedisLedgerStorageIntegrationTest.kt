@@ -56,6 +56,16 @@ class RedisLedgerStorageIntegrationTest {
     }
 
     @Test
+    fun `servers sharing Redis agree on one mark signing key`() = runBlocking {
+        val a = newStore()
+        val b = newStore()
+        val first = a.sharedSecret("mark-signing-key", "from-a")
+        val second = b.sharedSecret("mark-signing-key", "from-b")
+        assertEquals("from-a", first)
+        assertEquals("from-a", second)
+    }
+
+    @Test
     fun `world stock is shared between servers and can be reset`() = runBlocking {
         val serverA = newStore()
         val serverB = newStore()

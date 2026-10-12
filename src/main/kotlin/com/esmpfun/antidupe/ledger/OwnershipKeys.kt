@@ -16,13 +16,18 @@ class OwnershipKeys(
     val primary: NamespacedKey,
     val legacy: List<NamespacedKey>,
 ) {
-    val allQualified: List<String> get() = (listOf(primary) + legacy).map { it.toString() }
+    /** Every key the stripper must hide: owner marks and their signatures. */
+    val allQualified: List<String> get() = (listOf(primary) + legacy).flatMap { listOf(it, signatureKeyFor(it)) }.map { it.toString() }
 
     /** Never whitelist these in strict strip mode: the tag would reach the client. */
     val protectedNamespaces: Set<String> get() = (listOf(primary) + legacy).map { it.namespace }.toSet()
 
     companion object {
         private const val MARKER_FILE = "ownership-key"
+
+        /** The signature of a mark stored under [key] sits beside it, under the same name plus "_sig". */
+        fun signatureKeyFor(key: NamespacedKey): NamespacedKey =
+            NamespacedKey.fromString("${key.namespace}:${key.key}_sig") ?: key
 
         fun resolve(plugin: JavaPlugin, logger: Logger): OwnershipKeys {
             val cfg = plugin.config

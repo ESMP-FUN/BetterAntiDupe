@@ -23,5 +23,7 @@ public enum AlertKind {
     /** Acted in the world while their game hid a menu the server still had open. */
     HIDDEN_MENU,
     /** A blocked placement would have copied a container and its contents. */
-    REVERTED_PLACEMENT
+    REVERTED_PLACEMENT,
+    /** Holding an item whose owner mark was faked, for example in creative mode or with an item editor. */
+    FORGED_MARK
 }

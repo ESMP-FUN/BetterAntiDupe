@@ -7,6 +7,8 @@ import com.esmpfun.antidupe.api.OwnershipMarks
 import com.esmpfun.antidupe.api.Suspects
 import com.esmpfun.antidupe.api.model.CheckResult
 import com.esmpfun.antidupe.api.model.Discrepancy
+import com.esmpfun.antidupe.api.model.MarkState
+import com.esmpfun.antidupe.ledger.OwnershipManager
 import com.esmpfun.antidupe.api.model.SuspectInfo
 import com.esmpfun.antidupe.ledger.ReconciliationResult
 import kotlinx.coroutines.CoroutineScope
@@ -82,6 +84,17 @@ class ApiImplementation(
     override fun owner(stack: ItemStack): Optional<UUID> = Optional.ofNullable(coc?.ownershipManager?.getOwner(stack))
 
     override fun isMarked(stack: ItemStack): Boolean = owner(stack).isPresent
+
+    override fun state(stack: ItemStack): MarkState {
+        val mark = coc?.ownershipManager?.readMark(stack) ?: return MarkState.NONE
+        return when (mark.state) {
+            OwnershipManager.MarkState.NONE -> MarkState.NONE
+            OwnershipManager.MarkState.SIGNED -> MarkState.SIGNED
+            OwnershipManager.MarkState.UNSIGNED -> MarkState.UNSIGNED
+            OwnershipManager.MarkState.FORGED -> MarkState.FORGED
+            OwnershipManager.MarkState.OTHER_KEY -> MarkState.OTHER_KEY
+        }
+    }
 
     override fun strip(stack: ItemStack) {
         coc?.ownershipManager?.clearOwnerDeep(stack)

@@ -33,6 +33,7 @@ class RedisLedgerStorage internal constructor(
 
     companion object {
         private const val KEY_ENTRY = "ledger:entry:"
+        private const val KEY_SECRET = "ledger:secret:"
         private const val KEY_PLAYER_ENTRIES = "ledger:player:"   // {uuid}:entries (ZSET by ts), {uuid}:chain (LIST insertion order)
         private const val KEY_GLOBAL_TIP = "ledger:tip"            // display only, last-write-wins
         private const val KEY_PLAYER_TIP = "ledger:tip:"           // {uuid} -> per-player chain tip
@@ -79,6 +80,12 @@ class RedisLedgerStorage internal constructor(
 
     override suspend fun claimBaseline(player: UUID): Boolean =
         redis.set(KEY_BASELINE_CLAIM + player, "1", SetArgs().nx().ex(BASELINE_CLAIM_SECONDS)) == "OK"
+
+    override suspend fun sharedSecret(name: String, candidate: String): String {
+        val key = KEY_SECRET + name
+        redis.set(key, candidate, SetArgs().nx())
+        return redis.get(key) ?: candidate
+    }
 
     override fun close() {
         try { connection.close() } catch (e: Exception) { logger.warning("[Ledger] connection close: ${e.message}") }

@@ -177,6 +177,38 @@ Renaming is safe. The old name is remembered in `legacy_keys` automatically, ite
 
 </details>
 
+<details>
+
+<summary><code>ownership.signed_marks</code></summary>
+
+**Default:** `true`
+
+Every mark is signed with a secret only your server knows. A mark made anywhere else (creative mode, an item editor, a `/give` command) does not match, so it is ignored and nobody can fake a mark to frame another player. Staff get an alert when someone holds a faked one.
+
+The secret is made on the first start, in `plugins/BetterAntiDupe/mark-signing.key`.
+
+* Keep that file private, and never delete it. Marks signed with a lost secret stop counting.
+* If this server shares items with others, for example through an inventory sync plugin, copy the file to each of them and restart.
+* Servers that share a Redis database share the secret by themselves.
+
+</details>
+
+<details>
+
+<summary><code>ownership.unsigned_marks</code></summary>
+
+**Default:** `AUTO`
+
+What to do with marks made before signing was switched on, which carry no signature.
+
+* `AUTO`: trusted on a server that used this plugin before, and signed as players carry those items. Not trusted on a brand-new server, where an unsigned mark can only have been made by hand.
+* `ACCEPT`: always trusted, and signed as players carry them.
+* `IGNORE`: never trusted. Items with an old mark count as unmarked until they change hands.
+
+After upgrading, check `/adp marks` now and then. Once hardly any old marks are being signed, switch to `IGNORE` so nobody can fake a mark by leaving the signature off.
+
+</details>
+
 ## Console and statistics
 
 <details>

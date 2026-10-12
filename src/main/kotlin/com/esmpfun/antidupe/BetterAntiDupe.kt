@@ -377,7 +377,9 @@ class BetterAntiDupe : JavaPlugin() {
                     hopperMode = hopperMode,
                     blockCollectToCursor = blockCollect,
                     sweepIntervalMinutes = sweepIntervalMinutes,
-                    sweepStaggerMs = sweepStaggerMs
+                    sweepStaggerMs = sweepStaggerMs,
+                    signedMarks = config.getBoolean("ownership.signed_marks", true),
+                    unsignedMarks = config.getString("ownership.unsigned_marks", "AUTO") ?: "AUTO"
                 )
             }
 
@@ -688,7 +690,7 @@ class BetterAntiDupe : JavaPlugin() {
             // a rename are concealed too, so un-migrated items don't leak.
             val keys = ownershipKeys
             val namespace = keys?.primary?.namespace ?: name.lowercase()
-            val qualified = keys?.allQualified ?: listOf("$namespace:adp_owner")
+            val qualified = keys?.allQualified ?: listOf("$namespace:adp_owner", "$namespace:adp_owner_sig")
 
             val stripAll = config.getBoolean("strip_all_custom_data", false)
             val whitelist = config.getStringList("strip_whitelist")

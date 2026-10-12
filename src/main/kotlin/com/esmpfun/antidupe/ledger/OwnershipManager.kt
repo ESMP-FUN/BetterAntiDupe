@@ -14,50 +14,196 @@ import java.util.UUID
 /**
  * Tags items with the current owner's UUID and nothing else. A per-item UUID would stop
  * same-owner stacks merging, so ownership history lives in the ledger rather than in NBT.
+ *
+ * With a [signer], every mark carries a signature beside it, and a mark whose signature does not
+ * verify is not trusted: it reads as no owner at all, so a faked mark changes no one's record.
  */
 class OwnershipManager(
     private val plugin: Plugin,
     primaryKey: NamespacedKey? = null,
     legacyKeys: List<NamespacedKey> = emptyList(),
+    private val signer: MarkSigner? = null,
+    private val acceptUnsigned: Boolean = true,
 ) {
 
     private companion object {
         private const val MAX_RECURSION_DEPTH = 10
+        private val NO_MARK = Mark(MarkState.NONE, null, null)
     }
+
+    enum class MarkState { NONE, SIGNED, UNSIGNED, FORGED, OTHER_KEY }
+
+    /** [claimed] is whoever the mark names; [trusted] is that owner only when the mark is believed. */
+    class Mark(val state: MarkState, val claimed: UUID?, val trusted: UUID?, val outdated: Boolean = false)
 
     private val ownerKey = primaryKey ?: NamespacedKey("antidupepro", "adp_owner")
 
     /** Older keys still recognized on read; rewritten to [ownerKey] on the next write. */
     private val legacyOwnerKeys = legacyKeys.filter { it != ownerKey }
 
-    fun getOwner(item: ItemStack): UUID? {
-        val meta = item.itemMeta ?: return null
-        val pdc = meta.persistentDataContainer
-        val ownerStr = pdc.get(ownerKey, PersistentDataType.STRING)
-            ?: legacyOwnerKeys.firstNotNullOfOrNull { pdc.get(it, PersistentDataType.STRING) }
-        return ownerStr?.let {
-            try {
-                UUID.fromString(it)
-            } catch (e: IllegalArgumentException) {
-                null
+    private val ownerSigKey = OwnershipKeys.signatureKeyFor(ownerKey)
+    private val legacySigKeys = legacyOwnerKeys.map { OwnershipKeys.signatureKeyFor(it) }
+
+    val signing: Boolean get() = signer != null
+    val signingKeyId: String? get() = signer?.currentKeyId
+    val previousSigningKeys: Int get() = signer?.previousKeyCount ?: 0
+    val trustsUnsigned: Boolean get() = signer == null || acceptUnsigned
+
+    /** A faked mark is about to be replaced: (the player it now goes to, who the mark claimed, the item). */
+    @Volatile var onForgedMark: ((UUID, UUID, ItemStack) -> Unit)? = null
+
+    /** A mark signed with a key this server does not have; usually a missing copy of the key file. */
+    @Volatile var onOtherKey: (() -> Unit)? = null
+
+    val resigned = java.util.concurrent.atomic.AtomicLong()
+    /** Stacks with a fake mark that staff were told about. */
+    val forgedReported = java.util.concurrent.atomic.AtomicLong()
+
+    fun readMark(item: ItemStack): Mark {
+        val meta = item.itemMeta ?: return NO_MARK
+        return readMark(meta.persistentDataContainer)
+    }
+
+    private fun readMark(pdc: org.bukkit.persistence.PersistentDataContainer): Mark {
+        var raw = pdc.get(ownerKey, PersistentDataType.STRING)
+        var sigKey = ownerSigKey
+        if (raw == null) {
+            for ((i, key) in legacyOwnerKeys.withIndex()) {
+                raw = pdc.get(key, PersistentDataType.STRING) ?: continue
+                sigKey = legacySigKeys[i]
+                break
+            }
+        }
+        if (raw == null) return NO_MARK
+        val owner = try { UUID.fromString(raw) } catch (e: IllegalArgumentException) { return NO_MARK }
+        val signer = signer ?: return Mark(MarkState.SIGNED, owner, owner)
+        val signature = pdc.get(sigKey, PersistentDataType.STRING)
+            ?: return Mark(MarkState.UNSIGNED, owner, if (acceptUnsigned) owner else null)
+        return when (signer.verify(owner, signature)) {
+            MarkSigner.Verdict.VALID -> Mark(MarkState.SIGNED, owner, owner, signer.isOutdated(signature))
+            MarkSigner.Verdict.FORGED -> Mark(MarkState.FORGED, owner, null)
+            MarkSigner.Verdict.OTHER_KEY -> {
+                onOtherKey?.invoke()
+                Mark(MarkState.OTHER_KEY, owner, null)
             }
         }
     }
 
+    fun getOwner(item: ItemStack): UUID? = readMark(item).trusted
+
     fun setOwner(item: ItemStack, owner: UUID) {
         val meta = item.itemMeta ?: return
         val pdc = meta.persistentDataContainer
-        pdc.set(ownerKey, PersistentDataType.STRING, owner.toString())
-        for (legacy in legacyOwnerKeys) pdc.remove(legacy)
+        if (signer != null) {
+            val previous = readMark(pdc)
+            if (previous.state == MarkState.FORGED && previous.claimed != null) {
+                onForgedMark?.invoke(owner, previous.claimed, item.clone())
+            }
+        }
+        writeMark(pdc, owner)
         item.itemMeta = meta
+    }
+
+    private fun writeMark(pdc: org.bukkit.persistence.PersistentDataContainer, owner: UUID) {
+        pdc.set(ownerKey, PersistentDataType.STRING, owner.toString())
+        val signer = signer
+        if (signer != null) pdc.set(ownerSigKey, PersistentDataType.STRING, signer.sign(owner))
+        else pdc.remove(ownerSigKey)
+        for (legacy in legacyOwnerKeys) pdc.remove(legacy)
+        for (legacy in legacySigKeys) pdc.remove(legacy)
     }
 
     fun clearOwner(item: ItemStack) {
         val meta = item.itemMeta ?: return
         val pdc = meta.persistentDataContainer
         pdc.remove(ownerKey)
+        pdc.remove(ownerSigKey)
         for (legacy in legacyOwnerKeys) pdc.remove(legacy)
+        for (legacy in legacySigKeys) pdc.remove(legacy)
         item.itemMeta = meta
+    }
+
+    /**
+     * Signs the trusted but unsigned or outdated marks of [owner]'s own items in their inventory,
+     * nested ones included, so older marks catch up without anyone moving them. Only the holder's
+     * own marks: signing someone else's unsigned mark would vouch for a mark nobody checked.
+     * Must run on the player's thread.
+     */
+    fun signOwnMarks(player: Player): Int {
+        if (signer == null) return 0
+        val inventory = player.inventory
+        var count = 0
+        for (slot in 0 until inventory.size) {
+            val item = inventory.getItem(slot) ?: continue
+            val signed = signOwnMarks(item, player.uniqueId, 0)
+            if (signed > 0) {
+                inventory.setItem(slot, item)
+                count += signed
+            }
+        }
+        if (count > 0) resigned.addAndGet(count.toLong())
+        return count
+    }
+
+    private fun signOwnMarks(holder: ItemStack, owner: UUID, depth: Int): Int {
+        if (depth >= MAX_RECURSION_DEPTH || holder.type == Material.AIR) return 0
+        val meta = holder.itemMeta ?: return 0
+        var count = 0
+        val mark = readMark(meta.persistentDataContainer)
+        if (mark.trusted == owner && (mark.state == MarkState.UNSIGNED || mark.outdated)) {
+            writeMark(meta.persistentDataContainer, owner)
+            count++
+        }
+        if (meta is BlockStateMeta && meta.hasBlockState()) {
+            val state = meta.blockState
+            if (state is Container) {
+                val inv = state.inventory
+                var changed = false
+                for (slot in 0 until inv.size) {
+                    val inner = inv.getItem(slot) ?: continue
+                    val n = signOwnMarks(inner, owner, depth + 1)
+                    if (n > 0) { inv.setItem(slot, inner); count += n; changed = true }
+                }
+                if (changed) meta.blockState = state
+            }
+        }
+        if (meta is BundleMeta) {
+            val items = meta.items.map { it.clone() }
+            var changed = false
+            for (inner in items) {
+                val n = signOwnMarks(inner, owner, depth + 1)
+                if (n > 0) { count += n; changed = true }
+            }
+            if (changed) meta.setItems(items)
+        }
+        if (count > 0) holder.itemMeta = meta
+        SulfurCubeAccess.absorbedItem(holder)?.let { inner ->
+            val n = signOwnMarks(inner, owner, depth + 1)
+            if (n > 0 && SulfurCubeAccess.setAbsorbedItem(holder, inner)) count += n
+        }
+        return count
+    }
+
+    /** Faked marks anywhere in [player]'s inventory, nested ones included. */
+    fun findForgedDeep(player: Player): List<ForgedMark> {
+        if (signer == null) return emptyList()
+        val found = ArrayList<ForgedMark>()
+        for (item in player.inventory.contents) collectForged(item, found, 0)
+        return found
+    }
+
+    private fun collectForged(stack: ItemStack?, found: MutableList<ForgedMark>, depth: Int) {
+        if (stack == null || stack.type == Material.AIR || depth >= MAX_RECURSION_DEPTH) return
+        val meta = stack.itemMeta ?: return
+        val mark = readMark(meta.persistentDataContainer)
+        if (mark.state == MarkState.FORGED && mark.claimed != null) {
+            found.add(ForgedMark(stack.type, stack.amount, mark.claimed))
+        }
+        if (meta is BlockStateMeta && meta.hasBlockState()) {
+            (meta.blockState as? Container)?.inventory?.contents?.forEach { collectForged(it, found, depth + 1) }
+        }
+        if (meta is BundleMeta) meta.items.forEach { collectForged(it, found, depth + 1) }
+        SulfurCubeAccess.absorbedItem(stack)?.let { collectForged(it, found, depth + 1) }
     }
 
     fun isTracked(item: ItemStack): Boolean {
@@ -181,7 +327,8 @@ class OwnershipManager(
     fun clearOwnerDeep(holder: ItemStack, depth: Int = 0): Boolean {
         if (depth >= MAX_RECURSION_DEPTH || holder.type == Material.AIR) return false
         var changed = false
-        if (getOwner(holder) != null) {
+        // Any mark, trusted or not: a faked one has no owner but still has to go.
+        if (readMark(holder).state != MarkState.NONE) {
             clearOwner(holder)
             changed = true
         }
@@ -453,6 +600,8 @@ class OwnershipManager(
         return foreign
     }
 }
+
+data class ForgedMark(val material: Material, val amount: Int, val claimedOwner: UUID)
 
 data class ForeignItem(
     val slot: Int,

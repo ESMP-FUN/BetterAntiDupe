@@ -69,6 +69,7 @@ class AdpCommand(
                 }
             }
             "reload" -> if (requireAdmin(sender)) reload(sender)
+            "marks" -> if (requireAdmin(sender)) showMarks(sender)
             "test" -> if (requireAdmin(sender)) {
                 if (args.size < 2 || args[1].equals("alert", ignoreCase = true)) onTestAlert?.invoke(sender)
                 else usage(sender, "/adp test alert")
@@ -83,7 +84,7 @@ class AdpCommand(
         if (args.size == 1) {
             val subs = mutableListOf<String>()
             if (sender.hasPermission("antidupe.ledger") && chainOfCustody != null) subs.add("ledger")
-            if (sender.hasPermission("antidupe.admin")) subs.addAll(listOf("reload", "test", "update"))
+            if (sender.hasPermission("antidupe.admin")) subs.addAll(listOf("marks", "reload", "test", "update"))
             subs.add("help")
             return subs.filter { it.startsWith(args[0].lowercase()) }
         }
@@ -142,6 +143,18 @@ class AdpCommand(
         }
         sender.sendMessage(Messages.msg("commands.help.user-line"))
         sender.sendMessage(Messages.msg("commands.help.header"))
+    }
+
+    private fun showMarks(sender: CommandSender) {
+        val marks = chainOfCustody?.ownershipManager ?: run {
+            sender.sendMessage(Messages.msg("commands.not-initialized")); return
+        }
+        if (!marks.signing) { sender.sendMessage(Messages.msg("commands.marks.off")); return }
+        sender.sendMessage(Messages.msg("commands.marks.header"))
+        sender.sendMessage(Messages.msg("commands.marks.key", "key" to marks.signingKeyId, "previous" to marks.previousSigningKeys))
+        sender.sendMessage(Messages.msg(if (marks.trustsUnsigned) "commands.marks.unsigned-trusted" else "commands.marks.unsigned-ignored"))
+        sender.sendMessage(Messages.msg("commands.marks.resigned", "count" to marks.resigned.get()))
+        sender.sendMessage(Messages.msg("commands.marks.forged", "count" to marks.forgedReported.get()))
     }
 
     private fun usage(sender: CommandSender, usage: String) =

@@ -8,7 +8,15 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Logger
 
 /** Testing only: everything is lost on restart. */
-class MemoryLedgerStorage(logger: Logger) : LedgerStorage(logger) {
+/** With [sharedSecrets], behaves like a backend several servers share. */
+class MemoryLedgerStorage(
+    logger: Logger,
+    private val sharedSecrets: java.util.concurrent.ConcurrentHashMap<String, String>? = null
+) : LedgerStorage(logger) {
+
+    override suspend fun sharedSecret(name: String, candidate: String): String =
+        sharedSecrets?.putIfAbsent(name, candidate) ?: candidate
+
 
     private val entries = ConcurrentHashMap<UUID, LedgerEntry>()
     private val byPlayer = ConcurrentHashMap<UUID, MutableList<LedgerEntry>>()

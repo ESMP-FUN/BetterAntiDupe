@@ -298,6 +298,26 @@ ownership:
   # Only add entries by hand if you renamed more than once and skipped a version.
   legacy_keys: []
 
+  # Sign every mark with a secret only this server knows. A mark made anywhere
+  # else, for example in creative mode, with an item editor or with a /give
+  # command, then does not match and is ignored, so nobody can fake a mark to
+  # frame another player. Staff get an alert when someone holds a faked one.
+  # The secret is made on first start in plugins/BetterAntiDupe/mark-signing.key.
+  # Keep that file private and never delete it. If this server shares items
+  # with others (for example through an inventory sync plugin), copy the file
+  # to each of them. Servers that share a Redis database share it by themselves.
+  signed_marks: true
+
+  # Marks made before signing was switched on carry no signature. One of:
+  #   AUTO   - trusted on a server that used this plugin before, and signed as
+  #            players carry those items. Not trusted on a brand-new server,
+  #            where an unsigned mark can only have been made by hand.
+  #   ACCEPT - always trusted, and signed as players carry them.
+  #   IGNORE - never trusted. Items with an old mark count as unmarked until
+  #            they change hands. Switch to this a few weeks after upgrading,
+  #            once /adp marks shows hardly any old marks being signed.
+  unsigned_marks: AUTO
+
 
 # =============================================================================
 # [Advanced] - Tuning, logging and statistics

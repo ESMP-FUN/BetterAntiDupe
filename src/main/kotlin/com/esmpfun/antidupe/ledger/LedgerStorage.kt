@@ -110,6 +110,12 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
      */
     open suspend fun claimBaseline(player: UUID): Boolean = true
 
+    /**
+     * A secret every server on this backend must share. Stores [candidate] when none exists yet
+     * and returns whichever one is stored. A local backend has nobody to share with.
+     */
+    open suspend fun sharedSecret(name: String, candidate: String): String = candidate
+
     private val worldStockFallback = ConcurrentHashMap<Pair<UUID, Material>, AtomicInteger>()
 
     /**

@@ -51,6 +51,9 @@ alerts:
   # A plugin blocked a placement that had already spilled a chest's contents (the last eye of
   # ender over a chest in an end portal is the known case). Can happen to an innocent player.
   reverted-placement: "A blocked placement at {where} would have copied a {material} and its contents ({count} item(s) in all). The copies were removed and the {material} keeps its contents."
+  # Someone holds an item whose owner mark was faked: made in creative mode, with an item editor or a
+  # command, never by normal play. The item counts as unmarked. {owner} is who the fake mark names.
+  forged-mark: "{amount} {material} with a fake owner mark claiming to belong to {owner}. Marks like that are made outside normal play, for example in creative mode or with an item editor. The item counts as unmarked."
   # The details text of the alert sent by /adp test alert.
   test: "This is a test alert. Nothing happened and nobody is suspected."
   # Clickable buttons after an alert, shown only to staff who can use the ledger commands.
@@ -87,6 +90,7 @@ commands:
       - "&e/adp ledger trust <player> &7- Trust score"
       - "&e/adp ledger verify &7- Verify chain integrity"
     admin-only-lines:
+      - "&e/adp marks &7- How owner mark signing is doing"
       - "&e/adp reload &7- Reload messages, alerts and removal settings"
       - "&e/adp test alert &7- Send a test alert to chat and your channels"
     user-line: "&e/adp help &7- Show this help message"
@@ -190,6 +194,15 @@ commands:
     done: "&aReloaded messages, alerts and removal settings."
     restart-needed: "&eThese changes only take effect after a restart: &f{settings}"
     failed: "&cReload failed: {error}. Check the console."
+
+  marks:
+    off: "&7Owner marks are not signed. Turn on &fownership.signed_marks&7 in config.yml to sign them."
+    header: "&6&lOwner mark signing"
+    key: "&7Signing key: &f{key}&7, plus {previous} older key(s) still accepted"
+    unsigned-trusted: "&7Marks from before signing: &atrusted&7, and signed as players carry them"
+    unsigned-ignored: "&7Marks from before signing: &cnot trusted"
+    resigned: "&7Old marks signed since the last start: &f{count}"
+    forged: "&7Items with a fake mark reported to staff since the last start: &f{count}"
 
   test:
     no-channels: "&7No Discord, Telegram, Slack or webhook is turned on, so the test only went to chat."

@@ -33,6 +33,7 @@ Not sure how these fit together? [When an alert comes in](../using-it/when-an-al
 
 | Command               | What it does |
 | --------------------- | ------------ |
+| `/adp marks`           | How owner mark signing is doing: the key in use, whether old marks are trusted, and how many were signed or found faked since the last start |
 | `/adp reload`          | Apply changes to `messages.yml`, alerts and removal settings without a restart. It tells you if anything you changed still needs one. |
 | `/adp test alert`      | Send a test alert to your chat and to every Discord, Telegram, Slack or webhook you turned on |
 | `/adp update check`    | See whether a newer version is out |

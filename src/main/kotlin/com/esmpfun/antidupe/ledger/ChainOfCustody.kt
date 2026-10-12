@@ -56,13 +56,30 @@ class ChainOfCustody private constructor(
             hopperMode: LedgerEventHandler.HopperMode = LedgerEventHandler.HopperMode.LOG,
             blockCollectToCursor: Boolean = false,
             sweepIntervalMinutes: Int = 15,
-            sweepStaggerMs: Long = 250L
+            sweepStaggerMs: Long = 250L,
+            signedMarks: Boolean = true,
+            unsignedMarks: String = "AUTO"
         ): ChainOfCustody {
+            val keyring = if (signedMarks) MarkKeyring.load(plugin.dataFolder, ledgerStorage, logger) else null
+            val acceptUnsigned = when (unsignedMarks.uppercase()) {
+                "ACCEPT" -> true
+                "IGNORE" -> false
+                else -> keyring?.legacyMarks != MarkKeyFile.LegacyMarks.IGNORE
+            }
             val ownershipManager = OwnershipManager(
                 plugin,
                 primaryKey = ownershipKeys?.primary,
-                legacyKeys = ownershipKeys?.legacy ?: emptyList()
+                legacyKeys = ownershipKeys?.legacy ?: emptyList(),
+                signer = keyring?.signer,
+                acceptUnsigned = acceptUnsigned
             )
+            if (keyring != null) {
+                logger.info("[Marks] Owner marks are signed (key ${keyring.signer.currentKeyId})" +
+                    (if (keyring.created) ", new key made in mark-signing.key" else "") +
+                    (if (keyring.adopted) ", using the key shared through the database" else "") + ". " +
+                    if (acceptUnsigned) "Marks from before signing are still trusted and get signed as players carry them."
+                    else "Marks without a signature are not trusted.")
+            }
             val witnessManager = WitnessManager(plugin, witnessRadius, verifiedThreshold, suspiciousSoloRatio)
             val suspicionManager = SuspicionManager(sensitivity)
             val settleTracker = SettleTracker()
@@ -114,6 +131,27 @@ class ChainOfCustody private constructor(
                 settle = settleTracker,
                 worldStock = worldStock
             )
+
+            ownershipManager.onForgedMark = { actor, claimed, item ->
+                scheduler.runMain(Runnable {
+                    val server = plugin.server
+                    val actorName = server.getPlayer(actor)?.name ?: server.getOfflinePlayer(actor).name ?: actor.toString()
+                    val ownerName = server.getOfflinePlayer(claimed).name ?: claimed.toString()
+                    reconciliationEngine.flagForgedMarks(actor, actorName, listOf(ForgedMark(item.type, item.amount, claimed)),
+                        mapOf(claimed to ownerName))
+                })
+            }
+            val otherKeyWarnedAt = java.util.concurrent.atomic.AtomicLong(0)
+            ownershipManager.onOtherKey = {
+                val now = System.currentTimeMillis()
+                val last = otherKeyWarnedAt.get()
+                if (now - last > 6 * 3600_000L && otherKeyWarnedAt.compareAndSet(last, now)) {
+                    logger.warning("[Marks] Some items carry owner marks signed with a key this server does not have," +
+                        " so they count as unmarked. This happens when items come from another server through an" +
+                        " inventory sync plugin. Copy plugins/BetterAntiDupe/mark-signing.key from that server to this" +
+                        " one and restart. Servers that share a Redis database share the key by themselves.")
+                }
+            }
 
             plugin.server.pluginManager.registerEvents(eventHandler, plugin)
             eventHandler.registerPaperOnlyListeners()

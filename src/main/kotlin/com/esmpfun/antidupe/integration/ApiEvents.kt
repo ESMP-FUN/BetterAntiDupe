@@ -56,6 +56,7 @@ object ApiEvents {
             AlertType.CHAIN_INTEGRITY -> AlertKind.RECORD_TAMPERED
             AlertType.HIDDEN_MENU -> AlertKind.HIDDEN_MENU
             AlertType.REVERTED_PLACEMENT -> AlertKind.REVERTED_PLACEMENT
+            AlertType.FORGED_MARK -> AlertKind.FORGED_MARK
             AlertType.BALANCE_DISCREPANCY -> AlertKind.CARRYING_EXTRA
         }
     }

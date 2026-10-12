@@ -8,7 +8,7 @@ package com.esmpfun.antidupe.api;
 public interface BetterAntiDupeApi {
 
     /** Raised whenever the API gains methods or events, so callers can check before using them. */
-    int API_LEVEL = 1;
+    int API_LEVEL = 2;
 
     /** The {@link #API_LEVEL} of the BetterAntiDupe that is actually installed. */
     int apiLevel();

@@ -59,6 +59,7 @@ class ReconciliationEngine(
         const val SETTLE_WAIT_MS = 10_000L
         const val SETTLE_POLL_MS = 50L
         const val LEAVING_CREATIVE_STALE_MS = 30_000L
+        const val FORGED_ALERT_EVERY_MS = 10 * 60_000L
     }
 
     fun addAlertListener(listener: (DupeAlert) -> Unit) {
@@ -72,6 +73,7 @@ class ReconciliationEngine(
     private class InventorySnapshot(
         val ownedCounts: Map<Material, Int>,
         val foreignItems: List<ForeignItem>,
+        val forged: List<ForgedMark>,
         val settleVersion: Long,
         val settling: Boolean,
         val creative: Boolean
@@ -91,9 +93,12 @@ class ReconciliationEngine(
                     // start between these and the count.
                     val version = settle.version(player.uniqueId)
                     val settling = settle.isSettling(player.uniqueId)
+                    // Same thread and same moment as the count, so signing changes nothing it sees.
+                    ownershipManager.signOwnMarks(player)
                     cont.resume(InventorySnapshot(
                         ownedCounts = ownershipManager.snapshotOwnedDeep(player, trackedMaterials),
                         foreignItems = ownershipManager.findForeignItemsDeep(player),
+                        forged = ownershipManager.findForgedDeep(player),
                         settleVersion = version,
                         settling = settling,
                         creative = player.gameMode == GameMode.CREATIVE
@@ -163,6 +168,11 @@ class ReconciliationEngine(
                 skipped = true,
                 reason = "Player is still moving items"
             )
+        if (snapshot.forged.isNotEmpty()) {
+            val names = snapshot.forged.map { it.claimedOwner }.distinct()
+                .associateWith { plugin.server.getOfflinePlayer(it).name ?: it.toString() }
+            flagForgedMarks(playerId, player.name, snapshot.forged, names)
+        }
         // Anything can be made in creative, so what they carry is only judged after they leave it.
         if (snapshot.creative) return ReconciliationResult(
             player = playerId,
@@ -497,6 +507,38 @@ class ReconciliationEngine(
         ))
     }
 
+    private val forgedAlertAt = ConcurrentHashMap<UUID, Long>()
+
+    /**
+     * Items with a mark that does not verify were made outside normal play: creative mode, an item
+     * editor, a command. They already count as unmarked, so this only tells staff. The holder may
+     * have been handed them, so no suspicion is added.
+     */
+    fun flagForgedMarks(actor: UUID, actorName: String, forged: List<ForgedMark>, ownerNames: Map<UUID, String>) {
+        if (forged.isEmpty()) return
+        val now = System.currentTimeMillis()
+        val last = forgedAlertAt[actor]
+        if (last != null && now - last < FORGED_ALERT_EVERY_MS) return
+        forgedAlertAt[actor] = now
+        ownershipManager.forgedReported.addAndGet(forged.size.toLong())
+        if (forgedAlertAt.size > 1000) forgedAlertAt.entries.removeIf { now - it.value > FORGED_ALERT_EVERY_MS }
+        val first = forged.first()
+        val amount = forged.filter { it.material == first.material }.sumOf { it.amount }
+        val owner = ownerNames[first.claimedOwner] ?: first.claimedOwner.toString()
+        emitAlert(DupeAlert(
+            type = AlertType.FORGED_MARK,
+            player = actor,
+            playerName = actorName,
+            material = first.material,
+            details = "$amount ${first.material.name} with a fake owner mark claiming to belong to $owner" +
+                if (forged.size > 1) " (and ${forged.size - 1} more stack(s) with fake marks)" else "",
+            severity = Severity.HIGH,
+            timestamp = now,
+            messageKey = "alerts.forged-mark",
+            placeholders = mapOf("amount" to "$amount", "material" to first.material.name, "owner" to owner)
+        ))
+    }
+
     fun flagWitnessPattern(player: UUID) = suspicion.addHeat(player)
 
     fun confirmSuspect(player: UUID) = suspicion.confirm(player)
@@ -610,7 +652,8 @@ enum class AlertType {
     ORPHAN_ITEM,
     CHAIN_INTEGRITY,
     HIDDEN_MENU,
-    REVERTED_PLACEMENT
+    REVERTED_PLACEMENT,
+    FORGED_MARK
 }
 
 enum class Severity {
