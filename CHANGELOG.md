@@ -2,7 +2,7 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
-## [Unreleased]
+## [4.7.0] - 2026-10-13
 
 ### Added
 - **An API for other plugins.** Shops, crates, kits and reward plugins can now tell Better Anti-Dupe when they hand out or take away items, strip the owner mark from template copies, read a player's record, and listen to alerts, protections and automatic removal through normal Bukkit events. It works on Spigot, Paper and Folia from 1.21 up. See "Use it from your plugin" in the docs. The old `recordGrant` hook still works.
