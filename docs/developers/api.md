@@ -16,7 +16,7 @@ It works on Spigot, Paper and Folia, from Minecraft 1.21 up.
    }
 
    dependencies {
-       compileOnly("com.github.ESMP-FUN.BetterAntiDupe:betterantidupe-api:v4.7.0")
+       compileOnly("com.github.ESMP-FUN:BetterAntiDupe:v4.7.0")
    }
    ```
 
@@ -29,8 +29,8 @@ It works on Spigot, Paper and Folia, from Minecraft 1.21 up.
    </repository>
 
    <dependency>
-       <groupId>com.github.ESMP-FUN.BetterAntiDupe</groupId>
-       <artifactId>betterantidupe-api</artifactId>
+       <groupId>com.github.ESMP-FUN</groupId>
+       <artifactId>BetterAntiDupe</artifactId>
        <version>v4.7.0</version>
        <scope>provided</scope>
    </dependency>
