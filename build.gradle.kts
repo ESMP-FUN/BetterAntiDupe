@@ -14,7 +14,7 @@ group = "com.esmpfun"
 //   ./gradlew shadowJar -Pmc=263  ->  BetterAntiDupe-4.5.0-mc263.jar   (26.3,         Java 25)
 // 1.21.x servers run JDK21 and can't load Java 25 bytecode. The 26.3 jar declares
 // api-version 26.3, so an older server refuses it, and it follows its own update track.
-val pluginVersion = "4.6.0"
+val pluginVersion = "4.7.0"
 val mcLine = (findProperty("mc") as String?) ?: "26"
 
 data class McTarget(val paperApi: String, val suffix: String, val apiVersion: String, val java: Int, val runMc: String)
@@ -26,6 +26,7 @@ val mcTarget = when (mcLine) {
     else -> throw GradleException("Unknown -Pmc=$mcLine. Use 21, 26 or 263.")
 }
 version = "$pluginVersion${mcTarget.suffix}"
+project(":api").version = pluginVersion
 // PluginPulse only applies a track on 26.x servers, so the 1.21 jar's value is never read.
 val updateTrack = if (mcLine == "263") "mc263" else "mc26"
 
@@ -49,6 +50,9 @@ dependencies {
     // so no paperweight/dev-bundle is needed and this still builds on plain paper-api.
     compileOnly("io.netty:netty-transport:4.1.101.Final")
     compileOnly("io.netty:netty-common:4.1.101.Final")
+    // The public API ships inside the plugin jar, unrelocated, so other plugins compile against
+    // betterantidupe-api and find the same classes at runtime.
+    implementation(project(":api"))
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
     // Lettuce's coroutine command API bridges its Reactor types to suspend functions through

@@ -132,7 +132,10 @@ class AlertNotifier(
             .put("title", "BetterAntiDupe alert")
             .put("description", text)
             .put("color", color)
-        return JSONObject().put("embeds", JSONArray().put(embed)).toString()
+        // No @everyone, @here, role or user pings, whatever ends up in the text.
+        return JSONObject().put("embeds", JSONArray().put(embed))
+            .put("allowed_mentions", JSONObject().put("parse", JSONArray()))
+            .toString()
     }
 
     private fun genericPayload(alert: DupeAlert): String = JSONObject()

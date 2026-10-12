@@ -26,6 +26,7 @@ class BetterAntiDupe : JavaPlugin() {
         const val SHUTDOWN_DRAIN_MS = 5_000L
         const val CRASH_NOTE_MINUTES = 30L
         const val JOIN_CHECK_DELAY_MS = 5_000L
+        const val FORGET_AFTER_QUIT_MS = 5 * 60_000L
 
         /** A crash rolls player data back past what the ledger saw, which can raise these by itself. */
         val CRASH_SENSITIVE_ALERTS = setOf("alerts.entity-dupe", "alerts.world-stock", "alerts.balance-discrepancy")
@@ -114,6 +115,7 @@ class BetterAntiDupe : JavaPlugin() {
             }
 
             initializeChainOfCustody()
+            registerApi()
             registerJoinBaseline()
             initializeTagStripper()
             registerDuperPrevention()
@@ -131,23 +133,30 @@ class BetterAntiDupe : JavaPlugin() {
         }
     }
 
-    /**
-     * For other plugins: declares that [amount] of [material] was handed to [player] outside
-     * normal play (a reward, a shop), so the ledger expects it. Safe to call from any thread.
-     */
+    /** Kept so plugins built against 4.5.3 keep working. */
+    @Deprecated("Use BetterAntiDupeProvider.get().ledger().recordGrant")
     fun recordGrant(player: java.util.UUID, material: org.bukkit.Material, amount: Int, source: String) {
-        val coc = chainOfCustody ?: return
-        if (!::pluginScope.isInitialized) return
-        pluginScope.launch {
-            runCatching { coc.recordSystemGrant(player, material, amount, source) }
-                .onFailure { logger.warning("Could not record a grant from $source: ${it.message}") }
-        }
+        api?.recordGrant(player, material, amount, source)
+    }
+
+    private var api: com.esmpfun.antidupe.integration.ApiImplementation? = null
+
+    /** Registered even when tracking failed, so other plugins can see isTracking() is false. */
+    private fun registerApi() {
+        val impl = com.esmpfun.antidupe.integration.ApiImplementation(this, pluginScope)
+        api = impl
+        server.servicesManager.register(
+            com.esmpfun.antidupe.api.BetterAntiDupeApi::class.java, impl, this,
+            org.bukkit.plugin.ServicePriority.Normal
+        )
     }
 
     override fun onDisable() {
         logger.info("=== BetterAntiDupe shutting down ===")
         try {
             closeOpenInventories()
+            server.servicesManager.unregisterAll(this)
+            api = null
             metrics?.shutdown()
             metrics = null
             io.github.darkstarworks.pluginpulse.PluginPulse.shutdown(this)
@@ -408,24 +417,32 @@ class BetterAntiDupe : JavaPlugin() {
 
     /** Every alert, from the ledger or a blocking guard, goes to staff, webhooks and enforcement here. */
     private fun dispatchAlert(raw: com.esmpfun.antidupe.ledger.DupeAlert) {
+        // The public alert event is asynchronous, and Bukkit refuses those on the main thread.
+        if (Bukkit.isPrimaryThread()) {
+            pluginScope.launch { deliverAlert(raw) }
+        } else {
+            deliverAlert(raw)
+        }
+    }
+
+    private fun deliverAlert(raw: com.esmpfun.antidupe.ledger.DupeAlert) {
         // A crash rolls the world back past pickups and container moves the ledger already
         // saw, which produces these alerts by itself. Say so rather than suppress.
         val alert = if (raw.messageKey in CRASH_SENSITIVE_ALERTS && recentlyCrashed())
             raw.copy(afterUncleanShutdown = true) else raw
+        if (!com.esmpfun.antidupe.integration.ApiEvents.alertAllowed(alert)) return
         com.esmpfun.antidupe.metrics.DetectionCounters
             .recordDetection(alert.type.name, alert.severity.name, alert.material.name)
         notifier?.handle(alert)
         enforcement?.handle(alert)
 
         val message = formatAlert(alert)
-        // Alerts can be emitted from reconciliation coroutines; hop to the main (global
-        // region) thread before touching the online-player roster.
+        // Hop to the main (global region) thread before touching the online-player roster.
         scheduler.runMain(Runnable { broadcastAlert(alert, message) })
 
         logger.warning("[DUPE] ${alert.playerName}: ${alert.details}" +
             if (alert.afterUncleanShutdown) " (the server did not shut down cleanly shortly before this)" else "")
     }
-
 
     /** In-game text comes from messages.yml; console logs stay English. */
     private fun formatAlert(alert: com.esmpfun.antidupe.ledger.DupeAlert): String {
@@ -750,6 +767,16 @@ class BetterAntiDupe : JavaPlugin() {
                     if (baselined || !checkOnJoin) return@launch
                     kotlinx.coroutines.delay(JOIN_CHECK_DELAY_MS)
                     if (player.isOnline) coc.reconcileAsync(player)
+                }
+            }
+
+            @org.bukkit.event.EventHandler
+            fun onQuit(event: org.bukkit.event.player.PlayerQuitEvent) {
+                val coc = chainOfCustody ?: return
+                val id = event.player.uniqueId
+                pluginScope.launch {
+                    kotlinx.coroutines.delay(FORGET_AFTER_QUIT_MS)
+                    if (Bukkit.getPlayer(id) == null) coc.forgetCachedBalances(id)
                 }
             }
         }, this)

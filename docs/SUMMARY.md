@@ -21,6 +21,10 @@
 * [Settings](reference/settings.md)
 * [Commands & permissions](reference/commands-and-permissions.md)
 
+## For developers
+
+* [Use it from your plugin](developers/api.md)
+
 ## Help
 
 * [Testing in-game](help/testing-in-game.md)

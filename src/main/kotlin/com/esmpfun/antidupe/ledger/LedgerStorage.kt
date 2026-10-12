@@ -24,7 +24,7 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
      */
     private fun lockFor(player: UUID): Mutex = playerLocks.computeIfAbsent(player) { Mutex() }
 
-    private val balanceCache = ConcurrentHashMap<Pair<UUID, Material>, AtomicInteger>()
+    private val balanceCache = ConcurrentHashMap<UUID, ConcurrentHashMap<Material, AtomicInteger>>()
 
     /**
      * True when another server process can write the backend. The balance cache is per-JVM with
@@ -43,7 +43,7 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
             val tip = readPlayerTip(player)
             val entry = LedgerEntry.create(player, action, material, quantity, metadata, tip?.lastHash)
             writeEntry(entry)
-            if (!sharedBackend) balanceCache[player to material]?.addAndGet(quantity)
+            if (!sharedBackend) balanceCache[player]?.get(material)?.addAndGet(quantity)
             entry
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
@@ -60,17 +60,22 @@ abstract class LedgerStorage protected constructor(protected val logger: Logger)
 
     suspend fun getBalance(player: UUID, material: Material): Int {
         if (sharedBackend) return readBalanceFromStorage(player, material)
-        val key = player to material
-        balanceCache[key]?.let { return it.get() }
+        balanceCache[player]?.get(material)?.let { return it.get() }
         // Populate under the append lock: an append landing between the storage read and the
         // cache insert would otherwise be missing from the cached value.
         return lockFor(player).withLock {
-            balanceCache[key]?.get() ?: run {
+            val cached = balanceCache.computeIfAbsent(player) { ConcurrentHashMap() }
+            cached[material]?.get() ?: run {
                 val fromStorage = readBalanceFromStorage(player, material)
-                balanceCache.putIfAbsent(key, AtomicInteger(fromStorage))
-                balanceCache[key]?.get() ?: fromStorage
+                cached.putIfAbsent(material, AtomicInteger(fromStorage))
+                cached[material]?.get() ?: fromStorage
             }
         }
+    }
+
+    /** Frees a player's cached balances; the next read loads them from storage again. */
+    suspend fun forgetCachedBalances(player: UUID) {
+        lockFor(player).withLock { balanceCache.remove(player) }
     }
 
     protected abstract suspend fun readPlayerTip(player: UUID): ChainTip?

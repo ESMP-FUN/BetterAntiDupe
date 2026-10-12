@@ -1,5 +1,7 @@
 package com.esmpfun.antidupe
 
+import com.esmpfun.antidupe.api.model.Protection
+import com.esmpfun.antidupe.integration.ApiEvents
 import com.esmpfun.antidupe.ledger.AlertType
 import com.esmpfun.antidupe.ledger.DupeAlert
 import com.esmpfun.antidupe.ledger.Severity
@@ -63,7 +65,9 @@ class HiddenMenuGuard(
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     fun onInteract(event: PlayerInteractEvent) {
         if (event.action == Action.PHYSICAL) return
-        check(event.player, event, if (event.action.isLeftClick) "hit" else "use")
+        // Not Action.isLeftClick(): that one is Paper-only.
+        val left = event.action == Action.LEFT_CLICK_AIR || event.action == Action.LEFT_CLICK_BLOCK
+        check(event.player, event, if (left) "hit" else "use")
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -103,6 +107,7 @@ class HiddenMenuGuard(
         val now = System.currentTimeMillis()
         if (now - since < graceMs(player.ping)) return
         if (!fromClientPacket()) return
+        if (ApiEvents.stepAside(Protection.HIDDEN_MENU, player, player.location)) return
 
         event.isCancelled = true
         player.closeInventory()
@@ -134,13 +139,20 @@ class HiddenMenuGuard(
     }
 
     companion object {
-        private const val PACKET_LISTENER = "net.minecraft.server.network.ServerGamePacketListenerImpl"
+        private val PACKET_LISTENERS = setOf("ServerGamePacketListenerImpl", "PlayerConnection")
 
-        /** Client packets a vanilla client cannot send while a menu screen is open. */
+        /** Client packet handlers a vanilla client cannot trigger while a menu screen is open. */
         private val WORLD_ACTION_HANDLERS = setOf(
             "handleUseItemOn", "handleUseItem", "handleInteract", "handleAttack", "handlePunch",
             "handleAnimate", "handlePlayerAction", "handleSetCarriedItem", "handlePickItemFromBlock",
             "handlePickItemFromEntity", "performUnsignedChatCommand", "performSignedChatCommand"
+        )
+
+        /** The same handlers' packets, for Spigot before 26.1, where every handler is named a(). */
+        private val WORLD_ACTION_PACKETS = setOf(
+            "PacketPlayInUseItem", "PacketPlayInBlockPlace", "PacketPlayInUseEntity", "PacketPlayInBlockDig",
+            "PacketPlayInHeldItemSlot", "PacketPlayInArmAnimation", "ServerboundPickItemFromBlockPacket",
+            "ServerboundPickItemFromEntityPacket", "ServerboundChatCommandSignedPacket"
         )
 
         /** Console lines stay English whatever the server language. */
@@ -160,12 +172,34 @@ class HiddenMenuGuard(
          */
         fun graceMs(pingMs: Int): Long = (BASE_GRACE_MS + 2L * pingMs.coerceAtLeast(0)).coerceAtMost(MAX_GRACE_MS)
 
+        private val walker = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE)
+
         /**
-         * Paper names are Mojang names since 1.20.5. On a server with other names this never
-         * matches, so the guard stays silent rather than guessing.
+         * True when the event comes straight from one of those client packets. A plugin running
+         * a command through Player.chat goes through the same handler, so that is ruled out.
+         * On a server with other names nothing matches, and the guard stays silent.
          */
-        private fun fromClientPacket(): Boolean = StackWalker.getInstance().walk { frames ->
-            frames.anyMatch { it.className == PACKET_LISTENER && it.methodName in WORLD_ACTION_HANDLERS }
+        private fun fromClientPacket(): Boolean = walker.walk { frames ->
+            var client = false
+            for (frame in frames) {
+                val cls = frame.declaringClass
+                if (cls.simpleName == "CraftPlayer" && cls.name.startsWith("org.bukkit.craftbukkit.")) {
+                    if (frame.methodName == "chat" || frame.methodName == "performCommand") return@walk false
+                    continue
+                }
+                if (client || cls.simpleName !in PACKET_LISTENERS) continue
+                if (frame.methodName in WORLD_ACTION_HANDLERS) {
+                    client = true
+                    continue
+                }
+                val type = frame.methodType
+                val params = type.parameterArray()
+                client = (params.isNotEmpty() && params[0].simpleName in WORLD_ACTION_PACKETS) ||
+                    // Older Spigot's unsigned command handler: private void b(String).
+                    (cls.simpleName == "PlayerConnection" && params.size == 1 &&
+                        params[0] == String::class.java && type.returnType() == Void.TYPE)
+            }
+            client
         }
     }
 }

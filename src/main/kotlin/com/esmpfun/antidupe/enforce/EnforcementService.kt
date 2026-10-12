@@ -58,6 +58,10 @@ class EnforcementService(
         scheduler.runMain(Runnable {
             val player = Bukkit.getPlayer(alert.player) ?: return@Runnable
             scheduler.runForEntity(player, Runnable {
+                if (!com.esmpfun.antidupe.integration.ApiEvents.removalAllowed(player, alert.material, wanted, alert.severity)) {
+                    logger.info("[Enforce] Another plugin kept ${player.name}'s ${alert.material.name} from being removed")
+                    return@Runnable
+                }
                 val removed = try {
                     removeOwned(player, alert.material, wanted)
                 } catch (e: Exception) {

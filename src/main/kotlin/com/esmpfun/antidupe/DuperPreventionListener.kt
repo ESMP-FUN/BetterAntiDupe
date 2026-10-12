@@ -21,6 +21,8 @@ import org.bukkit.inventory.InventoryHolder
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import java.util.logging.Logger
+import com.esmpfun.antidupe.api.model.Protection
+import com.esmpfun.antidupe.integration.ApiEvents
 
 /**
  * Blocks the classic block-duplication contraptions (rail, carpet, TNT and gravity dupers) at
@@ -67,6 +69,12 @@ class DuperPreventionListener(
         reason.startsWith("carpet") -> "carpet"
         reason.startsWith("TNT") -> "tnt"
         else -> "other"
+    }
+
+    private fun protectionFor(reason: String) = when {
+        reason.startsWith("rail") -> Protection.RAIL_DUPER
+        reason.startsWith("carpet") -> Protection.CARPET_DUPER
+        else -> Protection.TNT_DUPER
     }
 
     private fun isCarpet(m: Material) = m.name.endsWith("_CARPET")
@@ -148,6 +156,7 @@ class DuperPreventionListener(
         for (dx in -1..1) for (dy in -1..1) for (dz in -1..1) {
             val until = dropSuppressUntil[keyOf(block.world.name, block.x + dx, block.y + dy, block.z + dz)]
             if (until == null || until < now) continue
+            if (ApiEvents.stepAside(protectionFor(reason), null, event.location)) return
             event.isCancelled = true
             logBlocked(reason, block, "Removed duplicated drop")
             return
@@ -162,6 +171,7 @@ class DuperPreventionListener(
             return
         }
         val vector = dupeVector(event.blocks) ?: return
+        if (ApiEvents.stepAside(protectionFor(vector.first), null, vector.second.location)) return
         event.isCancelled = true
         logBlocked(vector.first, vector.second)
     }
@@ -177,11 +187,13 @@ class DuperPreventionListener(
             return
         }
         railCarpetVector(aboveHead.type)?.let { reason ->
+            if (ApiEvents.stepAside(protectionFor(reason), null, aboveHead.location)) return
             event.isCancelled = true
             logBlocked(reason, aboveHead)
             return
         }
         val vector = dupeVector(event.blocks) ?: return
+        if (ApiEvents.stepAside(protectionFor(vector.first), null, vector.second.location)) return
         event.isCancelled = true
         logBlocked(vector.first, vector.second)
     }
@@ -215,6 +227,7 @@ class DuperPreventionListener(
         val container = block.state as? Container ?: return
         // Copy: closeInventory mutates the live viewer list while we iterate.
         val viewers = container.inventory.viewers.toList()
+            .filterNot { ApiEvents.stepAside(Protection.CONTAINER_DESYNC, it as? org.bukkit.entity.Player, block.location) }
         if (viewers.isEmpty()) return
         for (viewer in viewers) viewer.closeInventory()
         com.esmpfun.antidupe.metrics.DetectionCounters.recordPreventionBlock("container_desync")
@@ -231,9 +244,10 @@ class DuperPreventionListener(
         if (!preventContainerDesync) return
         for (entity in event.chunk.entities) {
             val holder = entity as? InventoryHolder ?: continue
-            val viewers = holder.inventory.viewers
+            val viewers = holder.inventory.viewers.toList()
+                .filterNot { ApiEvents.stepAside(Protection.CONTAINER_DESYNC, it as? org.bukkit.entity.Player, entity.location) }
             if (viewers.isEmpty()) continue
-            for (viewer in viewers.toList()) viewer.closeInventory()
+            for (viewer in viewers) viewer.closeInventory()
             com.esmpfun.antidupe.metrics.DetectionCounters.recordPreventionBlock("container_desync")
             logger.info("[DuperPrevention] Closed viewer(s) of ${entity.type} inventory on chunk unload")
         }
@@ -249,6 +263,7 @@ class DuperPreventionListener(
     fun onEntityPortal(event: EntityPortalEvent) {
         if (!preventGravity) return
         if (event.entity !is FallingBlock) return
+        if (ApiEvents.stepAside(Protection.GRAVITY_DUPER, null, event.from)) return
         event.isCancelled = true
         com.esmpfun.antidupe.metrics.DetectionCounters.recordPreventionBlock("gravity")
         val loc = event.entity.location

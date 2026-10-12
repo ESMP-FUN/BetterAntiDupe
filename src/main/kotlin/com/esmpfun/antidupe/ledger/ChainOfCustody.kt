@@ -262,6 +262,23 @@ class ChainOfCustody private constructor(
         )
     }
 
+    /** Declare items another plugin took out of a player's inventory, so the record drops with them. */
+    suspend fun recordSystemRemoval(player: UUID, material: Material, amount: Int, source: String) {
+        if (amount <= 0) return
+        ledgerStorage.appendBuilt(
+            player = player,
+            action = LedgerAction.CONSUME,
+            material = material,
+            quantity = -amount,
+            metadata = LedgerMetadata(notes = "SYSTEM_REMOVAL:$source")
+        )
+    }
+
+    val trackedMaterials: Set<Material> get() = trackedMaterialsView
+
+    /** Without this, a long-running server keeps every player's balances it ever read. */
+    suspend fun forgetCachedBalances(player: UUID) = ledgerStorage.forgetCachedBalances(player)
+
     fun onDupeAlert(listener: (DupeAlert) -> Unit) = reconciliationEngine.addAlertListener(listener)
     fun getSuspects(): List<SuspectProfile> = reconciliationEngine.getAllSuspects()
     fun getSuspect(player: UUID): SuspectProfile? = reconciliationEngine.getSuspect(player)

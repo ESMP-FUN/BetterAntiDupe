@@ -59,17 +59,21 @@ class ReflectiveTagStripper(
     }
 
     private val nmsItemClass = Class.forName("net.minecraft.world.item.ItemStack")
-    private val craftItemStackClass = Class.forName("org.bukkit.craftbukkit.inventory.CraftItemStack")
+    // Spigot before 26.1 keeps a version in CraftBukkit's package (org.bukkit.craftbukkit.v1_21_R6),
+    // so the package is taken from the running server rather than written out.
+    private val craftItemStackClass =
+        Class.forName("${org.bukkit.Bukkit.getServer().javaClass.`package`.name}.inventory.CraftItemStack")
     // 26.3 dropped the ItemStack overload and kept the ItemInstance one, which ItemStack implements.
     private val asBukkitCopy = runCatching { craftItemStackClass.getMethod("asBukkitCopy", nmsItemClass) }
         .getOrElse { craftItemStackClass.getMethod("asBukkitCopy", Class.forName("net.minecraft.world.item.ItemInstance")) }
     private val asNMSCopy = craftItemStackClass.getMethod("asNMSCopy", org.bukkit.inventory.ItemStack::class.java)
 
+    // Spigot before 26.1 names some of these differently, so both names are listed.
     private val targetPackets = setOf(
-        "ClientboundContainerSetSlotPacket",
-        "ClientboundContainerSetContentPacket",
-        "ClientboundSetEquipmentPacket",
-        "ClientboundSetEntityDataPacket",        // dropped item entities AND item frames
+        "ClientboundContainerSetSlotPacket", "PacketPlayOutSetSlot",
+        "ClientboundContainerSetContentPacket", "PacketPlayOutWindowItems",
+        "ClientboundSetEquipmentPacket", "PacketPlayOutEntityEquipment",
+        "ClientboundSetEntityDataPacket", "PacketPlayOutEntityMetadata",   // dropped items AND item frames
         "ClientboundSetPlayerInventoryPacket",   // 1.21.2+ direct slot set
         "ClientboundSetCursorItemPacket",        // 1.21.2+ carried cursor item
     )
@@ -78,7 +82,7 @@ class ReflectiveTagStripper(
      * Item-bearing packets deliberately left unstripped. Villager offers are built by the villager,
      * never tagged by us, so only strict mode has anything to hide in them.
      */
-    private val unstrippedUnlessStrict = setOf("ClientboundMerchantOffersPacket")
+    private val unstrippedUnlessStrict = setOf("ClientboundMerchantOffersPacket", "PacketPlayOutOpenWindowMerchant")
 
     private val instanceFieldCache = ConcurrentHashMap<Class<*>, List<Field>>()
 
@@ -94,10 +98,11 @@ class ReflectiveTagStripper(
      */
     private fun looksItemBearing(packet: Class<*>): Boolean {
         val name = packet.simpleName
-        val shortlisted = name.startsWith("Clientbound") && (
+        val shortlisted = (name.startsWith("Clientbound") || name.startsWith("PacketPlayOut")) && (
             name.contains("Item") || name.contains("Slot") ||
             name.contains("Inventory") || name.contains("Equipment") ||
-            name.contains("ContainerSetContent") || name.contains("MerchantOffers")
+            name.contains("ContainerSetContent") || name.contains("Merchant") ||
+            name.contains("Window") || name.contains("Metadata")
         )
         return shortlisted && reachesItemStack(packet, HashSet(), 0)
     }
@@ -160,14 +165,17 @@ class ReflectiveTagStripper(
         }
     }
 
-    /** CraftPlayer.getHandle().connection.connection.channel, walked reflectively by field name. */
+    /**
+     * CraftPlayer.getHandle().connection.connection.channel. Spigot before 26.1 scrambles those
+     * field names, so each step is found by the field's type instead.
+     */
     private fun channelOf(player: Player): Channel {
         val serverPlayer = player.javaClass.getMethod("getHandle").invoke(player)
-        val gameListener = readField(serverPlayer, "connection")
+        val gameListener = readFieldOfType(serverPlayer, LISTENER_TYPES)
             ?: error("no connection on ${serverPlayer.javaClass.name}")
-        val connection = readField(gameListener, "connection")
+        val connection = readFieldOfType(gameListener, CONNECTION_TYPES)
             ?: error("no connection on ${gameListener.javaClass.name}")
-        return readField(connection, "channel") as? Channel
+        return readFieldOfType(connection) { Channel::class.java.isAssignableFrom(it) } as? Channel
             ?: error("no channel on ${connection.javaClass.name}")
     }
 
@@ -219,7 +227,11 @@ class ReflectiveTagStripper(
      * @return a fresh bundle if a member was stripped, else null (caller forwards the original).
      */
     private fun rewriteBundle(msg: Any): Any? {
-        val subPackets = msg.javaClass.getMethod("subPackets").invoke(msg) as? Iterable<*> ?: return null
+        // subPackets() on Mojang names, a one-letter name on older Spigot.
+        val accessor = msg.javaClass.methods.firstOrNull {
+            it.parameterCount == 0 && Iterable::class.java.isAssignableFrom(it.returnType)
+        } ?: return null
+        val subPackets = accessor.invoke(msg) as? Iterable<*> ?: return null
         var changed = false
         val out = ArrayList<Any?>()
         for (p in subPackets) {
@@ -274,11 +286,11 @@ class ReflectiveTagStripper(
         return coerceListType(list, out)
     }
 
-    /** A Pair here is an equipment slot plus its item; a DataValue is one entity-data entry. */
+    /** A Pair here is an equipment slot plus its item; a record is one entity-data entry. */
     private fun rewriteElement(el: Any): Any? = when {
         nmsItemClass.isInstance(el) -> stripItem(el)
         el.javaClass.name == "com.mojang.datafixers.util.Pair" -> rewritePair(el)
-        el.javaClass.simpleName == "DataValue" -> rewriteDataValue(el)
+        el.javaClass.isRecord -> rewriteRecordElement(el)
         else -> null
     }
 
@@ -291,17 +303,38 @@ class ReflectiveTagStripper(
         return c.getMethod("of", Any::class.java, Any::class.java).invoke(null, first, newSecond)
     }
 
-    private fun rewriteDataValue(dv: Any): Any? {
-        val c = dv.javaClass
-        val value = c.getMethod("value").invoke(dv) ?: return null
-        if (!nmsItemClass.isInstance(value)) return null
-        val newValue = stripItem(value) ?: return null
-        val id = c.getMethod("id").invoke(dv)
-        val serializer = c.getMethod("serializer").invoke(dv)
-        val ctor = c.declaredConstructors.first { it.parameterCount == 3 }
-        ctor.isAccessible = true
-        return ctor.newInstance(id, serializer, newValue)
+    /**
+     * An entity-data entry (SynchedEntityData.DataValue, or DataWatcher.c on older Spigot) is a
+     * record whose value may be an item. Rebuilt through its canonical constructor, so no
+     * component name is needed.
+     */
+    private fun rewriteRecordElement(record: Any): Any? {
+        val cls = record.javaClass
+        val fields = recordFields(cls) ?: return null
+        var changed = false
+        val values = fields.map { f ->
+            val v = f.get(record)
+            if (v != null && nmsItemClass.isInstance(v)) stripItem(v)?.also { changed = true } ?: v else v
+        }
+        if (!changed) return null
+        return recordConstructor(cls).newInstance(*values.toTypedArray())
     }
+
+    /**
+     * A record's fields in component order. Read directly because older Spigot renames the
+     * accessor methods, which leaves RecordComponent.getAccessor() null.
+     */
+    private fun recordFields(cls: Class<*>): List<Field>? {
+        val components = cls.recordComponents ?: return null
+        val fields = cls.declaredFields.filter { !Modifier.isStatic(it.modifiers) }
+        if (fields.size != components.size) return null
+        if (fields.indices.any { fields[it].type != components[it].type }) return null
+        fields.forEach { it.isAccessible = true }
+        return fields
+    }
+
+    private fun recordConstructor(cls: Class<*>) =
+        cls.getDeclaredConstructor(*cls.recordComponents.map { it.type }.toTypedArray()).apply { isAccessible = true }
 
     /** @return a fresh NMS item with the offending keys removed, or null if nothing to strip. */
     private fun stripItem(nmsItem: Any): Any? {
@@ -319,13 +352,9 @@ class ReflectiveTagStripper(
     }
 
     private fun reconstructRecord(msg: Any, cls: Class<*>, replacements: Map<String, Any?>): Any {
-        val components = cls.recordComponents
-        val args = components.map { rc ->
-            if (replacements.containsKey(rc.name)) replacements[rc.name] else rc.accessor.invoke(msg)
-        }
-        val ctor = cls.getDeclaredConstructor(*components.map { it.type }.toTypedArray())
-        ctor.isAccessible = true
-        return ctor.newInstance(*args.toTypedArray())
+        val fields = recordFields(cls) ?: error("unexpected record layout in ${cls.simpleName}")
+        val args = fields.map { f -> if (replacements.containsKey(f.name)) replacements[f.name] else f.get(msg) }
+        return recordConstructor(cls).newInstance(*args.toTypedArray())
     }
 
     /** Prefers a matching constructor so a final field is never written to. */
@@ -345,13 +374,19 @@ class ReflectiveTagStripper(
         return msg
     }
 
-    /** The field's concrete list type must be preserved: a NonNullList has to stay a NonNullList. */
+    /**
+     * The field's concrete list type must be preserved: a NonNullList has to stay a NonNullList.
+     * Built through its (List, default) constructor, which older Spigot leaves unscrambled.
+     */
     private fun coerceListType(original: List<*>, out: List<Any?>): Any {
         if (original.javaClass.simpleName == "NonNullList") {
-            val nnl = Class.forName("net.minecraft.core.NonNullList")
-            val empty = nmsItemClass.getField("EMPTY").get(null)
-            val of = nnl.getMethod("of", Any::class.java, java.lang.reflect.Array.newInstance(Any::class.java, 0).javaClass)
-            return of.invoke(null, empty, out.toTypedArray())
+            val ctor = original.javaClass.declaredConstructors.first {
+                it.parameterCount == 2 && it.parameterTypes[0] == List::class.java
+            }
+            ctor.isAccessible = true
+            val fallback = collectInstanceFields(original.javaClass)
+                .firstOrNull { it.type == Any::class.java }?.get(original)
+            return ctor.newInstance(ArrayList(out), fallback)
         }
         return out
     }
@@ -370,13 +405,21 @@ class ReflectiveTagStripper(
         return result
     }
 
-    private fun readField(target: Any, name: String): Any? {
+    private fun readFieldOfType(target: Any, simpleNames: Set<String>): Any? =
+        readFieldOfType(target) { it.simpleName in simpleNames }
+
+    private fun readFieldOfType(target: Any, matches: (Class<*>) -> Boolean): Any? {
         var c: Class<*>? = target.javaClass
         while (c != null && c != Any::class.java) {
-            val f = c.declaredFields.firstOrNull { it.name == name }
+            val f = c.declaredFields.firstOrNull { !Modifier.isStatic(it.modifiers) && matches(it.type) }
             if (f != null) { f.isAccessible = true; return f.get(target) }
             c = c.superclass
         }
         return null
+    }
+
+    private companion object {
+        val LISTENER_TYPES = setOf("ServerGamePacketListenerImpl", "PlayerConnection")
+        val CONNECTION_TYPES = setOf("Connection", "NetworkManager")
     }
 }

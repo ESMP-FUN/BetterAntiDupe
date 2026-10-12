@@ -177,6 +177,53 @@ class OwnershipManager(
         return NestedRetag(changed, previous)
     }
 
+    /** Removes every owner mark from [holder] and anything nested in it. Returns true if one was found. */
+    fun clearOwnerDeep(holder: ItemStack, depth: Int = 0): Boolean {
+        if (depth >= MAX_RECURSION_DEPTH || holder.type == Material.AIR) return false
+        var changed = false
+        if (getOwner(holder) != null) {
+            clearOwner(holder)
+            changed = true
+        }
+        val meta = holder.itemMeta ?: return changed
+        var metaChanged = false
+        if (meta is BlockStateMeta && meta.hasBlockState()) {
+            val state = meta.blockState
+            if (state is Container) {
+                val inv = state.inventory
+                var stateChanged = false
+                for (slot in 0 until inv.size) {
+                    val inner = inv.getItem(slot) ?: continue
+                    if (clearOwnerDeep(inner, depth + 1)) {
+                        inv.setItem(slot, inner)
+                        stateChanged = true
+                    }
+                }
+                if (stateChanged) {
+                    meta.blockState = state
+                    metaChanged = true
+                }
+            }
+        }
+        if (meta is BundleMeta) {
+            val items = meta.items.map { it.clone() }
+            var bundleChanged = false
+            for (inner in items) if (clearOwnerDeep(inner, depth + 1)) bundleChanged = true
+            if (bundleChanged) {
+                meta.setItems(items)
+                metaChanged = true
+            }
+        }
+        if (metaChanged) {
+            holder.itemMeta = meta
+            changed = true
+        }
+        SulfurCubeAccess.absorbedItem(holder)?.let { inner ->
+            if (clearOwnerDeep(inner, depth + 1) && SulfurCubeAccess.setAbsorbedItem(holder, inner)) changed = true
+        }
+        return changed
+    }
+
     /**
      * `PlayerInventory.getContents()` already spans storage, armor and offhand, so adding
      * `armorContents` or `itemInOffHand` on top double-counts worn gear.

@@ -79,9 +79,9 @@ Costs nothing for normal players. Anything in the first second after a menu open
 
 <summary><strong>Chest copies from blocked placements</strong> (<code>prevent-reverted-placement-dupers</code>)</summary>
 
-When the last eye of ender goes into an end portal frame, the portal replaces whatever is in the middle. A chest there spills its items onto the ground. If a land claim, region or "the End is locked" plugin then blocks that placement, the chest comes back full, while the spilled items and a copy of the chest itself are still on the ground.
+When the last eye of ender goes into an end portal frame, the portal replaces whatever is in the middle. If a land claim, region or "the End is locked" plugin then blocks that placement, a chest or shulker box standing there comes back, and a copy of it also drops on the ground. Depending on the server, the copy can hold everything that was inside.
 
-Those copies are removed, so the chest keeps its items and nothing is doubled. Staff get a low-priority alert, because an innocent player can trigger it too.
+The plugin puts it all back the moment it happens: the container keeps its items and nothing extra is left on the ground. Staff get a low-priority alert, because an innocent player can trigger it too.
 
 </details>
 

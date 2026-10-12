@@ -1280,6 +1280,9 @@ class LedgerEventHandler(
     }
 
     /** Putting a book on a lectern fires no inventory event, so it is judged from the hand and the lectern a tick later. */
+    /** Spigot declares this nullable, Paper does not. */
+    private fun heldIn(player: Player, hand: org.bukkit.inventory.EquipmentSlot): ItemStack? = player.inventory.getItem(hand)
+
     @EventHandler(priority = EventPriority.MONITOR)
     fun onLecternPut(event: org.bukkit.event.player.PlayerInteractEvent) {
         if (event.action != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) return
@@ -1289,7 +1292,7 @@ class LedgerEventHandler(
         val player = event.player
         if (shouldSkip(player)) return
         val hand = event.hand ?: return
-        val held = player.inventory.getItem(hand)
+        val held = heldIn(player, hand) ?: return
         if (held.type == Material.AIR || !isTracked(held.type)) return
         val lectern = block.state as? org.bukkit.block.Lectern ?: return
         if (lectern.inventory.getItem(0)?.type?.isAir == false) return
@@ -1299,7 +1302,7 @@ class LedgerEventHandler(
         val stored = tallySingle(held)
         scheduler.runForEntityLater(player, 1, Runnable {
             val book = (block.state as? org.bukkit.block.Lectern)?.inventory?.getItem(0)
-            val after = player.inventory.getItem(hand).let { if (it.type == type) it.amount else 0 }
+            val after = heldIn(player, hand)?.let { if (it.type == type) it.amount else 0 } ?: 0
             if (!StationAccounting.lecternBookPlaced(false, book?.type == type, heldBefore, after)) return@Runnable
             val meta = LedgerMetadata.fromLocation(block.location).copy(containerType = "LECTERN")
             appendAsync(player.uniqueId, LedgerAction.CONTAINER_PUT, type, -1, meta)

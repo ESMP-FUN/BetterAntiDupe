@@ -395,7 +395,9 @@ class AdpCommand(
                 val cmd = (plugin.config.getString("on_confirm_command", null)
                     ?: plugin.config.getString("detection.on_confirm_command", ""))?.trim().orEmpty()
                 if (cmd.isNotEmpty()) {
-                    val resolved = cmd.replace("{player}", playerName)
+                    // The stored name, not whatever was typed, goes into a console command.
+                    val name = Bukkit.getOfflinePlayer(uuid).name ?: playerName
+                    val resolved = cmd.replace("{player}", name)
                     scheduler.runMain(Runnable {
                         plugin.server.dispatchCommand(plugin.server.consoleSender, resolved)
                     })

@@ -199,11 +199,12 @@ prevent-container-desync-dupers: true
 prevent-hidden-menu-dupers: true
 
 # When another plugin (land claims, region protection, a "the End is locked"
-# plugin) blocks a placement that had already spilled a chest's contents onto
-# the ground, the chest comes back full and the spilled items stay too. The
-# known case is the last eye of ender in an end portal frame with a chest
-# where the portal would appear. The spilled copies are removed, so the chest
-# keeps its items and nothing is doubled. Staff get a low-priority alert.
+# plugin) blocks a placement that replaces a chest or shulker box, the box
+# comes back while a copy of it drops on the ground, sometimes with everything
+# that was inside. The known case is the last eye of ender in an end portal
+# frame with a container where the portal would appear. The plugin puts it
+# all back, so the container keeps its items and nothing is doubled. Staff get
+# a low-priority alert.
 prevent-reverted-placement-dupers: true
 
 # Close every open window when the server starts shutting down. On restart the
