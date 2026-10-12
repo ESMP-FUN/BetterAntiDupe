@@ -25,6 +25,10 @@ class BetterAntiDupe : JavaPlugin() {
     private companion object {
         const val SHUTDOWN_DRAIN_MS = 5_000L
         const val CRASH_NOTE_MINUTES = 30L
+        const val JOIN_CHECK_DELAY_MS = 5_000L
+
+        /** A crash rolls player data back past what the ledger saw, which can raise these by itself. */
+        val CRASH_SENSITIVE_ALERTS = setOf("alerts.entity-dupe", "alerts.world-stock", "alerts.balance-discrepancy")
 
         /** Settings `/adp reload` applies on the spot; any other changed key needs a restart. */
         val LIVE_KEYS = listOf(
@@ -381,25 +385,7 @@ class BetterAntiDupe : JavaPlugin() {
             this.enforcement = enforcement
             adpCommand.setEnforcement(enforcement)
 
-            chainOfCustody?.onDupeAlert { raw ->
-                // A crash rolls the world back past pickups and container moves the ledger already
-                // saw, which produces both of these alerts by itself. Say so rather than suppress.
-                val crashSensitive = raw.messageKey == "alerts.entity-dupe" || raw.messageKey == "alerts.world-stock"
-                val alert = if (crashSensitive && recentlyCrashed())
-                    raw.copy(afterUncleanShutdown = true) else raw
-                com.esmpfun.antidupe.metrics.DetectionCounters
-                    .recordDetection(alert.type.name, alert.severity.name, alert.material.name)
-                notifier?.handle(alert)
-                this.enforcement?.handle(alert)
-
-                val message = formatAlert(alert)
-                // Alerts can be emitted from reconciliation coroutines; hop to the main (global
-                // region) thread before touching the online-player roster.
-                scheduler.runMain(Runnable { broadcastAlert(alert, message) })
-
-                logger.warning("[DUPE] ${alert.playerName}: ${alert.details}" +
-                    if (alert.afterUncleanShutdown) " (the server did not shut down cleanly shortly before this)" else "")
-            }
+            chainOfCustody?.onDupeAlert { dispatchAlert(it) }
 
             chainOfCustody?.let {
                 adpCommand.setChainOfCustody(it)
@@ -420,11 +406,33 @@ class BetterAntiDupe : JavaPlugin() {
 
     fun getChainOfCustody(): ChainOfCustody? = chainOfCustody
 
+    /** Every alert, from the ledger or a blocking guard, goes to staff, webhooks and enforcement here. */
+    private fun dispatchAlert(raw: com.esmpfun.antidupe.ledger.DupeAlert) {
+        // A crash rolls the world back past pickups and container moves the ledger already
+        // saw, which produces these alerts by itself. Say so rather than suppress.
+        val alert = if (raw.messageKey in CRASH_SENSITIVE_ALERTS && recentlyCrashed())
+            raw.copy(afterUncleanShutdown = true) else raw
+        com.esmpfun.antidupe.metrics.DetectionCounters
+            .recordDetection(alert.type.name, alert.severity.name, alert.material.name)
+        notifier?.handle(alert)
+        enforcement?.handle(alert)
+
+        val message = formatAlert(alert)
+        // Alerts can be emitted from reconciliation coroutines; hop to the main (global
+        // region) thread before touching the online-player roster.
+        scheduler.runMain(Runnable { broadcastAlert(alert, message) })
+
+        logger.warning("[DUPE] ${alert.playerName}: ${alert.details}" +
+            if (alert.afterUncleanShutdown) " (the server did not shut down cleanly shortly before this)" else "")
+    }
+
+
     /** In-game text comes from messages.yml; console logs stay English. */
     private fun formatAlert(alert: com.esmpfun.antidupe.ledger.DupeAlert): String {
         val details = if (alert.messageKey.isNotEmpty())
             Messages.msg(alert.messageKey, alert.placeholders) else alert.details
-        return Messages.msg("alerts.broadcast",
+        val format = if (alert.material.isAir) "alerts.broadcast-no-item" else "alerts.broadcast"
+        return Messages.msg(format,
             "player" to alert.playerName,
             "type" to alert.type.name,
             "material" to alert.material.name,
@@ -542,8 +550,8 @@ class BetterAntiDupe : JavaPlugin() {
             if (marker.exists()) {
                 uncleanStartAt = System.currentTimeMillis()
                 logger.warning("The server did not shut down cleanly last time. For the next " +
-                    "$CRASH_NOTE_MINUTES minutes, alerts about an item being picked up twice are " +
-                    "marked as possibly caused by that.")
+                    "$CRASH_NOTE_MINUTES minutes, alerts a crash can cause by itself are marked as possibly " +
+                    "caused by that, and nothing is taken away from players because of them.")
             }
             marker.writeText("Present while the server runs. Still here at startup means the last stop was not clean.")
         } catch (e: Exception) {
@@ -598,19 +606,58 @@ class BetterAntiDupe : JavaPlugin() {
         val gravity = config.getBoolean("prevent-gravity-dupers", true)
         val tnt = config.getBoolean("prevent-tnt-dupers", true)
         val desync = config.getBoolean("prevent-container-desync-dupers", true)
-        if (!rail && !carpet && !gravity && !tnt && !desync) {
-            logger.info("Duper prevention fully disabled in config")
-            return
+        val hiddenMenu = config.getBoolean("prevent-hidden-menu-dupers", true)
+        val reverted = config.getBoolean("prevent-reverted-placement-dupers", true)
+        reportPaperDupeSettings(rail, carpet, gravity, tnt)
+        if (rail || carpet || gravity || tnt || desync) {
+            server.pluginManager.registerEvents(
+                DuperPreventionListener(rail, carpet, gravity, tnt, desync, logger), this
+            )
         }
-        server.pluginManager.registerEvents(
-            DuperPreventionListener(rail, carpet, gravity, tnt, desync, logger), this
-        )
+        if (hiddenMenu) server.pluginManager.registerEvents(HiddenMenuGuard(logger, ::dispatchAlert), this)
+        if (reverted) server.pluginManager.registerEvents(RevertedPlacementGuard(scheduler, logger, ::dispatchAlert), this)
         val active = listOfNotNull(
             "rail".takeIf { rail }, "carpet".takeIf { carpet },
             "gravity".takeIf { gravity }, "tnt".takeIf { tnt },
-            "container-desync".takeIf { desync }
+            "container-desync".takeIf { desync }, "hidden-menu".takeIf { hiddenMenu },
+            "reverted-placement".takeIf { reverted }
         )
-        logger.info("✓ Duper prevention active: ${active.joinToString(", ")}")
+        if (active.isEmpty()) logger.info("Duper prevention fully disabled in config")
+        else logger.info("✓ Duper prevention active: ${active.joinToString(", ")}")
+    }
+
+    /**
+     * Paper switches several vanilla dupes off and lets owners turn them back on in
+     * config/paper-global.yml. Owners who did that on purpose should see which of them this
+     * plugin still blocks, and owners who forgot should be reminded they are on.
+     */
+    private fun reportPaperDupeSettings(rail: Boolean, carpet: Boolean, gravity: Boolean, tnt: Boolean) {
+        val file = File("config", "paper-global.yml")
+        if (!file.isFile) return
+        val paper = try {
+            YamlConfiguration.loadConfiguration(file)
+        } catch (e: Exception) {
+            return
+        }
+        fun on(key: String) = paper.getBoolean("unsupported-settings.$key", false)
+        val lines = mutableListOf<String>()
+        if (on("allow-piston-duplication")) {
+            val blocked = listOfNotNull("TNT".takeIf { tnt }, "rail".takeIf { rail }, "carpet".takeIf { carpet })
+            lines += "allow-piston-duplication is on, so TNT, rail and carpet duping machines work in vanilla. " +
+                if (blocked.isEmpty()) "Better Anti-Dupe blocks none of them, so all three work."
+                else "Better Anti-Dupe still blocks the ${blocked.joinToString(", ")} ones; turn its prevent- settings off for any you want to allow."
+        }
+        if (on("allow-unsafe-end-portal-teleportation")) {
+            lines += "allow-unsafe-end-portal-teleportation is on, which lets sand and gravel be duplicated through end portals. " +
+                if (gravity) "Better Anti-Dupe still blocks that (prevent-gravity-dupers)." else "Better Anti-Dupe does not block it."
+        }
+        if (on("skip-tripwire-hook-placement-validation")) {
+            lines += "skip-tripwire-hook-placement-validation is on, so tripwire hook duping machines work. " +
+                "That setting does nothing else, so Better Anti-Dupe leaves them working. Turn it off in Paper's file to stop them."
+        }
+        if (lines.isEmpty()) return
+        logger.info("Paper has some duplication glitches switched back on in config/paper-global.yml:")
+        lines.forEach { logger.info("  - $it") }
     }
 
     /**
@@ -681,15 +728,28 @@ class BetterAntiDupe : JavaPlugin() {
         return if (configured == "DEBUG") Level.INFO else Level.FINE
     }
 
+    /**
+     * A first join records what the player carries. Every later join is checked a few seconds
+     * in, which catches inventories rolled back by a crash, a lag spike that stopped saving, or
+     * a forced kick, while the items they put away before it are still in the world.
+     */
     private fun registerJoinBaseline() {
+        val checkOnJoin = config.getBoolean("ledger.reconciliation.on_join", true)
         server.pluginManager.registerEvents(object : org.bukkit.event.Listener {
             @org.bukkit.event.EventHandler
             fun onJoin(event: org.bukkit.event.player.PlayerJoinEvent) {
                 val coc = chainOfCustody ?: return
                 val player = event.player
                 pluginScope.launch {
-                    try { coc.baselineIfNew(player) }
-                    catch (e: Exception) { logger.warning("Baseline failed for ${player.name}: ${e.message}") }
+                    val baselined = try {
+                        coc.baselineIfNew(player)
+                    } catch (e: Exception) {
+                        logger.warning("Baseline failed for ${player.name}: ${e.message}")
+                        return@launch
+                    }
+                    if (baselined || !checkOnJoin) return@launch
+                    kotlinx.coroutines.delay(JOIN_CHECK_DELAY_MS)
+                    if (player.isOnline) coc.reconcileAsync(player)
                 }
             }
         }, this)

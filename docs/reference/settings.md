@@ -91,6 +91,18 @@ Check a player when they pick something up off the ground, and when they close a
 
 <details>
 
+<summary><code>ledger.reconciliation.on_join</code></summary>
+
+**Default:** `true`
+
+Check a player a few seconds after they join. Their very first join is skipped, because that one only records what they arrive with.
+
+This catches dupes where the server lost the player's last few minutes, for example after a crash or a lag machine, so they log back in holding items they had already put in a chest.
+
+</details>
+
+<details>
+
 <summary><code>ledger.reconciliation.cooldown_ms</code> and <code>stagger_ms</code></summary>
 
 **Defaults:** `5000` and `250`

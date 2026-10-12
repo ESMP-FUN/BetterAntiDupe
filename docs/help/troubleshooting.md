@@ -63,7 +63,7 @@ Items from shop, kit or crate plugins do not cause alerts, and neither do items 
 
 If the server crashed after the player picked the item up but before the world saved, the world rolls back on restart, the item lies on the ground again, and they pick up the very same item a second time.
 
-For 30 minutes after a server start that follows a crash, these alerts say so themselves: "the server did not shut down cleanly shortly before this".
+For 30 minutes after a server start that follows a crash, these alerts say so themselves: "the server did not shut down cleanly shortly before this". The same goes for "Has 20 but ledger shows 12" alerts, because a crash can hand a player back items they had already put away. While that note is showing, the plugin never takes items away from anyone, even with `auto_delete_dupes` on.
 
 **To tell them apart:**
 

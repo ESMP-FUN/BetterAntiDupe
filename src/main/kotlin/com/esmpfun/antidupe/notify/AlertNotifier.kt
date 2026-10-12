@@ -115,7 +115,8 @@ class AlertNotifier(
         val details = if (alert.messageKey.isNotEmpty())
             Messages.msg(alert.messageKey, alert.placeholders) else alert.details
         val crashNote = if (alert.afterUncleanShutdown) Messages.msg("alerts.after-crash-suffix") else ""
-        return stripColors("[DUPE] ${alert.playerName} (${alert.type.name}) ${alert.material.name}: $details$crashNote [${alert.severity.name}]")
+        val item = if (alert.material.isAir) "" else " ${alert.material.name}"
+        return stripColors("[DUPE] ${alert.playerName} (${alert.type.name})$item: $details$crashNote [${alert.severity.name}]")
     }
 
     private fun stripColors(s: String): String = s.replace(COLOR_CODES, "")

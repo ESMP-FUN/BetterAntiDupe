@@ -46,6 +46,8 @@ class EnforcementService(
         val settings = settings
         if (!settings.active) return
         if (alert.excess <= 0) return
+        // After a crash the surplus may be the player's own items rolled back, not copies.
+        if (alert.afterUncleanShutdown) return
         if (alert.severity.ordinal < settings.minSeverity.ordinal) return
 
         val wanted = if (settings.maxItemsPerAction > 0)

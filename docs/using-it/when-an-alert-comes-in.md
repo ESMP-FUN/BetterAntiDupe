@@ -143,6 +143,24 @@ The player who took them may simply have been handed them by a duper, so this al
 
 <details>
 
+<summary><strong>"Tried to ... while a ... menu was hidden but still open" (HIDDEN_MENU)</strong></summary>
+
+The player's game hid a menu without telling the server it closed, then did something a normal game cannot do with a menu open. That is the first step of most dupes in other plugins' menus, and it takes a cheat client. The action was already stopped and the menu closed, so nothing was duplicated.
+
+Check their history (step 3) around the time of the alert, and if you run plugins with their own storage menus (backpacks, ender chest or shulker preview plugins), check those too.
+
+</details>
+
+<details>
+
+<summary><strong>"A blocked placement ... would have copied" (REVERTED_PLACEMENT)</strong></summary>
+
+Another plugin blocked a placement, usually the last eye of ender in an end portal frame, after it had already spilled a chest's contents. The copies were removed and the chest kept its items, so nothing needs doing. An innocent player can trigger this, so it is only worth a look if the same player keeps doing it.
+
+</details>
+
+<details>
+
 <summary><strong>"Left creative mode carrying ... more ... than their record showed"</strong></summary>
 
 You set `leaving_creative_mode: ALERT`, and someone switched out of creative mode carrying more than their record showed. Items can be made in creative, so this is not proof of a dupe. It adds no suspicion and removes nothing. Check who gave them creative mode, and their history (step 3).

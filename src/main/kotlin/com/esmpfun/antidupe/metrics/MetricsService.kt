@@ -61,6 +61,8 @@ class MetricsService private constructor(
                     "gravity" to "prevent-gravity-dupers",
                     "tnt" to "prevent-tnt-dupers",
                     "container-desync" to "prevent-container-desync-dupers",
+                    "hidden-menu" to "prevent-hidden-menu-dupers",
+                    "reverted-placement" to "prevent-reverted-placement-dupers",
                     "shutdown" to "prevent-shutdown-dupers"
                 ).filter { (_, key) -> config.getBoolean(key, true) }
                     .map { (label, _) -> label }

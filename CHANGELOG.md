@@ -2,6 +2,18 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- **Stops hidden menu dupes.** Most dupes found in other plugins' menus (backpacks, ender chest plugins, shulker preview plugins, storage menus) start with a cheat client hiding the menu on the player's screen without telling the server it closed. A normal game always closes a menu before the player can mine, build, hit, drop an item, switch hotbar slot or type a command, so doing any of those with a menu still open is now stopped, the menu is closed, and staff get an alert. Normal players are not affected. New setting `prevent-hidden-menu-dupers`, on by default.
+- **Stops the end portal chest dupe.** When the last eye of ender goes into a portal frame with a chest where the portal appears, and a land claim, region or "the End is locked" plugin blocks it, the chest's items and a copy of the chest itself dropped on the ground while the chest also came back full. Those copies are now removed. This is an open Paper bug on 26.3. New setting `prevent-reverted-placement-dupers`, on by default.
+- **Players are checked a few seconds after they join.** This catches players who come back holding items the server should not have handed back, for example after a crash or a lag machine stopped their data from saving while the items they put away stayed in a chest. New setting `ledger.reconciliation.on_join`, on by default.
+- **The console lists Paper's duping settings at startup.** If any duping glitch is switched back on in `config/paper-global.yml` (TNT, rail and carpet machines, sand through end portals, tripwire hooks), the console says so and which of them the plugin still blocks.
+
+### Changed
+- **Built against Paper 26.3 stable.** Paper now marks 26.3 as stable, and the 26.3 download is built against it. Nothing else changes.
+- **No items are taken away right after a crash.** For 30 minutes after a start that follows a crash, "Has X but ledger shows Y" alerts now also say the crash may be the cause, and the plugin does not remove items for any alert that carries that note, even with `auto_delete_dupes` on. A crash can hand a player back their own items, and those should not be deleted.
+
 ## [4.5.3] - 2026-10-12
 
 ### Added

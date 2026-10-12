@@ -608,7 +608,9 @@ enum class AlertType {
     TMAR_EXCEEDED,
     FOREIGN_ITEM,
     ORPHAN_ITEM,
-    CHAIN_INTEGRITY
+    CHAIN_INTEGRITY,
+    HIDDEN_MENU,
+    REVERTED_PLACEMENT
 }
 
 enum class Severity {

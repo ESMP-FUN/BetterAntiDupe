@@ -11,6 +11,8 @@ These machines copy blocks in the world before any item exists, so there is noth
 IMPORTANT: if you have `allow-piston-duplication: false` in `paper-global.yml`, enabling any of the dupe machines that use a piston will not work.<br>
 set `allow-piston-duplication: true` in `paper-global.yml` to use any of the piston-powered machines below:
 
+When the server starts, the console lists every duping setting you have switched on in `paper-global.yml` and says which of those machines the plugin still blocks.
+
 <details>
 
 <summary><strong>Rail and carpet dupers</strong> (<code>prevent-rail-dupers</code>, <code>prevent-carpet-dupers</code>)</summary>
@@ -61,6 +63,28 @@ This covers a normal stop or restart. After a crash no plugin gets a chance to r
 
 </details>
 
+<details>
+
+<summary><strong>Hidden menu dupes</strong> (<code>prevent-hidden-menu-dupers</code>)</summary>
+
+Most dupes found in other plugins (backpacks, ender chest plugins, shulker preview plugins, storage menus) start the same way: a cheat client hides the menu on the player's screen but never tells the server it closed. The server still thinks the menu is open while the player does something else.
+
+A normal game always closes a menu before the player can mine, build, hit, drop an item, switch hotbar slot or type a command. So when one of those arrives while a menu is still open, the action is stopped, the menu is closed and staff get an alert.
+
+Costs nothing for normal players. Anything in the first second after a menu opens is always allowed, so a slow connection never trips it.
+
+</details>
+
+<details>
+
+<summary><strong>Chest copies from blocked placements</strong> (<code>prevent-reverted-placement-dupers</code>)</summary>
+
+When the last eye of ender goes into an end portal frame, the portal replaces whatever is in the middle. A chest there spills its items onto the ground. If a land claim, region or "the End is locked" plugin then blocks that placement, the chest comes back full, while the spilled items and a copy of the chest itself are still on the ground.
+
+Those copies are removed, so the chest keeps its items and nothing is doubled. Staff get a low-priority alert, because an innocent player can trigger it too.
+
+</details>
+
 ## Caught: everything else
 
 <details>
@@ -69,7 +93,7 @@ This covers a normal stop or restart. After a crash no plugin gets a chance to r
 
 The plugin records every tracked item a player mines, crafts, trades for, picks up or takes out of a container, and every one they place, drop, use or put away. Every so often it counts what they actually carry, including inside shulker boxes and bundles. Carrying more than the record explains is the alert.
 
-A check runs when a player picks something up, when they close a container, and for everyone online every 15 minutes. See [Settings](../reference/settings.md) to change when.
+A check runs when a player picks something up, when they close a container, a few seconds after they join, and for everyone online every 15 minutes. See [Settings](../reference/settings.md) to change when.
 
 </details>
 

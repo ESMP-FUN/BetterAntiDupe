@@ -276,9 +276,9 @@ class ChainOfCustody private constructor(
     private val joinBaseline = JoinBaseline(ledgerStorage)
 
     /** Snapshots on the player's thread; this coroutine runs on Dispatchers.IO. */
-    suspend fun baselineIfNew(player: Player) {
+    /** Returns true when this join wrote the player's first baseline. */
+    suspend fun baselineIfNew(player: Player): Boolean =
         joinBaseline.run(player.uniqueId) { reconciliationEngine.snapshotOwned(player) }
-    }
 
     /**
      * Record that the plugin took a surplus back out of a player's inventory. Quantity is zero

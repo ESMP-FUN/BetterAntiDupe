@@ -34,7 +34,10 @@ object DetectionCounters {
         itemsRemovedByMaterial.bump(material, count.toLong())
     }
 
-    /** [kind] is one of the stable tags `rail`, `carpet`, `tnt`, `gravity`, `container_desync`. */
+    /**
+     * [kind] is one of the stable tags `rail`, `carpet`, `tnt`, `gravity`, `container_desync`,
+     * `hidden_menu`, `reverted_placement`.
+     */
     fun recordPreventionBlock(kind: String) = preventionBlocks.bump(kind)
 
     fun detections(): Number = detections.get()

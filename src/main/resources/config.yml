@@ -187,6 +187,25 @@ prevent-tnt-dupers: true
 # a window that was legitimately open simply closes.
 prevent-container-desync-dupers: true
 
+# Catch players whose game hides a menu without telling the server it closed.
+# Cheat clients do this on purpose: the server still thinks the menu is open,
+# and that is the first step of most dupes in other plugins' menus (backpacks,
+# ender chest plugins, shulker preview plugins, storage menus). A normal game
+# always closes a menu before the player can mine, build, hit, drop an item,
+# switch hotbar slot or type a command, so doing any of that with a menu still
+# open is stopped, the menu is closed, and staff get an alert.
+# Costs nothing for normal players. Actions in the first second after a menu
+# opens are always allowed, so a slow connection never trips it.
+prevent-hidden-menu-dupers: true
+
+# When another plugin (land claims, region protection, a "the End is locked"
+# plugin) blocks a placement that had already spilled a chest's contents onto
+# the ground, the chest comes back full and the spilled items stay too. The
+# known case is the last eye of ender in an end portal frame with a chest
+# where the portal would appear. The spilled copies are removed, so the chest
+# keeps its items and nothing is doubled. Staff get a low-priority alert.
+prevent-reverted-placement-dupers: true
+
 # Close every open window when the server starts shutting down. On restart the
 # server saves player data and world data as two separate steps, and an item
 # moved in the gap between them is saved on one side but not the other, so it
@@ -316,6 +335,13 @@ ledger:
     # This is the one that catches players who never pick anything up and
     # move everything through storage instead.
     on_inventory_close: true
+
+    # Check a player a few seconds after they join (not on their very first
+    # join, which only records what they carry). Catches dupes where the
+    # server lost the player's last few minutes, for example after a crash or
+    # a lag machine, so they log back in holding items they had already put
+    # in a chest.
+    on_join: true
 
     # Also check everyone online on a timer, in minutes, so nobody is missed
     # however they play. Set to 0 to turn the timer off and rely only on the
