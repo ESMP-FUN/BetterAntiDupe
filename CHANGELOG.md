@@ -2,13 +2,17 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
-## [Unreleased]
+## [4.7.1] - 2026-10-17
 
 ### Added
 - **Owner marks are signed.** Every mark is signed with a secret only your server knows, kept in `plugins/BetterAntiDupe/mark-signing.key`. A mark made by hand, in creative mode, with an item editor or a `/give` command, does not match, so it is ignored and can no longer be used to frame another player. Staff get an alert when someone holds an item with a faked mark. Servers sharing a Redis database share the secret by themselves; servers sharing items another way need the same file. New settings `ownership.signed_marks` and `ownership.unsigned_marks`.
 - **Marks from before the upgrade are signed as players carry them.** On a server that used the plugin before, older marks stay trusted and get signed during the normal checks. Once `/adp marks` shows hardly any being signed, set `ownership.unsigned_marks: IGNORE`. A brand-new server never trusts unsigned marks.
 - **`/adp marks`** shows the key in use, whether older marks are trusted, and how many were signed or found faked since the last start.
+- **`/adp fixstacks [player]`** fixes items that look the same but will not stack, by giving that player's mark to their unmarked items and updating their older marks. Items marked to someone else are left alone.
 - **API level 2.** `ownership().state(stack)` tells signed, older, faked and other-server marks apart, and alerts have a new kind, `FORGED_MARK`.
+
+### Fixed
+- **Shift-click crafting gave items that would not stack.** Only the first item of a shift-click craft got the crafter's mark, so crafting a stack of diamonds into blocks gave one marked block and the rest unmarked, and the two would not stack. Every crafted item is now marked.
 
 ## [4.7.0] - 2026-10-13
 
