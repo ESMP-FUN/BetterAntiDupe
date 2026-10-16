@@ -91,6 +91,7 @@ commands:
       - "&e/adp ledger verify &7- Verify chain integrity"
     admin-only-lines:
       - "&e/adp marks &7- How owner mark signing is doing"
+      - "&e/adp fixstacks [player] &7- Make items that look the same but will not stack, stack again"
       - "&e/adp reload &7- Reload messages, alerts and removal settings"
       - "&e/adp test alert &7- Send a test alert to chat and your channels"
     user-line: "&e/adp help &7- Show this help message"
@@ -195,6 +196,9 @@ commands:
     restart-needed: "&eThese changes only take effect after a restart: &f{settings}"
     failed: "&cReload failed: {error}. Check the console."
 
+  fixstacks:
+    # {count} is how many items needed fixing. Items that belong to someone else are left as they are.
+    done: "&aChecked {player}'s inventory. &f{count} &aitem(s) fixed so they stack again."
   marks:
     off: "&7Owner marks are not signed. Turn on &fownership.signed_marks&7 in config.yml to sign them."
     header: "&6&lOwner mark signing"

@@ -124,6 +124,25 @@ class OwnershipManager(
     }
 
     /**
+     * Gives [player] the mark on every unmarked stack of a [tracked] material they carry, then
+     * signs their own old marks, so stacks that differ only in marking merge again. Stacks marked
+     * to someone else are left alone. Returns how many items were marked. Player's thread only.
+     */
+    fun claimUnmarked(player: Player, tracked: (Material) -> Boolean): Int {
+        val inventory = player.inventory
+        var count = 0
+        for (slot in 0 until inventory.size) {
+            val item = inventory.getItem(slot) ?: continue
+            if (!tracked(item.type) || readMark(item).state != MarkState.NONE) continue
+            setOwner(item, player.uniqueId)
+            inventory.setItem(slot, item)
+            count += item.amount
+        }
+        signOwnMarks(player)
+        return count
+    }
+
+    /**
      * Signs the trusted but unsigned or outdated marks of [owner]'s own items in their inventory,
      * nested ones included, so older marks catch up without anyone moving them. Only the holder's
      * own marks: signing someone else's unsigned mark would vouch for a mark nobody checked.

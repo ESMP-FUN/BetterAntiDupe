@@ -70,6 +70,7 @@ class AdpCommand(
             }
             "reload" -> if (requireAdmin(sender)) reload(sender)
             "marks" -> if (requireAdmin(sender)) showMarks(sender)
+            "fixstacks" -> if (requireAdmin(sender)) fixStacks(sender, args.getOrNull(1))
             "test" -> if (requireAdmin(sender)) {
                 if (args.size < 2 || args[1].equals("alert", ignoreCase = true)) onTestAlert?.invoke(sender)
                 else usage(sender, "/adp test alert")
@@ -84,12 +85,15 @@ class AdpCommand(
         if (args.size == 1) {
             val subs = mutableListOf<String>()
             if (sender.hasPermission("antidupe.ledger") && chainOfCustody != null) subs.add("ledger")
-            if (sender.hasPermission("antidupe.admin")) subs.addAll(listOf("marks", "reload", "test", "update"))
+            if (sender.hasPermission("antidupe.admin")) subs.addAll(listOf("fixstacks", "marks", "reload", "test", "update"))
             subs.add("help")
             return subs.filter { it.startsWith(args[0].lowercase()) }
         }
         if (args.size == 2 && args[0].lowercase() == "test" && sender.hasPermission("antidupe.admin")) {
             return listOf("alert").filter { it.startsWith(args[1].lowercase()) }
+        }
+        if (args.size == 2 && args[0].lowercase() == "fixstacks" && sender.hasPermission("antidupe.admin")) {
+            return onlineNames(args[1])
         }
         if (args.size >= 2 && args[0].lowercase() == "update") {
             if (!sender.hasPermission("antidupe.admin")) return emptyList()
@@ -155,6 +159,19 @@ class AdpCommand(
         sender.sendMessage(Messages.msg(if (marks.trustsUnsigned) "commands.marks.unsigned-trusted" else "commands.marks.unsigned-ignored"))
         sender.sendMessage(Messages.msg("commands.marks.resigned", "count" to marks.resigned.get()))
         sender.sendMessage(Messages.msg("commands.marks.forged", "count" to marks.forgedReported.get()))
+    }
+
+    private fun fixStacks(sender: CommandSender, name: String?) {
+        val coc = chainOfCustody ?: run { sender.sendMessage(Messages.msg("commands.not-initialized")); return }
+        val target = when {
+            name != null -> Bukkit.getPlayerExact(name)
+            else -> sender as? org.bukkit.entity.Player
+        }
+        if (target == null) { usage(sender, "/adp fixstacks <player>"); return }
+        scheduler.runForEntity(target, Runnable {
+            val fixed = coc.ownershipManager.claimUnmarked(target) { it in coc.trackedMaterials }
+            sender.sendMessage(Messages.msg("commands.fixstacks.done", "player" to target.name, "count" to fixed))
+        })
     }
 
     private fun usage(sender: CommandSender, usage: String) =

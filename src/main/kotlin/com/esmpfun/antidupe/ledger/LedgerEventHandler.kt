@@ -290,9 +290,16 @@ class LedgerEventHandler(
         debitCraftIngredients(player, event, crafts)
         if (!isTracked(actual.type)) return
 
-        val taggedResult = actual.clone()
-        ownershipManager.setOwner(taggedResult, player.uniqueId)
-        event.currentItem = taggedResult
+        if (event.isShiftClick) {
+            // A shift-craft only takes the first result from currentItem; the rest are rebuilt
+            // from the recipe untagged, so tag them all once they have landed.
+            val craftedType = actual.type
+            scheduler.runForEntityLater(player, 1, Runnable { retagTaken(player, craftedType, amount) })
+        } else {
+            val taggedResult = actual.clone()
+            ownershipManager.setOwner(taggedResult, player.uniqueId)
+            event.currentItem = taggedResult
+        }
 
         val meta = witnessedMetadata(
             player, LedgerAction.CRAFT,
