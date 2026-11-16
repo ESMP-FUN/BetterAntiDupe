@@ -379,7 +379,8 @@ class BetterAntiDupe : JavaPlugin() {
                     sweepIntervalMinutes = sweepIntervalMinutes,
                     sweepStaggerMs = sweepStaggerMs,
                     signedMarks = config.getBoolean("ownership.signed_marks", true),
-                    unsignedMarks = config.getString("ownership.unsigned_marks", "AUTO") ?: "AUTO"
+                    unsignedMarks = config.getString("ownership.unsigned_marks", "AUTO") ?: "AUTO",
+                    markPluginDeliveries = config.getBoolean("ownership.mark_plugin_deliveries", true)
                 )
             }
 

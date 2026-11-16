@@ -318,6 +318,16 @@ ownership:
   #            once /adp marks shows hardly any old marks being signed.
   unsigned_marks: AUTO
 
+  # Items players get from other plugins, such as an auction house, a shop,
+  # an orders menu, a crate, a grave or a kit, still carry the mark of
+  # whoever had them before, or none at all. They then look the same as the
+  # player's own items but will not stack with them.
+  # When this is on, the plugin gives those items the new holder's mark as
+  # they arrive and adds them to that player's record, so a diamond bought
+  # from the auction house stacks with diamonds the player mined.
+  # Items with a faked mark are left alone, so staff still get that alert.
+  mark_plugin_deliveries: true
+
 
 # =============================================================================
 # [Advanced] - Tuning, logging and statistics

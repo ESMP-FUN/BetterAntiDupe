@@ -58,7 +58,8 @@ class ChainOfCustody private constructor(
             sweepIntervalMinutes: Int = 15,
             sweepStaggerMs: Long = 250L,
             signedMarks: Boolean = true,
-            unsignedMarks: String = "AUTO"
+            unsignedMarks: String = "AUTO",
+            markPluginDeliveries: Boolean = true
         ): ChainOfCustody {
             val keyring = if (signedMarks) MarkKeyring.load(plugin.dataFolder, ledgerStorage, logger) else null
             val acceptUnsigned = when (unsignedMarks.uppercase()) {
@@ -157,6 +158,12 @@ class ChainOfCustody private constructor(
             eventHandler.registerPaperOnlyListeners()
             eventHandler.registerHopperListener()
             eventHandler.registerCollectBlocker()
+            if (markPluginDeliveries) {
+                val deliveries = PluginDeliveries(plugin, ledgerStorage, ownershipManager, trackedMaterials,
+                    settleTracker, scope, scheduler, logger, worldStock)
+                plugin.server.pluginManager.registerEvents(deliveries, plugin)
+                deliveries.hookRunningPlugins()
+            }
 
             val coc = ChainOfCustody(plugin, ledgerStorage, ownershipManager, witnessManager,
                 reconciliationEngine, eventHandler, scope, trackedMaterials, logger,

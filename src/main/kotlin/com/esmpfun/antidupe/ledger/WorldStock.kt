@@ -26,6 +26,23 @@ class WorldStock(
         }
     }
 
+    /**
+     * Takes up to [amount] of [owner]'s stored [material] off the count without raising an alert,
+     * for items that left storage some way that was not seen. Returns how many were stored.
+     */
+    suspend fun drawDown(owner: UUID, material: Material, amount: Int): Int {
+        if (amount <= 0) return 0
+        val left = storage.adjustWorldStock(owner, material, -amount)
+        if (left >= 0) return amount
+        val had = left + amount
+        if (had <= 0) {
+            storage.adjustWorldStock(owner, material, amount)
+            return 0
+        }
+        storage.adjustWorldStock(owner, material, -left)
+        return had
+    }
+
     /** [actor] took or picked up these, keyed by whose tag they carried. */
     suspend fun back(actor: UUID, tally: Map<Pair<UUID, Material>, Int>, where: String?) {
         for ((key, amount) in tally) {

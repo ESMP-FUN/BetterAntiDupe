@@ -89,4 +89,26 @@ class WorldStockTest {
         ws.back(bob, mapOf((alice to block) to 4), null)
         assertEquals(0, alerts.size)
     }
+
+    @Test
+    fun `drawing down takes only what was stored, quietly`() = runBlocking {
+        val alerts = mutableListOf<Alert>()
+        val storage = MemoryLedgerStorage(Logger.getAnonymousLogger())
+        val ws = stock(storage, alerts)
+        ws.out(mapOf((alice to block) to 3))
+        assertEquals(3, ws.drawDown(alice, block, 5))
+        assertEquals(0, storage.adjustWorldStock(alice, block, 0))
+        assertEquals(0, ws.drawDown(alice, block, 2))
+        assertEquals(0, storage.adjustWorldStock(alice, block, 0))
+        assertEquals(0, alerts.size)
+    }
+
+    @Test
+    fun `drawing down leaves an earlier shortfall as it was`() = runBlocking {
+        val storage = MemoryLedgerStorage(Logger.getAnonymousLogger())
+        val ws = stock(storage, mutableListOf())
+        storage.adjustWorldStock(alice, block, -2)
+        assertEquals(0, ws.drawDown(alice, block, 4))
+        assertEquals(-2, storage.adjustWorldStock(alice, block, 0))
+    }
 }

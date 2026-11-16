@@ -2,6 +2,12 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- **Items from auction houses, shops, orders, crates, graves and kits would sometimes not stack.** Those plugins often hand items over with the previous holder's mark, or none, so a diamond bought from the auction house would not stack with diamonds the player mined. Items another plugin gives a player now get that player's mark as they arrive and are added to their record. It works with any plugin that uses a menu or a command, and also listens to zAuctionHouse, PhoenixCrates, AxGraves and EconomyShopGUI directly. Items with a faked mark are left alone. New setting `ownership.mark_plugin_deliveries`, on by default.
+- **Items handed to a plugin stayed on the seller's record.** A player who listed diamonds on the auction house or delivered them to an order still counted as holding them, so that many could be duped without an alert. They now come off the seller's record when someone else receives them, and items sold to EconomyShopGUI come off as soon as they are sold. Items a plugin hands back to the same player are left as they are.
+
 ## [4.7.1] - 2026-10-17
 
 ### Added
