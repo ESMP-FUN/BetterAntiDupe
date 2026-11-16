@@ -2,7 +2,10 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
-## [Unreleased]
+## [4.8.0] - 2026-11-17
+
+### Added
+- **A docs page for auction houses, shops and other plugins.** It lists the plugins that are followed directly, and the one line DonutOrders and EconomyShopGUI each need changed before they accept marked items. See "Auction houses, shops and other plugins" in the docs.
 
 ### Fixed
 - **Items from auction houses, shops, orders, crates, graves and kits would sometimes not stack.** Those plugins often hand items over with the previous holder's mark, or none, so a diamond bought from the auction house would not stack with diamonds the player mined. Items another plugin gives a player now get that player's mark as they arrive and are added to their record. It works with any plugin that uses a menu or a command, and also listens to zAuctionHouse, PhoenixCrates, AxGraves and EconomyShopGUI directly. Items with a faked mark are left alone. New setting `ownership.mark_plugin_deliveries`, on by default.

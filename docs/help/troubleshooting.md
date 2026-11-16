@@ -25,9 +25,9 @@ The lines right after it say why. The usual causes:
 
 **The likely cause:** Java is too old, or you have the wrong download.
 
-* Minecraft 1.21.x needs Java 21 and the plain `BetterAntiDupe-4.7.1.jar`.
-* Minecraft 26.0 to 26.2 needs Java 25 and `BetterAntiDupe-4.7.1-mc26.jar`.
-* Minecraft 26.3 needs Java 25 and `BetterAntiDupe-4.7.1-mc263.jar`.
+* Minecraft 1.21.x needs Java 21 and the plain `BetterAntiDupe-4.8.0.jar`.
+* Minecraft 26.0 to 26.2 needs Java 25 and `BetterAntiDupe-4.8.0-mc26.jar`.
+* Minecraft 26.3 needs Java 25 and `BetterAntiDupe-4.8.0-mc263.jar`.
 
 </details>
 
@@ -194,6 +194,31 @@ The plugin only counts a player when nothing they just moved is still being writ
 3. Think about who has access to the database or server files.
 
 The plugin keeps running either way.
+
+</details>
+
+<details>
+
+<summary><strong>Items bought from an auction house or shop will not stack with the player's own</strong></summary>
+
+**The likely cause:** `ownership.mark_plugin_deliveries` is off, or the items were bought before you updated to 4.8.0.
+
+**Fix:**
+
+1. Make sure `mark_plugin_deliveries: true` sits under `ownership:` in `config.yml`, and restart.
+2. For stacks bought earlier, run `/adp fixstacks <player>`.
+
+See [Auction houses, shops and other plugins](../using-it/other-plugins.md).
+
+</details>
+
+<details>
+
+<summary><strong>DonutOrders says "You have nothing this order wants", or <code>/sellall</code> says "No items found which can be sold"</strong></summary>
+
+**The likely cause:** DonutOrders and EconomyShopGUI refuse items that carry data from another plugin, and the hidden mark is such data.
+
+**Fix:** change one line in each plugin's own settings, as shown in [Auction houses, shops and other plugins](../using-it/other-plugins.md). If you renamed the mark with `ownership.namespace`, use that name instead of `antidupepro`.
 
 </details>
 

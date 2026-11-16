@@ -209,6 +209,21 @@ After upgrading, check `/adp marks` now and then. Once hardly any old marks are 
 
 </details>
 
+<details>
+
+<summary><code>ownership.mark_plugin_deliveries</code></summary>
+
+**Default:** `true`
+
+Items players get from other plugins (an auction house, a shop, an orders board, a crate, a grave or a kit) get the new holder's mark as they arrive, and are added to that player's record. They then stack with the player's own items. They also come off the record of whoever had them before.
+
+* On: a diamond bought from the auction house stacks with diamonds the player mined.
+* Off: items from other plugins keep the mark they arrived with, and will not stack with the player's own.
+
+Restart the server after changing it. Two plugins need a setting of their own changed as well, see [Auction houses, shops and other plugins](../using-it/other-plugins.md).
+
+</details>
+
 ## Console and statistics
 
 <details>

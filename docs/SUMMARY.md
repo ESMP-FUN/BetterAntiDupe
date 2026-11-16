@@ -14,6 +14,7 @@
 * [Alerts in Discord, Telegram or Slack](using-it/alerts-outside-the-game.md)
 * [Choosing what gets tracked](using-it/what-gets-tracked.md)
 * [What it blocks and catches](using-it/what-it-blocks-and-catches.md)
+* [Auction houses, shops and other plugins](using-it/other-plugins.md)
 * [Language and messages](using-it/language-and-messages.md)
 
 ## Reference

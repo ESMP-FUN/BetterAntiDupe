@@ -16,7 +16,7 @@ It works on Spigot, Paper and Folia, from Minecraft 1.21 up.
    }
 
    dependencies {
-       compileOnly("com.github.ESMP-FUN:BetterAntiDupe:v4.7.1")
+       compileOnly("com.github.ESMP-FUN:BetterAntiDupe:v4.8.0")
    }
    ```
 
@@ -31,7 +31,7 @@ It works on Spigot, Paper and Folia, from Minecraft 1.21 up.
    <dependency>
        <groupId>com.github.ESMP-FUN</groupId>
        <artifactId>BetterAntiDupe</artifactId>
-       <version>v4.7.1</version>
+       <version>v4.8.0</version>
        <scope>provided</scope>
    </dependency>
    ```
