@@ -95,6 +95,7 @@ commands:
       - "&e/adp reload &7- Reload messages, alerts and removal settings"
       - "&e/adp test alert &7- Send a test alert to chat and your channels"
     user-line: "&e/adp help &7- Show this help message"
+    setup-line: "&e/adp setup &7- A guided tour of the main settings"
 
   ledger-help:
     - "&6&lChain of Custody Commands"
@@ -229,3 +230,102 @@ commands:
     fail-error: "&c  Error: {error}"
     fail-broken: "&c  Broken at: {entry}"
     fail-last-valid: "&c  Last valid: {entry}"
+
+# The /adp setup tour. Each step has a title, a few lines of explanation and,
+# for picks, the labels on its buttons.
+setup:
+  intro:
+    - "&6&lWelcome to the BetterAntiDupe setup!"
+    - "&7We'll go through the main settings one at a time. For each one, read what it does, then pick an answer, or Skip to leave it as it is. Nothing is forced, and you can pause or stop at any point."
+  complete:
+    - "&a&lAll done!"
+    - "&7You've been through the main settings. Run &e/adp setup&7 again any time, or fine-tune everything in &fconfig.yml&7."
+    - "&7Every choice you made is already working; there's no need to restart."
+  reminder: "&eNew to BetterAntiDupe? Take a quick tour of the main settings. Nothing is forced."
+  reminder-button: "&a&l[Start /adp setup]"
+  reminder-resume: "&eYou started the BetterAntiDupe setup tour but didn't finish."
+  reminder-resume-button: "&a&l[Carry on]"
+  usage: "&cUse &e/adp setup&c to start the tour, or &e/adp setup continue&c to carry on where you paused."
+  player-only: "&cThe setup tour runs in game. Join the server and type &e/adp setup&c there."
+  missing-option: "&cThat button is missing its choice. Click it in the tour again."
+  invalid-step: "&cThat setup step doesn't exist. Start again with &e/adp setup&c."
+  requires-plugin: "&7That option needs the &e{plugin}&7 plugin, which isn't installed."
+  paused: "&eSetup paused. Type &6/adp setup continue&e to carry on where you left off."
+  stopped: "&7Setup stopped. Start it again any time with &e/adp setup&7."
+  steps:
+    watch-only:
+      title: "Only watch, never take items back?"
+      desc:
+        - "While this is on, the plugin records and alerts you, but never removes anything from anyone."
+        - "&aOn&7 = watch and alert only (recommended while you get used to the alerts). &cOff&7 = the next question decides whether duped items are taken back."
+    take-back:
+      title: "Take duped items back automatically?"
+      desc:
+        - "When the plugin is sure enough, it takes back only the extra amount a player cannot account for, and only items it marked. Nothing else in their inventory is touched."
+        - "This only works when the watch-only question before this one is &cOff&7."
+        - "&aOn&7 = extra items are removed. &cOff&7 = you get the alert and decide yourself."
+    take-back-sure:
+      title: "How sure must it be before taking items back?"
+      desc:
+        - "Only matters when taking items back is on. A stricter level means fewer removals, and almost no chance of taking something a player earned fairly."
+      options:
+        critical: "Only when certain"
+        high: "Strong evidence"
+        medium: "A clear surplus"
+        low: "Anything extra"
+    take-back-limit:
+      title: "Most items to take back at once?"
+      desc:
+        - "A safety net: the plugin never removes more than this in one go. For example, picking one stack means 64 items at most."
+      options:
+        "0": "No limit"
+        "16": "16 items"
+        "64": "One stack"
+        "256": "4 stacks"
+    tell-player:
+      title: "Tell players when items are taken back?"
+      desc:
+        - "&aOn&7 = the player gets a message saying the extra items were removed. &cOff&7 = it happens silently, and only shows in your console and the item's history."
+    alert-level:
+      title: "Which alerts go to Discord, Telegram or Slack?"
+      desc:
+        - "Only alerts this serious or worse are sent to your channels, so small wobbles don't fill them up. Admins in game still see every alert."
+        - "This only matters once you have filled in a channel in config.yml."
+      options:
+        low: "Every alert"
+        medium: "Medium and up"
+        high: "Serious ones"
+        critical: "Only certain ones"
+    alert-gap:
+      title: "How long between repeat alerts?"
+      desc:
+        - "When the same player keeps setting off the same alert for the same item, your channels get it once, then wait this long before sending it again. Stops one incident becoming fifty messages."
+      options:
+        "10": "10 seconds"
+        "30": "30 seconds"
+        "60": "1 minute"
+        "300": "5 minutes"
+    creative:
+      title: "What happens when someone leaves creative mode?"
+      desc:
+        - "Items can be made out of nothing in creative, so whatever a player carries when they switch back becomes their new record."
+        - "&fOnly note it down&7 suits servers where staff build in creative. &fAlso alert staff&7 warns you when someone comes back with more of a watched item than before, for servers where only a few trusted people use creative."
+      options:
+        record: "Only note it down"
+        alert: "Also alert staff"
+    shutdown:
+      title: "Close open menus when the server stops?"
+      desc:
+        - "During a restart, an item moved at just the wrong moment can be saved twice and exist twice on the next start. Closing every open chest or menu first stops that."
+        - "&aOn&7 = menus close as the server stops (costs nothing). &cOff&7 = they stay open until the very end."
+    language:
+      title: "Which language should messages use?"
+      desc:
+        - "The language for every in-game message from this plugin. Your own edits in messages.yml always win, and anything a translation is missing shows in English."
+      options:
+        en: "English"
+        pt_br: "Português"
+        es: "Español"
+        de: "Deutsch"
+        ru: "Русский"
+        pl: "Polski"

@@ -15,7 +15,3 @@ prefix: "<gold>[AntiDupe]</gold>"
 # `update:` section in BetterAntiDupe's own config.yml.
 mode: notify
 check-interval-hours: 6
-
-# BetterAntiDupe ships separate "-mc26" (26.0 to 26.2) and "-mc263" (26.3) builds.
-# Filled in at build time, so each jar follows its own release line.
-track: ${track}

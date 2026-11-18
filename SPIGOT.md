@@ -16,14 +16,12 @@ The defaults are sensible, and nothing is ever taken from a player until you dec
 [SIZE=6][COLOR=#0000ff][B]Will it work on my server?[/B][/COLOR][/SIZE]
 [LIST]
 [*][B]Server software:[/B] Paper, Folia, Spigot, or a Paper fork
-[*][B]Minecraft:[/B] 1.21.x, 26.0 to 26.2 with the [ICODE]-mc26[/ICODE] download, or 26.3 with the [ICODE]-mc263[/ICODE] download
+[*][B]Minecraft:[/B] 1.21.x and 26.x, all with the same download
 [*][B]Java:[/B] 21+ for 1.21.x or 25+ for 26.x
 [*][B]Anything else:[/B] Nothing. Redis is optional.
 [/LIST]
 [SPOILER="Which download do I need?"]
-Minecraft 1.21.x: the plain jar.
-Minecraft 26.0 to 26.2: the jar ending in [ICODE]-mc26[/ICODE].
-Minecraft 26.3: the jar ending in [ICODE]-mc263[/ICODE].
+There is only one. The same jar works on every supported Minecraft version and picks the right support for your server when it starts.
 
 More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/getting-started/install']Read about it in the docs[/URL]
 [/SPOILER]
@@ -196,7 +194,7 @@ More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/getting-st
 [/COLOR][/SIZE][/CENTER]
 [SIZE=6][COLOR=#0000ff][B]Installation[/B][/COLOR][/SIZE]
 [LIST=1]
-[*]Download the jar ([ICODE]-mc26[/ICODE] for Minecraft 26.0 to 26.2, [ICODE]-mc263[/ICODE] for 26.3).
+[*]Download the jar.
 [*]Drop it into [ICODE]plugins/[/ICODE] and restart the server.
 [*]That's it. [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/help/testing-in-game']Testing in-game[/URL] shows you it working.
 [/LIST]

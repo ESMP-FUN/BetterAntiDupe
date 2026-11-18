@@ -25,18 +25,10 @@ jobs:
       # v5 is the last MIT-licensed release and already runs on Node 24.
       - uses: gradle/actions/setup-gradle@v5
 
-      - name: Build 1.21.x jar
-        run: ./gradlew build -Pmc=21
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME_21_X64 }}
-
-      - name: Build 26.0-26.2 jar
-        run: ./gradlew build -Pmc=26 -x test
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME_25_X64 }}
-
-      - name: Build 26.3 jar
-        run: ./gradlew build -Pmc=263 -x test
+      # One jar for every supported server. Gradle compiles with JDK 25 and
+      # reads JDK 21's modules for the shrinking step, so it is told where both are.
+      - name: Build
+        run: ./gradlew build "-Porg.gradle.java.installations.fromEnv=JAVA_HOME_21_X64,JAVA_HOME_25_X64"
         env:
           JAVA_HOME: ${{ env.JAVA_HOME_25_X64 }}
 
@@ -44,6 +36,11 @@ jobs:
         run: |
           awk '/^## \[/{n++} n==1' CHANGELOG.md > RELEASE_NOTES.md || echo "See CHANGELOG.md" > RELEASE_NOTES.md
 
+      # Servers still on a 4.8.0 or older "-mc26" or "-mc263" jar take the newest Modrinth
+      # version whose number ends in their track, and only fall back to a plain version when
+      # none exists. Rename the old suffixed Modrinth versions once (for example to +mc26), and
+      # this one plain upload reaches them too. GitHub needs nothing extra: without a matching
+      # tag they fall back to the newest release.
       - name: Create release
         run: gh release create "$GITHUB_REF_NAME" build/libs/BetterAntiDupe-*.jar --title "$GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md
         env:

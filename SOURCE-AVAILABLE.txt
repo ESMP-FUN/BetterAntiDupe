@@ -1,0 +1,15 @@
+BetterAntiDupe - Source Availability
+
+This plugin is source-available, not open-source.
+
+The complete source code, including version-specific
+implementations, is available at:
+
+https://github.com/ESMP-FUN/BetterAntiDupe
+
+Please refer to the repository for the applicable
+license and usage conditions.
+
+Author: darkstarworks
+For: https://ESMP.fun
+Modrinth: https://modrinth.com/plugin/betterantidupe

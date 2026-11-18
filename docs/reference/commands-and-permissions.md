@@ -35,6 +35,7 @@ Not sure how these fit together? [When an alert comes in](../using-it/when-an-al
 | --------------------- | ------------ |
 | `/adp fixstacks [player]` | Fixes items in a player's inventory that look the same but will not stack. Leave the name out to fix your own. Items marked to someone else are left as they are. |
 | `/adp marks`           | How owner mark signing is doing: the key in use, whether old marks are trusted, and how many were signed or found faked since the last start |
+| `/adp setup`           | A guided tour of the main settings, one at a time. Your answers are saved to `config.yml` and work straight away. `/adp setup continue` carries on after a pause. |
 | `/adp reload`          | Apply changes to `messages.yml`, alerts and removal settings without a restart. It tells you if anything you changed still needs one. |
 | `/adp test alert`      | Send a test alert to your chat and to every Discord, Telegram, Slack or webhook you turned on |
 | `/adp update check`    | See whether a newer version is out |
@@ -48,7 +49,8 @@ Not sure how these fit together? [When an alert comes in](../using-it/when-an-al
 | ------------------------- | ------- | ------------ |
 | `antidupe.alerts`         | op      | See dupe alerts in chat. No commands. |
 | `antidupe.ledger`         | op      | Use every `/adp ledger` command |
-| `antidupe.admin`          | op      | Both of the above, plus `/adp reload`, `/adp test` and `/adp update` |
+| `antidupe.admin`          | op      | Both of the above, plus `/adp reload`, `/adp setup`, `/adp test` and `/adp update` |
+| `antidupe.admin.setup`    | op      | Only `/adp setup`, and the reminder about it when joining |
 | `antidupe.witness.exempt` | nobody  | Never counted as someone who saw a player gain something. Give it to vanished staff. |
 | `antidupe.tag.view`       | nobody  | See the plugin's hidden mark on items in your own game, from your next login. For troubleshooting. |
 

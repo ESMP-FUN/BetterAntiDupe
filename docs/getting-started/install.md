@@ -4,11 +4,9 @@ This page gets BetterAntiDupe running on one server. It takes about two minutes,
 
 Running several servers that players move between? Do this on each one, then read [Pick where records are kept](storage.md).
 
-## 1. Pick the right download
+## 1. Download it
 
-* Minecraft **1.21.x**: `BetterAntiDupe-4.8.0.jar`
-* Minecraft **26.0 to 26.2**: `BetterAntiDupe-4.8.0-mc26.jar`
-* Minecraft **26.3**: `BetterAntiDupe-4.8.0-mc263.jar`
+Download `BetterAntiDupe-4.9.0.jar`. The same jar works on Minecraft 1.21.x and 26.x. When the server starts, the console says which Minecraft version it is set up for, for example `Using the support for Minecraft 26.3.`
 
 ## 2. Put it in your plugins folder
 

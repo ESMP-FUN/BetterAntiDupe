@@ -16,6 +16,9 @@
 #
 # Which items are watched, and how many of each is too many, live in the file
 # next to this one: materials.yml
+#
+# Rather click than type? In game, /adp setup walks you through the main
+# settings one at a time and saves your answers here.
 # =============================================================================
 
 # Language for all in-game messages. Bundled options:
@@ -384,6 +387,14 @@ ledger:
     # this spreads the work out so nobody notices it. 250 means four
     # players a second.
     stagger_ms: 250
+
+# The /adp setup tour of the main settings.
+setup:
+  reminder:
+    # true: when an admin joins, remind them about /adp setup until they have
+    # tried it (at most once a week, and three times in all).
+    # false: never remind.
+    enabled: true
 
 # How much the plugin writes to your console. One of:
 # CRITICAL, ERROR, WARNING, INFO, DEBUG. Each one also shows everything above

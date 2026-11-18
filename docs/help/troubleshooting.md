@@ -23,11 +23,10 @@ The lines right after it say why. The usual causes:
 
 <summary><strong>The plugin does not load at all, and the console mentions <code>UnsupportedClassVersionError</code></strong></summary>
 
-**The likely cause:** Java is too old, or you have the wrong download.
+**The likely cause:** Java is too old. The plugin needs Java 21 or newer.
 
-* Minecraft 1.21.x needs Java 21 and the plain `BetterAntiDupe-4.8.0.jar`.
-* Minecraft 26.0 to 26.2 needs Java 25 and `BetterAntiDupe-4.8.0-mc26.jar`.
-* Minecraft 26.3 needs Java 25 and `BetterAntiDupe-4.8.0-mc263.jar`.
+* Minecraft 1.21.x runs on Java 21.
+* Minecraft 26.x needs Java 25. If the server itself starts, its Java is new enough.
 
 </details>
 

@@ -18,14 +18,12 @@ The defaults are sensible. Most servers install it and never open the config.
 |                   |                                                                  |
 | ----------------- | ---------------------------------------------------------------- |
 | Server software   | **Paper**, **Folia**, **Spigot**, or a Paper fork like **Purpur** |
-| Minecraft version | **1.21.x** with the plain download, **26.x** with the `-mc26` download |
+| Minecraft version | **1.21.x** and **26.x**, all with the same download            |
 | Java              | **21 or newer** for 1.21.x, **25 or newer** for 26.x              |
 | Anything else     | Nothing. Redis is only needed if several servers share records.  |
 
 {% hint style="warning" %}
 **It does not work on Fabric, Forge or NeoForge**, and not on Minecraft 1.20 or older.
-
-**Pick the right download.** The plain jar is for 1.21.x and the `-mc26` jar is for 26.x. The wrong one will not start.
 {% endhint %}
 
 ## Where to start

@@ -2,6 +2,12 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- **One download for every Minecraft version.** The same jar now runs on 1.21.x and 26.x, on Paper, Folia and Spigot. When the server starts, the console says which Minecraft version the plugin set itself up for. Servers on an older `-mc26` or `-mc263` jar are offered this one as their next update.
+- **`/adp setup`, a guided tour of the main settings.** It goes through taking duped items back, alerts, creative mode, closing menus on shutdown and the language, one question at a time, and saves each answer to `config.yml` straight away. Admins who join get a short reminder about it, at most once a week and three times in all; turn that off with `setup.reminder.enabled`. New permission `antidupe.admin.setup`, included in `antidupe.admin`.
+
 ## [4.8.0] - 2026-11-17
 
 ### Added

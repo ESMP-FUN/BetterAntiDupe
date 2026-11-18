@@ -1,7 +1,7 @@
 name: BetterAntiDupe
 version: '${version}'
 main: com.esmpfun.antidupe.BetterAntiDupe
-api-version: '${apiVersion}'
+api-version: '1.21'
 prefix: DUPE »
 load: STARTUP
 authors: [ darkstarworks ]
@@ -14,7 +14,7 @@ folia-supported: true
 commands:
   antidupe:
     description: Better Anti Dupe base command
-    usage: /<command> <ledger|update|help>
+    usage: /<command> <ledger|setup|update|help>
     aliases: [adp, betterantidupe]
 
 permissions:
@@ -24,6 +24,10 @@ permissions:
     children:
       antidupe.ledger: true
       antidupe.alerts: true
+      antidupe.admin.setup: true
+  antidupe.admin.setup:
+    description: Use /adp setup, the guided tour of the main settings
+    default: op
   antidupe.ledger:
     description: Access to Chain of Custody ledger commands (/adp ledger ...)
     default: op
