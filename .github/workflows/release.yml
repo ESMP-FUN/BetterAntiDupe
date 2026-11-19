@@ -20,10 +20,7 @@ jobs:
             25
             21
 
-      # Deliberately v5, not v6: v6 moves caching into `gradle-actions-caching`,
-      # a proprietary component whose use means accepting Gradle's Terms of Use.
-      # v5 is the last MIT-licensed release and already runs on Node 24.
-      - uses: gradle/actions/setup-gradle@v5
+      - uses: gradle/actions/setup-gradle@v6
 
       # One jar for every supported server. Gradle compiles with JDK 25 and
       # reads JDK 21's modules for the shrinking step, so it is told where both are.
