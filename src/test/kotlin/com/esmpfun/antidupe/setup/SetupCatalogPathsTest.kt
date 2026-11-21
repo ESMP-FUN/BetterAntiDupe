@@ -3,6 +3,7 @@ package com.esmpfun.antidupe.setup
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.InputStreamReader
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -35,18 +36,51 @@ class SetupCatalogPathsTest {
     }
 
     @Test
+    fun `language is the first setup step`() {
+        assertEquals("language", SetupCatalog.steps.first().id)
+    }
+
+    @Test
     fun `every setup step has its text in messages yml`() {
         val messages = bundled("messages.yml")
+        val uiKeys = listOf(
+            "dialog-title", "chat-header", "complete-title", "currently", "on", "off",
+            "turn-on", "turn-off", "turn-on-hover", "turn-off-hover", "use-hover",
+            "back", "back-hover", "skip", "skip-hover", "pause", "pause-hover",
+            "stop", "stop-hover", "done", "cpu-use", "requires-plugin-button",
+            "reminder-hover", "not-set", "default-suffix", "value-no-limit",
+            "value-one-stack", "value-items", "value-1-minute", "value-minutes",
+            "value-seconds", "severity-critical", "severity-high", "severity-medium",
+            "severity-low", "creative-record", "creative-alert",
+        ).map { "setup.ui.$it" }
         val strings = SetupCatalog.steps.flatMap { step ->
             listOf(step.titleKey) + ((step as? SetupStep.Choice)?.options?.map { it.labelKey } ?: emptyList())
         } + listOf(
             "setup.reminder", "setup.reminder-button", "setup.reminder-resume", "setup.reminder-resume-button",
             "setup.paused", "setup.stopped", "setup.usage", "setup.player-only", "setup.invalid-step",
-            "setup.missing-option", "commands.help.setup-line",
-        )
+            "setup.missing-option", "setup.requires-plugin", "commands.help.setup-line",
+        ) + uiKeys
         strings.forEach { key -> assertTrue(messages.isString(key), "messages.yml has no text for '$key'") }
         val lists = SetupCatalog.steps.map { it.descKey } + listOf("setup.intro", "setup.complete")
         lists.forEach { key -> assertTrue(messages.getStringList(key).isNotEmpty(), "messages.yml has no lines for '$key'") }
+    }
+
+    @Test
+    fun `every bundled translation covers all setup keys`() {
+        val english = bundled("messages.yml")
+        val setupKeys = english.getKeys(true).filter { it.startsWith("setup.") && !english.isConfigurationSection(it) }
+        assertTrue(setupKeys.isNotEmpty())
+        val translations = listOf("messages_de.yml", "messages_es.yml", "messages_pl.yml", "messages_pt_br.yml", "messages_ru.yml")
+        for (file in translations) {
+            val translated = bundled(file)
+            for (key in setupKeys) {
+                if (english.isList(key)) {
+                    assertTrue(translated.getStringList(key).isNotEmpty(), "$file is missing list '$key'")
+                } else {
+                    assertTrue(translated.isString(key), "$file is missing string '$key'")
+                }
+            }
+        }
     }
 
     @Test

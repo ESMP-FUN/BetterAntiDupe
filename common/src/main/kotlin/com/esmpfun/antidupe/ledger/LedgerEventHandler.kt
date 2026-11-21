@@ -6,6 +6,7 @@ import kotlinx.coroutines.launch
 import org.bukkit.GameMode
 import org.bukkit.Location
 import org.bukkit.Material
+import org.bukkit.block.BlockFace
 import org.bukkit.block.Container
 import org.bukkit.block.DecoratedPot
 import org.bukkit.block.DoubleChest
@@ -508,21 +509,23 @@ class LedgerEventHandler(
         val player = event.player
         if (shouldSkip(player)) return
         val item = event.itemInHand
-        if (!isTracked(item.type)) return
+        val outerTracked = isTracked(item.type)
+        val contents = containedTracked(item)
+        if (!outerTracked && contents.isEmpty()) return
 
         val block = event.blockPlaced
         val placedType = block.type
         val material = item.type
         val playerId = player.uniqueId
-        val contents = containedTracked(item)
         val nestedTally = if (contents.isEmpty()) emptyMap() else tallyNested(item)
+        val loc = block.location
         settle.begin(playerId)
-        scheduler.runForEntityLater(player, 1, Runnable {
+        scheduler.runAtLocationLater(loc, 1, Runnable {
             try {
-                if (block.type != placedType) return@Runnable
+                if (loc.block.type != placedType) return@Runnable
                 stockOut(nestedTally)
-                val meta = LedgerMetadata.fromLocation(block.location)
-                appendAsync(playerId, LedgerAction.PLACE, material, -1, meta)
+                val meta = LedgerMetadata.fromLocation(loc)
+                if (outerTracked) appendAsync(playerId, LedgerAction.PLACE, material, -1, meta)
                 if (contents.isNotEmpty()) {
                     appendContents(playerId, LedgerAction.PLACE, contents, -1,
                         meta.copy(notes = "CONTENTS_OF:$material"))
@@ -759,6 +762,9 @@ class LedgerEventHandler(
     private val shearDropsMethod: java.lang.reflect.Method? by lazy {
         runCatching { org.bukkit.event.player.PlayerShearEntityEvent::class.java.getMethod("getDrops") }.getOrNull()
     }
+    private val blockShearDropsMethod: java.lang.reflect.Method? by lazy {
+        runCatching { org.bukkit.event.block.BlockShearEntityEvent::class.java.getMethod("getDrops") }.getOrNull()
+    }
 
     private fun countInInventory(inv: Inventory, material: Material): Int {
         var total = 0
@@ -947,6 +953,9 @@ class LedgerEventHandler(
 
     private companion object {
         private const val HOPPER_LOG_WINDOW_MS = 60_000L
+        private val SHELF_NEIGHBOR_FACES = arrayOf(
+            BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST
+        )
 
         /** Result-slot index per station; every slot below it is an input slot. */
         private val STATION_RESULT_SLOTS = mapOf(
@@ -1056,7 +1065,7 @@ class LedgerEventHandler(
     private inner class HopperBlockListener : Listener {
         @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
         fun onMove(event: org.bukkit.event.inventory.InventoryMoveItemEvent) {
-            if (!isTracked(event.item.type)) return
+            if (!isTracked(event.item.type) && containedTracked(event.item).isEmpty()) return
             event.isCancelled = true
         }
     }
@@ -1065,23 +1074,46 @@ class LedgerEventHandler(
         @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
         fun onMove(event: org.bukkit.event.inventory.InventoryMoveItemEvent) {
             val stack = event.item
-            if (!isTracked(stack.type)) return
+            val outerTracked = isTracked(stack.type)
+            val nested = if (mightHoldItems(stack.type)) tallyNested(stack) else emptyMap()
+            if (!outerTracked && nested.isEmpty()) return
 
-            val owner = ownershipManager.getOwner(stack) ?: return
             val destination = try { event.destination.location } catch (e: Exception) { null }
             val where = destination?.let { "${it.world?.name}:${it.blockX},${it.blockY},${it.blockZ}" } ?: "unknown"
-            val key = "$owner|${stack.type.name}|$where"
-
             val now = System.currentTimeMillis()
+            val destType = event.destination.type.name
+
+            if (outerTracked) {
+                ownershipManager.getOwner(stack)?.let { owner ->
+                    logHopperTransfer(owner, stack.type, where, destType, destination, now,
+                        "AUTOMATED_TRANSFER:${stack.type.name}")
+                }
+            }
+            for ((key, _) in nested) {
+                logHopperTransfer(key.first, key.second, where, destType, destination, now,
+                    "AUTOMATED_TRANSFER:${stack.type.name}->${key.second.name}")
+            }
+        }
+
+        private fun logHopperTransfer(
+            owner: UUID,
+            material: Material,
+            where: String,
+            destType: String,
+            destination: Location?,
+            now: Long,
+            notes: String
+        ) {
+            val key = "$owner|${material.name}|$where"
             val last = hopperTrail[key]
             if (last != null && now - last < HOPPER_LOG_WINDOW_MS) return
             hopperTrail[key] = now
 
             // Quantity zero: the item moves between two containers, so no balance changes. The
             // entry exists only so the route shows up in the item's history.
-            val meta = LedgerMetadata(notes = "AUTOMATED_TRANSFER:${stack.type.name}")
-                .withContainer(event.destination.type.name, destination)
-            appendAsync(owner, LedgerAction.TRANSFER, stack.type, 0, meta)
+            val meta = LedgerMetadata(notes = notes)
+                .withContainer(destType, destination)
+            appendAsync(owner, LedgerAction.TRANSFER, material, 0, meta)
         }
     }
 
@@ -1132,7 +1164,8 @@ class LedgerEventHandler(
         if (old != null && old.type == newItem.type) return
         // The held stack only loses one when no other plugin replaced the swallowed item.
         val inventory = player.inventory
-        val held = listOf(inventory.itemInMainHand, inventory.itemInOffHand).firstOrNull { it == newItem }
+        val held = listOf(inventory.itemInMainHand, inventory.itemInOffHand)
+            .firstOrNull { it.type != Material.AIR && it.isSimilar(newItem) }
 
         val loc = cube.location
         val where = "${loc.world?.name},${loc.blockX},${loc.blockY},${loc.blockZ}"
@@ -1163,6 +1196,114 @@ class LedgerEventHandler(
                 sourceAction = LedgerAction.ENTITY_TAKE,
                 sourceContext = "SULFUR_CUBE_SHEAR:${loc.world?.name},${loc.blockX},${loc.blockY},${loc.blockZ}"
             )
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onBlockShearEntity(event: org.bukkit.event.block.BlockShearEntityEvent) {
+        if (event.entity.type.name != "SULFUR_CUBE") return
+        val loc = event.entity.location
+        @Suppress("UNCHECKED_CAST")
+        val drops = blockShearDropsMethod?.let { runCatching { it.invoke(event) as? List<ItemStack> }.getOrNull() } ?: return
+        for (drop in drops) {
+            if (!isTracked(drop.type)) continue
+            authorizeDrop(
+                material = drop.type, amount = drop.amount, loc = loc, sourcePlayer = null,
+                sourceAction = LedgerAction.ENTITY_TAKE,
+                sourceContext = "SULFUR_CUBE_DISPENSER_SHEAR:${loc.world?.name},${loc.blockX},${loc.blockY},${loc.blockZ}"
+            )
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onBucketEntity(event: org.bukkit.event.player.PlayerBucketEntityEvent) {
+        if (event.entity.type.name != "SULFUR_CUBE") return
+        val player = event.player
+        if (shouldSkip(player)) return
+        val inner = SulfurCubeAccess.absorbedItem(event.entityBucket, logger) ?: return
+        val outerTracked = isTracked(inner.type)
+        val nested = containedTracked(inner)
+        if (!outerTracked && nested.isEmpty()) return
+
+        val loc = event.entity.location
+        val innerTally = tally(inner)
+        val previousOwner = ownershipManager.getOwner(inner)
+        var meta = LedgerMetadata.fromLocation(player.location).withContainer("SULFUR_CUBE", loc)
+        if (previousOwner != null && previousOwner != player.uniqueId) meta = meta.withRelatedPlayer(previousOwner)
+
+        if (outerTracked) {
+            appendAsync(player.uniqueId, LedgerAction.ENTITY_TAKE, inner.type, inner.amount, meta)
+        }
+        if (nested.isNotEmpty()) {
+            appendContents(player.uniqueId, LedgerAction.ENTITY_TAKE, nested, 1,
+                meta.copy(notes = "CONTENTS_OF:${inner.type}"))
+        }
+        stockBack(player.uniqueId, innerTally, locationLabel(loc))
+
+        val bucketMat = SulfurCubeAccess.bucketMaterial ?: return
+        val budget = HashMap<Material, Int>()
+        if (outerTracked) budget.merge(inner.type, inner.amount, Int::plus)
+        for ((m, c) in nested) budget.merge(m, c, Int::plus)
+        settle.begin(player.uniqueId)
+        scheduler.runForEntityLater(player, 1, Runnable {
+            try {
+                retagBucketContents(player, bucketMat, budget)
+            } finally {
+                settle.end(player.uniqueId)
+            }
+        })
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onBucketEmpty(event: org.bukkit.event.player.PlayerBucketEmptyEvent) {
+        val bucketMat = SulfurCubeAccess.bucketMaterial ?: return
+        if (event.bucket != bucketMat) return
+        val player = event.player
+        if (shouldSkip(player)) return
+        val hand = event.hand
+        val bucket = listOfNotNull(heldIn(player, hand), event.itemStack)
+            .firstOrNull { it.type == bucketMat } ?: return
+        val inner = SulfurCubeAccess.absorbedItem(bucket, logger) ?: return
+        val outerTracked = isTracked(inner.type)
+        val nested = containedTracked(inner)
+        if (!outerTracked && nested.isEmpty()) return
+
+        val innerTally = tally(inner)
+        val loc = event.block.location
+        val playerId = player.uniqueId
+        settle.begin(playerId)
+        scheduler.runForEntityLater(player, 1, Runnable {
+            try {
+                if (heldIn(player, hand)?.type == bucketMat) return@Runnable
+                val meta = LedgerMetadata.fromLocation(loc).withContainer("SULFUR_CUBE", loc)
+                if (outerTracked) {
+                    appendAsync(playerId, LedgerAction.ENTITY_PUT, inner.type, -inner.amount, meta)
+                }
+                if (nested.isNotEmpty()) {
+                    appendContents(playerId, LedgerAction.ENTITY_PUT, nested, -1,
+                        meta.copy(notes = "CONTENTS_OF:${inner.type}"))
+                }
+                stockOut(innerTally)
+            } finally {
+                settle.end(playerId)
+            }
+        })
+    }
+
+    private fun retagBucketContents(player: Player, bucketMat: Material, budget: MutableMap<Material, Int>) {
+        val id = player.uniqueId
+        val cursor = player.itemOnCursor
+        if (cursor.type == bucketMat && ownershipManager.retagNested(cursor, id, ::isTracked, budget).changed) {
+            player.setItemOnCursor(cursor)
+        }
+        val inv = player.inventory
+        for (slot in 0 until inv.size) {
+            if (budget.values.all { it <= 0 }) break
+            val stack = inv.getItem(slot) ?: continue
+            if (stack.type != bucketMat) continue
+            if (ownershipManager.retagNested(stack, id, ::isTracked, budget).changed) {
+                inv.setItem(slot, stack)
+            }
         }
     }
 
@@ -1231,16 +1372,20 @@ class LedgerEventHandler(
             org.bukkit.inventory.EquipmentSlot.OFF_HAND -> player.inventory.itemInOffHand
             else -> return
         }
-        if (held.type == Material.AIR || !isTracked(held.type)) return
+        if (held.type == Material.AIR) return
+        val outerTracked = isTracked(held.type)
+        val contents = containedTracked(held)
+        if (!outerTracked && contents.isEmpty()) return
 
         val state = block.state as? DecoratedPot ?: return
         val current = state.inventory.item
-        if (current != null && current.type != Material.AIR && !current.isSimilar(held)) return
+        if (current != null && current.type != Material.AIR &&
+            (!current.isSimilar(held) || current.amount >= current.maxStackSize)
+        ) return
 
         val meta = LedgerMetadata.fromLocation(block.location).copy(containerType = "DECORATED_POT")
         stockOut(tallySingle(held))
-        appendAsync(player.uniqueId, LedgerAction.CONTAINER_PUT, held.type, -1, meta)
-        val contents = containedTracked(held)
+        if (outerTracked) appendAsync(player.uniqueId, LedgerAction.CONTAINER_PUT, held.type, -1, meta)
         if (contents.isNotEmpty()) {
             appendContents(player.uniqueId, LedgerAction.CONTAINER_PUT, contents, -1,
                 meta.copy(notes = "CONTENTS_OF:${held.type}"))
@@ -1287,20 +1432,26 @@ class LedgerEventHandler(
         val type = held.type
         val heldBefore = held.amount
         val stored = tallySingle(held)
-        scheduler.runForEntityLater(player, 1, Runnable {
-            val book = (block.state as? org.bukkit.block.Lectern)?.inventory?.getItem(0)
-            val after = heldIn(player, hand)?.let { if (it.type == type) it.amount else 0 } ?: 0
-            if (!StationAccounting.lecternBookPlaced(false, book?.type == type, heldBefore, after)) return@Runnable
-            val meta = LedgerMetadata.fromLocation(block.location).copy(containerType = "LECTERN")
-            appendAsync(player.uniqueId, LedgerAction.CONTAINER_PUT, type, -1, meta)
-            stockOut(stored)
+        val loc = block.location
+        scheduler.runAtLocationLater(loc, 1, Runnable {
+            val book = (loc.block.state as? org.bukkit.block.Lectern)?.inventory?.getItem(0)
+            if (book?.type != type) return@Runnable
+            val finish = Runnable {
+                val after = heldIn(player, hand)?.let { if (it.type == type) it.amount else 0 } ?: 0
+                if (!StationAccounting.lecternBookPlaced(false, true, heldBefore, after)) return@Runnable
+                val meta = LedgerMetadata.fromLocation(loc).copy(containerType = "LECTERN")
+                appendAsync(player.uniqueId, LedgerAction.CONTAINER_PUT, type, -1, meta)
+                stockOut(stored)
+            }
+            if (scheduler.isFolia) scheduler.runForEntity(player, finish) else finish.run()
         })
     }
 
     /**
-     * A shelf swaps items straight between the hand and the block without opening an inventory,
-     * so no click event fires and the move has to be measured from the player's side. Uses
-     * PlayerInteractEvent rather than a version-specific shelf event so one jar covers 1.21.9+.
+     * A shelf swaps items straight between the hand (or whole hotbar on powered shelves) and
+     * up to three connected shelves without opening an inventory, so no click event fires and
+     * the move has to be measured from the player's side. Uses InventoryHolder rather than
+     * org.bukkit.block.Shelf so one jar works on 1.21.1 through 26.x.
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onShelfInteract(event: org.bukkit.event.player.PlayerInteractEvent) {
@@ -1311,7 +1462,7 @@ class LedgerEventHandler(
 
         val player = event.player
         if (shouldSkip(player)) return
-        val shelf = block.state as? org.bukkit.block.Shelf ?: return
+        val shelf = block.state as? InventoryHolder ?: return
 
         val materials = HashSet<Material>()
         fun consider(stack: ItemStack?) {
@@ -1319,8 +1470,17 @@ class LedgerEventHandler(
             if (isTracked(stack.type)) materials.add(stack.type)
             materials.addAll(containedTracked(stack).keys)
         }
-        consider(player.inventory.itemInMainHand)
+        for (slot in 0..8) consider(player.inventory.getItem(slot))
         shelf.inventory.contents.forEach { consider(it) }
+        // Powered shelves can link up to two adjacent neighbors sideways, swapping up to 9 stacks.
+        for (face in SHELF_NEIGHBOR_FACES) {
+            var current = block
+            for (step in 1..2) {
+                current = current.getRelative(face)
+                if (!current.type.name.endsWith("_SHELF")) break
+                (current.state as? InventoryHolder)?.inventory?.contents?.forEach { consider(it) }
+            }
+        }
         if (materials.isEmpty()) return
 
         val before = materials.associateWith { countInInventory(player.inventory, it) }
@@ -1384,7 +1544,12 @@ class LedgerEventHandler(
 
     private data class DropMatch(val excess: Int, val sourceAction: LedgerAction?, val sourceContext: String?)
 
-    private data class FrameContent(val material: Material, val amount: Int, val placedBy: UUID)
+    private data class FrameContent(
+        val material: Material,
+        val amount: Int,
+        val placedBy: UUID,
+        val contents: Map<Material, Int> = emptyMap()
+    )
 
     private val frameContents = ConcurrentHashMap<UUID, FrameContent>()
 
@@ -1494,20 +1659,22 @@ class LedgerEventHandler(
                 else -> return
             }
         }
-        if (held.type == Material.AIR || !isTracked(held.type)) return
+        if (held.type == Material.AIR) return
+        val outerTracked = isTracked(held.type)
+        val contents = containedTracked(held)
+        if (!outerTracked && contents.isEmpty()) return
 
         // A frame stores no stack count because exactly one item ever goes in.
         val meta = LedgerMetadata.fromLocation(frame.location)
             .copy(containerType = "ITEM_FRAME", containerLocation = "${frame.location.world?.name},${frame.location.blockX},${frame.location.blockY},${frame.location.blockZ}")
-        appendAsync(player.uniqueId, LedgerAction.FRAME_PUT, held.type, -1, meta)
-        val contents = containedTracked(held)
+        if (outerTracked) appendAsync(player.uniqueId, LedgerAction.FRAME_PUT, held.type, -1, meta)
         if (contents.isNotEmpty()) {
             appendContents(player.uniqueId, LedgerAction.FRAME_PUT, contents, -1,
                 meta.copy(notes = "CONTENTS_OF:${held.type}"))
         }
 
         stockOut(tallySingle(held))
-        frameContents[frame.uniqueId] = FrameContent(held.type, 1, player.uniqueId)
+        frameContents[frame.uniqueId] = FrameContent(held.type, 1, player.uniqueId, contents)
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -1517,15 +1684,24 @@ class LedgerEventHandler(
         if (shouldSkip(player)) return
 
         val item = frame.item
-        if (item.type == Material.AIR || !isTracked(item.type)) return
+        if (item.type == Material.AIR) return
+        val outerTracked = isTracked(item.type)
+        val contents = containedTracked(item)
+        if (!outerTracked && contents.isEmpty()) return
 
-        val mat = item.type
-        val amt = item.amount.coerceAtLeast(1)
-        authorizeDrop(
-            material = mat, amount = amt, loc = frame.location, sourcePlayer = player.uniqueId,
-            sourceAction = LedgerAction.FRAME_TAKE,
-            sourceContext = "FRAME_TAKE:${frame.location.world?.name},${frame.location.blockX},${frame.location.blockY},${frame.location.blockZ}"
-        )
+        val ctx = "FRAME_TAKE:${frame.location.world?.name},${frame.location.blockX},${frame.location.blockY},${frame.location.blockZ}"
+        if (outerTracked) {
+            authorizeDrop(
+                material = item.type, amount = item.amount.coerceAtLeast(1), loc = frame.location,
+                sourcePlayer = player.uniqueId, sourceAction = LedgerAction.FRAME_TAKE, sourceContext = ctx
+            )
+        }
+        for ((m, c) in contents) {
+            authorizeDrop(
+                material = m, amount = c, loc = frame.location,
+                sourcePlayer = player.uniqueId, sourceAction = LedgerAction.FRAME_TAKE, sourceContext = ctx
+            )
+        }
         frameContents.remove(frame.uniqueId)
     }
 
@@ -1545,16 +1721,105 @@ class LedgerEventHandler(
     private fun recordFrameBreakDrop(frame: ItemFrame, source: UUID?) {
         val cached = frameContents.remove(frame.uniqueId)
         val item = frame.item
-        val material: Material; val amount: Int
-        if (cached != null) { material = cached.material; amount = cached.amount }
-        else if (item.type != Material.AIR && isTracked(item.type)) { material = item.type; amount = item.amount.coerceAtLeast(1) }
-        else return
+        val ctx = "FRAME_BREAK:${frame.location.world?.name},${frame.location.blockX},${frame.location.blockY},${frame.location.blockZ}"
+        if (cached != null) {
+            if (isTracked(cached.material)) {
+                authorizeDrop(
+                    material = cached.material, amount = cached.amount, loc = frame.location,
+                    sourcePlayer = source, sourceAction = LedgerAction.FRAME_TAKE, sourceContext = ctx
+                )
+            }
+            for ((m, c) in cached.contents) {
+                authorizeDrop(
+                    material = m, amount = c, loc = frame.location,
+                    sourcePlayer = source, sourceAction = LedgerAction.FRAME_TAKE, sourceContext = ctx
+                )
+            }
+        } else if (item.type != Material.AIR) {
+            if (isTracked(item.type)) {
+                authorizeDrop(
+                    material = item.type, amount = item.amount.coerceAtLeast(1), loc = frame.location,
+                    sourcePlayer = source, sourceAction = LedgerAction.FRAME_TAKE, sourceContext = ctx
+                )
+            }
+            for ((m, c) in containedTracked(item)) {
+                authorizeDrop(
+                    material = m, amount = c, loc = frame.location,
+                    sourcePlayer = source, sourceAction = LedgerAction.FRAME_TAKE, sourceContext = ctx
+                )
+            }
+        }
+    }
 
-        authorizeDrop(
-            material = material, amount = amount, loc = frame.location, sourcePlayer = source,
-            sourceAction = LedgerAction.FRAME_TAKE,
-            sourceContext = "FRAME_BREAK:${frame.location.world?.name},${frame.location.blockX},${frame.location.blockY},${frame.location.blockZ}"
-        )
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onArmorStandManipulate(event: org.bukkit.event.player.PlayerArmorStandManipulateEvent) {
+        val player = event.player
+        if (shouldSkip(player)) return
+
+        val putting = event.playerItem.takeIf { !it.type.isAir }
+        val taking = event.armorStandItem.takeIf { !it.type.isAir }
+        if (putting == null && taking == null) return
+
+        val loc = event.rightClicked.location
+        val playerId = player.uniqueId
+        val putOuter = putting != null && isTracked(putting.type)
+        val putNested = if (putting != null) containedTracked(putting) else emptyMap()
+        val takeOuter = taking != null && isTracked(taking.type)
+        val takeNested = if (taking != null) containedTracked(taking) else emptyMap()
+        if (!putOuter && putNested.isEmpty() && !takeOuter && takeNested.isEmpty()) return
+
+        val meta = LedgerMetadata.fromLocation(player.location).withContainer("ARMOR_STAND", loc)
+        // An armor stand only accepts one item from a held stack at a time, like a frame or pot.
+        val outTally = if (putting != null && (putOuter || putNested.isNotEmpty())) tallySingle(putting) else emptyMap()
+        if (putting != null && putOuter) {
+            appendAsync(playerId, LedgerAction.ENTITY_PUT, putting.type, -1, meta)
+        }
+        if (putting != null && putNested.isNotEmpty()) {
+            appendContents(playerId, LedgerAction.ENTITY_PUT, putNested, -1,
+                meta.copy(notes = "CONTENTS_OF:${putting.type}"))
+        }
+
+        val backTally = if (taking != null && (takeOuter || takeNested.isNotEmpty())) tally(taking) else emptyMap()
+        if (taking != null && (takeOuter || takeNested.isNotEmpty())) {
+            val previousOwner = ownershipManager.getOwner(taking)
+            val takeMeta = if (previousOwner != null && previousOwner != playerId) {
+                meta.withRelatedPlayer(previousOwner)
+            } else meta
+            if (takeOuter) {
+                appendAsync(playerId, LedgerAction.ENTITY_TAKE, taking.type, taking.amount, takeMeta)
+            }
+            if (takeNested.isNotEmpty()) {
+                appendContents(playerId, LedgerAction.ENTITY_TAKE, takeNested, 1,
+                    takeMeta.copy(notes = "CONTENTS_OF:${taking.type}"))
+            }
+
+            val toRetag = HashMap<Material, Int>()
+            if (takeOuter) toRetag.merge(taking.type, taking.amount, Int::plus)
+            for ((m, c) in takeNested) toRetag.merge(m, c, Int::plus)
+            if (toRetag.isNotEmpty()) {
+                settle.begin(playerId)
+                scheduler.runForEntityLater(player, 1, Runnable {
+                    try {
+                        for ((mat, qty) in toRetag) retagTaken(player, mat, qty)
+                    } finally {
+                        settle.end(playerId)
+                    }
+                })
+            }
+        }
+
+        val ws = worldStock ?: return
+        if (outTally.isEmpty() && backTally.isEmpty()) return
+        val where = locationLabel(loc)
+        scope.launch {
+            try {
+                if (outTally.isNotEmpty()) ws.out(outTally)
+                if (backTally.isNotEmpty()) ws.back(playerId, backTally, where)
+            } catch (e: Exception) {
+                logger.warning("[Ledger] world stock update failed: ${e.message}")
+                com.esmpfun.antidupe.util.ErrorReporter.report("world-stock-update", e)
+            }
+        }
     }
 
     /**

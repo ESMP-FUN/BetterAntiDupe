@@ -37,13 +37,15 @@ class SetupTourDialog(
         body += text(step.titleKey).color(NamedTextColor.YELLOW).decorate(TextDecoration.BOLD)
         body += lines(step.descKey)
         step.cpuImpact?.let {
-            body += Component.text("CPU use: ", NamedTextColor.GRAY).append(legacy.deserialize(Messages.colorize(it.color) + it.text))
+            body += text("setup.ui.cpu-use").colorIfAbsent(NamedTextColor.GRAY)
+                .append(legacy.deserialize(Messages.colorize(it.color) + it.text))
         }
         body += currentLine(step)
 
         show(
             player,
-            Component.text("BetterAntiDupe Setup (${index + 1}/${controller.stepCount})", NamedTextColor.AQUA),
+            legacy.deserialize(Messages.msg("setup.ui.dialog-title", "step" to "${index + 1}", "total" to "${controller.stepCount}"))
+                .colorIfAbsent(NamedTextColor.AQUA),
             body,
             actions(player, step, index),
         )
@@ -51,8 +53,8 @@ class SetupTourDialog(
 
     override fun complete(player: Player) {
         controller.markComplete()
-        val base = base(Component.text("Setup complete", NamedTextColor.GREEN), lines("setup.complete"))
-        val done = button(player, Component.text("Done", NamedTextColor.GREEN)) {}
+        val base = base(text("setup.ui.complete-title").colorIfAbsent(NamedTextColor.GREEN), lines("setup.complete"))
+        val done = button(player, text("setup.ui.done").colorIfAbsent(NamedTextColor.GREEN)) {}
         player.showDialog(Dialog.create { it.empty().base(base).type(DialogType.notice(done)) })
     }
 
@@ -64,13 +66,15 @@ class SetupTourDialog(
     private fun currentLine(step: SetupStep): Component = when (step) {
         is SetupStep.Toggle -> {
             val on = controller.isEnabled(step.configPath, step.default)
-            Component.text("Currently: ", NamedTextColor.GRAY)
-                .append(if (on) Component.text("On", NamedTextColor.GREEN) else Component.text("Off", NamedTextColor.RED))
+            val state = if (on) text("setup.ui.on").colorIfAbsent(NamedTextColor.GREEN)
+            else text("setup.ui.off").colorIfAbsent(NamedTextColor.RED)
+            text("setup.ui.currently").colorIfAbsent(NamedTextColor.GRAY).append(state)
         }
         is SetupStep.Choice -> {
             val value = controller.currentValue(step.configPath)
-            val label = step.formatCurrent?.invoke(value) ?: value?.toString() ?: "default"
-            Component.text("Currently: ", NamedTextColor.GRAY).append(Component.text(label, NamedTextColor.WHITE))
+            val label = step.formatCurrent?.invoke(value) ?: value?.toString() ?: Messages.msg("setup.ui.not-set")
+            text("setup.ui.currently").colorIfAbsent(NamedTextColor.GRAY)
+                .append(legacy.deserialize(label).colorIfAbsent(NamedTextColor.WHITE))
         }
     }
 
@@ -80,36 +84,53 @@ class SetupTourDialog(
             is SetupStep.Toggle -> {
                 val missingPlugin = step.requiresPlugin?.let { !Bukkit.getPluginManager().isPluginEnabled(it) } ?: false
                 if (missingPlugin) {
-                    list += Action(Component.text("${step.requiresPlugin} is not installed", NamedTextColor.DARK_GRAY)) {
+                    val missingLabel = legacy.deserialize(
+                        Messages.msg("setup.ui.requires-plugin-button", "plugin" to step.requiresPlugin)
+                    ).colorIfAbsent(NamedTextColor.DARK_GRAY)
+                    list += Action(missingLabel) {
                         player.sendMessage(Messages.msg("setup.requires-plugin", "plugin" to step.requiresPlugin))
                         render(player, index)
                     }
                 } else {
-                    list += Action(Component.text("Turn on", NamedTextColor.GREEN)) {
-                        controller.applyToggle(step.configPath, true); next(player)
+                    list += Action(text("setup.ui.turn-on").colorIfAbsent(NamedTextColor.GREEN)) {
+                        controller.applyToggle(step.configPath, true) {
+                            runForPlayer(player) { next(player) }
+                        }
                     }
                 }
-                list += Action(Component.text("Turn off", NamedTextColor.RED)) {
-                    controller.applyToggle(step.configPath, false); next(player)
+                list += Action(text("setup.ui.turn-off").colorIfAbsent(NamedTextColor.RED)) {
+                    controller.applyToggle(step.configPath, false) {
+                        runForPlayer(player) { next(player) }
+                    }
                 }
             }
             is SetupStep.Choice -> step.options.forEach { opt ->
-                list += Action(text(opt.labelKey).color(NamedTextColor.AQUA)) {
-                    controller.applyChoice(step.configPath, opt.value); next(player)
+                list += Action(text(opt.labelKey).colorIfAbsent(NamedTextColor.AQUA)) {
+                    controller.applyChoice(step.configPath, opt.value) {
+                        runForPlayer(player) { next(player) }
+                    }
                 }
             }
         }
-        if (index > 0) list += Action(Component.text("Back", NamedTextColor.GRAY)) { render(player, controller.back(player.uniqueId)) }
-        list += Action(Component.text("Skip", NamedTextColor.GRAY)) { next(player) }
-        list += Action(Component.text("Pause", NamedTextColor.YELLOW)) {
+        if (index > 0) list += Action(text("setup.ui.back").colorIfAbsent(NamedTextColor.GRAY)) { render(player, controller.back(player.uniqueId)) }
+        list += Action(text("setup.ui.skip").colorIfAbsent(NamedTextColor.GRAY)) { next(player) }
+        list += Action(text("setup.ui.pause").colorIfAbsent(NamedTextColor.YELLOW)) {
             controller.pause(player.uniqueId)
             player.sendMessage(Messages.msg("setup.paused"))
         }
-        list += Action(Component.text("Stop", NamedTextColor.RED)) {
+        list += Action(text("setup.ui.stop").colorIfAbsent(NamedTextColor.RED)) {
             controller.stop(player.uniqueId)
             player.sendMessage(Messages.msg("setup.stopped"))
         }
         return list
+    }
+
+    private fun runForPlayer(player: Player, action: () -> Unit) {
+        if (scheduler.isFolia) {
+            scheduler.runForEntity(player, Runnable { if (player.isOnline) action() })
+        } else {
+            action()
+        }
     }
 
     private fun next(player: Player) {

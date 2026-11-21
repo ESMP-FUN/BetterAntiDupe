@@ -1,5 +1,6 @@
 package com.esmpfun.antidupe.setup
 
+import com.esmpfun.antidupe.platform.PlatformScheduler
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -11,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class SetupController(
     private val plugin: JavaPlugin,
+    private val scheduler: PlatformScheduler,
     val state: SetupState,
     private val onChanged: () -> Unit,
 ) {
@@ -77,14 +79,18 @@ class SetupController(
 
     fun markComplete() { state.completed = true }
 
-    fun applyToggle(path: String, enabled: Boolean) = apply(path, enabled)
+    fun applyToggle(path: String, enabled: Boolean, onDone: () -> Unit = {}) = apply(path, enabled, onDone)
 
-    fun applyChoice(path: String, value: Any) = apply(path, value)
+    fun applyChoice(path: String, value: Any, onDone: () -> Unit = {}) = apply(path, value, onDone)
 
-    private fun apply(path: String, value: Any) {
-        plugin.config.set(path, value)
-        plugin.saveConfig()
-        onChanged()
+    private fun apply(path: String, value: Any, onDone: () -> Unit) {
+        val work = Runnable {
+            plugin.config.set(path, value)
+            plugin.saveConfig()
+            onChanged()
+            onDone()
+        }
+        if (scheduler.isFolia) scheduler.runMain(work) else work.run()
     }
 
     fun isEnabled(path: String, default: Boolean): Boolean = plugin.config.getBoolean(path, default)

@@ -130,3 +130,138 @@ commands:
     fail-error: "&c  Fehler: {error}"
     fail-broken: "&c  Bruch bei: {entry}"
     fail-last-valid: "&c  Letzter gültiger Eintrag: {entry}"
+
+setup:
+  intro:
+    - "&6&lWillkommen bei der Einrichtung von BetterAntiDupe!"
+    - "&7Wir gehen die wichtigsten Einstellungen nacheinander durch. Lies jeweils kurz, was sie bewirkt, und wähle eine Antwort, oder klicke auf Überspringen, um sie unverändert zu lassen. Nichts wird erzwungen, und du kannst jederzeit pausieren oder abbrechen."
+  complete:
+    - "&a&lAlles erledigt!"
+    - "&7Du hast alle wichtigen Einstellungen durchgesehen. Starte &e/adp setup&7 jederzeit erneut oder passe weitere Details in der &fconfig.yml&7 an."
+    - "&7Alle gewählten Einstellungen sind sofort aktiv, ein Neustart ist nicht nötig."
+  reminder: "&eNeu bei BetterAntiDupe? Mach eine kurze Führung durch die wichtigsten Einstellungen. Nichts wird erzwungen."
+  reminder-button: "&a&l[/adp setup starten]"
+  reminder-resume: "&eDu hast die Einrichtungsführung von BetterAntiDupe begonnen, aber noch nicht beendet."
+  reminder-resume-button: "&a&l[Fortsetzen]"
+  usage: "&cNutze &e/adp setup&c, um die Führung zu starten, oder &e/adp setup continue&c, um dort weiterzumachen, wo du pausiert hast."
+  player-only: "&cDie Einrichtungsführung läuft im Spiel. Betritt den Server und gib dort &e/adp setup&c ein."
+  missing-option: "&cDieser Schaltfläche fehlt ihre Auswahl. Klicke sie in der Führung noch einmal an."
+  invalid-step: "&cDieser Schritt existiert nicht. Starte erneut mit &e/adp setup&c."
+  requires-plugin: "&7Diese Option benötigt das Plugin &e{plugin}&7, das nicht installiert ist."
+  paused: "&eEinrichtung pausiert. Gib &6/adp setup continue&e ein, um dort fortzufahren, wo du aufgehört hast."
+  stopped: "&7Einrichtung beendet. Starte sie jederzeit wieder mit &e/adp setup&7."
+  ui:
+    dialog-title: "BetterAntiDupe Einrichtung ({step}/{total})"
+    chat-header: "&3&m                    &r &6Einrichtung &7({step}/{total}) &3&m                    "
+    complete-title: "Einrichtung abgeschlossen"
+    currently: "Aktuell: "
+    "on": "An"
+    "off": "Aus"
+    turn-on: "Einschalten"
+    turn-off: "Ausschalten"
+    turn-on-hover: "Diese Option einschalten"
+    turn-off-hover: "Diese Option ausschalten"
+    use-hover: "Diese Auswahl übernehmen"
+    back: "Zurück"
+    back-hover: "Eine Frage zurück"
+    skip: "Überspringen"
+    skip-hover: "So lassen und weitergehen"
+    pause: "Pause"
+    pause-hover: "Später mit /adp setup continue fortsetzen"
+    stop: "Beenden"
+    stop-hover: "Die Führung beenden"
+    done: "Fertig"
+    cpu-use: "CPU-Last: "
+    requires-plugin-button: "{plugin} ist nicht installiert"
+    reminder-hover: "Öffnet die Einrichtungsführung"
+    not-set: "nicht festgelegt"
+    default-suffix: "{value} (Standard)"
+    value-no-limit: "Kein Limit"
+    value-one-stack: "Ein Stack (64 Items)"
+    value-items: "{count} Items"
+    value-1-minute: "1 Minute"
+    value-minutes: "{count} Minuten"
+    value-seconds: "{count} Sekunden"
+    severity-critical: "Nur wenn es sicher ist"
+    severity-high: "Starke Hinweise"
+    severity-medium: "Ein klarer Überschuss"
+    severity-low: "Alles Überzählige"
+    creative-record: "Nur vermerken"
+    creative-alert: "Auch Team warnen"
+  steps:
+    watch-only:
+      title: "Nur beobachten, niemals Items wegnehmen?"
+      desc:
+        - "Solange dies eingeschaltet ist, protokolliert das Plugin und warnt dich, entfernt aber niemals etwas bei Spielern."
+        - "&aAn&7 = nur beobachten und warnen (empfohlen, bis du dich an die Meldungen gewöhnt hast). &cAus&7 = die nächste Frage entscheidet, ob gedupete Items zurückgenommen werden."
+    take-back:
+      title: "Gedupete Items automatisch zurücknehmen?"
+      desc:
+        - "Wenn das Plugin sicher genug ist, entfernt es nur die überzählige Menge, die ein Spieler nicht erklären kann, und nur Items mit eigener Markierung. Alles andere im Inventar bleibt unberührt."
+        - "Dies wirkt nur, wenn die vorherige Nur-Beobachten-Option &cAus&7 ist."
+        - "&aAn&7 = überzählige Items werden entfernt. &cAus&7 = du erhältst die Warnung und entscheidest selbst."
+    take-back-sure:
+      title: "Wie sicher muss das Plugin vor dem Entfernen sein?"
+      desc:
+        - "Zählt nur, wenn das automatische Entfernen eingeschaltet ist. Eine strengere Stufe bedeutet weniger Eingriffe und praktisch kein Risiko, ehrlich erspielte Items zu entfernen."
+      options:
+        critical: "Nur wenn sicher"
+        high: "Starke Hinweise"
+        medium: "Klarer Überschuss"
+        low: "Alles Extra"
+    take-back-limit:
+      title: "Höchstzahl entfernter Items pro Vorgang?"
+      desc:
+        - "Ein Sicherheitsnetz: Das Plugin entfernt nie mehr als diese Menge auf einmal. Ein Stack bedeutet zum Beispiel höchstens 64 Items."
+      options:
+        "0": "Kein Limit"
+        "16": "16 Items"
+        "64": "Ein Stack"
+        "256": "4 Stacks"
+    tell-player:
+      title: "Spieler benachrichtigen, wenn Items entfernt werden?"
+      desc:
+        - "&aAn&7 = der Spieler erhält eine Nachricht, dass die überzähligen Items entfernt wurden. &cAus&7 = es geschieht still und erscheint nur in der Konsole sowie im Verlauf des Items."
+    alert-level:
+      title: "Welche Warnungen gehen an Discord, Telegram oder Slack?"
+      desc:
+        - "Nur Warnungen ab dieser Stufe werden an deine Kanäle gesendet, damit kleine Schwankungen sie nicht überfluten. Admins im Spiel sehen weiterhin jede Warnung."
+        - "Das wirkt erst, sobald du einen Kanal in der config.yml eingetragen hast."
+      options:
+        low: "Jede Warnung"
+        medium: "Ab Mittel"
+        high: "Ernste Fälle"
+        critical: "Nur sichere Fälle"
+    alert-gap:
+      title: "Abstand zwischen wiederholten Warnungen?"
+      desc:
+        - "Wenn derselbe Spieler immer wieder dieselbe Warnung für dasselbe Item auslöst, erhalten deine Kanäle sie einmal und warten danach so lange vor der nächsten. Verhindert, dass ein Vorfall fünfzig Nachrichten auslöst."
+      options:
+        "10": "10 Sekunden"
+        "30": "30 Sekunden"
+        "60": "1 Minute"
+        "300": "5 Minuten"
+    creative:
+      title: "Was passiert beim Verlassen des Kreativmodus?"
+      desc:
+        - "Im Kreativmodus lassen sich Items aus dem Nichts erzeugen. Alles, was ein Spieler beim Zurückwechseln bei sich trägt, wird daher sein neuer Stand."
+        - "&fNur vermerken&7 passt zu Servern, auf denen das Team im Kreativmodus baut. &fAuch Team warnen&7 meldet, wenn jemand mit mehr überwachten Items zurückkehrt als zuvor."
+      options:
+        record: "Nur vermerken"
+        alert: "Auch Team warnen"
+    shutdown:
+      title: "Offene Menüs beim Serverstopp schließen?"
+      desc:
+        - "Bei einem Neustart kann ein im falschen Moment bewegtes Item doppelt gespeichert werden und beim nächsten Start zweimal existieren. Das vorherige Schließen aller offenen Kisten und Menüs verhindert das."
+        - "&aAn&7 = Menüs schließen beim Herunterfahren (kostet nichts). &cAus&7 = sie bleiben bis ganz zum Schluss offen."
+    language:
+      title: "Welche Sprache sollen Nachrichten verwenden?"
+      desc:
+        - "Die Sprache für alle Spielnachrichten dieses Plugins. Eigene Anpassungen in der messages.yml haben immer Vorrang, fehlende Übersetzungen erscheinen auf Englisch."
+      options:
+        en: "English"
+        pt_br: "Português"
+        es: "Español"
+        de: "Deutsch"
+        ru: "Русский"
+        pl: "Polski"

@@ -101,7 +101,7 @@ class BetterAntiDupe : JavaPlugin() {
             adpCommand.onReload = ::reloadSettings
             adpCommand.onTestAlert = ::sendTestAlert
             val setupController = com.esmpfun.antidupe.setup.SetupController(
-                this, com.esmpfun.antidupe.setup.SetupState(dataFolder)
+                this, scheduler, com.esmpfun.antidupe.setup.SetupState(dataFolder)
             ) { reloadSettings() }
             adpCommand.setup = com.esmpfun.antidupe.commands.SetupCommand(scheduler, setupController)
             server.pluginManager.registerEvents(
@@ -628,7 +628,7 @@ class BetterAntiDupe : JavaPlugin() {
         reportPaperDupeSettings(rail, carpet, gravity, tnt)
         if (rail || carpet || gravity || tnt || desync) {
             server.pluginManager.registerEvents(
-                DuperPreventionListener(rail, carpet, gravity, tnt, desync, logger), this
+                DuperPreventionListener(rail, carpet, gravity, tnt, desync, scheduler, logger), this
             )
         }
         if (hiddenMenu) server.pluginManager.registerEvents(HiddenMenuGuard(logger, ::dispatchAlert), this)

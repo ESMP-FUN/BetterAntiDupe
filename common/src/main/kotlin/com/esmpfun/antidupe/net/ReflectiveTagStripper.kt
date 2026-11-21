@@ -1,12 +1,17 @@
 package com.esmpfun.antidupe.net
 
+import com.esmpfun.antidupe.ledger.SulfurCubeAccess
 import io.netty.channel.Channel
 import io.netty.channel.ChannelDuplexHandler
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelPromise
 import org.bukkit.NamespacedKey
+import org.bukkit.block.Container
 import org.bukkit.entity.Player
+import org.bukkit.inventory.meta.BlockStateMeta
+import org.bukkit.inventory.meta.BundleMeta
 import org.bukkit.plugin.Plugin
+import java.lang.reflect.Constructor
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
 import java.util.concurrent.ConcurrentHashMap
@@ -88,6 +93,8 @@ class ReflectiveTagStripper(
     private val unstrippedUnlessStrict = setOf("ClientboundMerchantOffersPacket", "PacketPlayOutOpenWindowMerchant")
 
     private val instanceFieldCache = ConcurrentHashMap<Class<*>, List<Field>>()
+    private val recordFieldsCache = ConcurrentHashMap<Class<*>, List<Field>>()
+    private val recordConstructorCache = ConcurrentHashMap<Class<*>, Constructor<*>>()
 
     /** Packet class names already logged as a passthrough/failure, so the warning fires once each. */
     private val loggedPacketNames = ConcurrentHashMap.newKeySet<String>()
@@ -328,30 +335,89 @@ class ReflectiveTagStripper(
      * accessor methods, which leaves RecordComponent.getAccessor() null.
      */
     private fun recordFields(cls: Class<*>): List<Field>? {
+        recordFieldsCache[cls]?.let { return it.ifEmpty { null } }
         val components = cls.recordComponents ?: return null
+        if (components.isEmpty()) return null
         val fields = cls.declaredFields.filter { !Modifier.isStatic(it.modifiers) }
-        if (fields.size != components.size) return null
-        if (fields.indices.any { fields[it].type != components[it].type }) return null
+        val valid = fields.size == components.size &&
+            !fields.indices.any { fields[it].type != components[it].type }
+        if (!valid) {
+            recordFieldsCache.putIfAbsent(cls, emptyList())
+            return null
+        }
         fields.forEach { it.isAccessible = true }
+        recordFieldsCache.putIfAbsent(cls, fields)
         return fields
     }
 
-    private fun recordConstructor(cls: Class<*>) =
-        cls.getDeclaredConstructor(*cls.recordComponents.map { it.type }.toTypedArray()).apply { isAccessible = true }
+    private fun recordConstructor(cls: Class<*>): Constructor<*> =
+        recordConstructorCache.computeIfAbsent(cls) {
+            it.getDeclaredConstructor(*it.recordComponents.map { rc -> rc.type }.toTypedArray())
+                .apply { isAccessible = true }
+        }
 
     /** @return a fresh NMS item with the offending keys removed, or null if nothing to strip. */
     private fun stripItem(nmsItem: Any): Any? {
         val bukkit = asBukkitCopy.invoke(null, nmsItem) as org.bukkit.inventory.ItemStack
-        if (bukkit.type.isAir) return null
-        val meta = bukkit.itemMeta ?: return null
+        if (!stripBukkitStack(bukkit, 0)) return null
+        return asNMSCopy.invoke(null, bukkit)
+    }
+
+    private fun stripBukkitStack(stack: org.bukkit.inventory.ItemStack, depth: Int): Boolean {
+        if (depth >= MAX_RECURSION_DEPTH || stack.type.isAir) return false
+        val meta = stack.itemMeta ?: return false
+        var metaChanged = false
+
         val pdc = meta.persistentDataContainer
         val present: List<NamespacedKey> =
             if (stripAll) pdc.keys.filter { it.namespace !in whitelist }
             else targetKeys.filter { pdc.keys.contains(it) }
-        if (present.isEmpty()) return null
-        for (key in present) pdc.remove(key)
-        bukkit.itemMeta = meta
-        return asNMSCopy.invoke(null, bukkit)
+        if (present.isNotEmpty()) {
+            for (key in present) pdc.remove(key)
+            metaChanged = true
+        }
+
+        if (meta is BlockStateMeta && meta.hasBlockState()) {
+            val state = meta.blockState
+            if (state is Container) {
+                val inv = state.inventory
+                var stateChanged = false
+                for (slot in 0 until inv.size) {
+                    val inner = inv.getItem(slot) ?: continue
+                    if (stripBukkitStack(inner, depth + 1)) {
+                        inv.setItem(slot, inner)
+                        stateChanged = true
+                    }
+                }
+                if (stateChanged) {
+                    meta.blockState = state
+                    metaChanged = true
+                }
+            }
+        }
+
+        if (meta is BundleMeta) {
+            val items = meta.items.map { it.clone() }
+            var bundleChanged = false
+            for (inner in items) {
+                if (stripBukkitStack(inner, depth + 1)) bundleChanged = true
+            }
+            if (bundleChanged) {
+                meta.setItems(items)
+                metaChanged = true
+            }
+        }
+
+        if (metaChanged) stack.itemMeta = meta
+
+        var changed = metaChanged
+        // After stack.itemMeta = meta, which would otherwise put the old component value back.
+        SulfurCubeAccess.absorbedItem(stack)?.let { inner ->
+            if (stripBukkitStack(inner, depth + 1) && SulfurCubeAccess.setAbsorbedItem(stack, inner)) {
+                changed = true
+            }
+        }
+        return changed
     }
 
     private fun reconstructRecord(msg: Any, cls: Class<*>, replacements: Map<String, Any?>): Any {
@@ -360,7 +426,7 @@ class ReflectiveTagStripper(
         return recordConstructor(cls).newInstance(*args.toTypedArray())
     }
 
-    /** Prefers a matching constructor so a final field is never written to. */
+    /** Rebuilds the packet through a matching constructor so a shared broadcast packet is never mutated in place. */
     private fun reconstructOrMutate(
         msg: Any, cls: Class<*>, fields: List<Field>, replacements: Map<String, Any?>,
     ): Any {
@@ -373,7 +439,10 @@ class ReflectiveTagStripper(
             ctor.isAccessible = true
             return ctor.newInstance(*values.toTypedArray())
         }
-        for (f in fields) if (replacements.containsKey(f.name)) f.set(msg, replacements[f.name])
+        if (loggedPacketNames.add("ctor:${cls.simpleName}")) {
+            logger.warning("[TagStripper] Could not rebuild ${cls.simpleName} without mutating the shared" +
+                " packet; forwarding untouched so exempt players keep seeing marks.")
+        }
         return msg
     }
 
@@ -422,6 +491,7 @@ class ReflectiveTagStripper(
     }
 
     private companion object {
+        const val MAX_RECURSION_DEPTH = 10
         val LISTENER_TYPES = setOf("ServerGamePacketListenerImpl", "PlayerConnection")
         val CONNECTION_TYPES = setOf("Connection", "NetworkManager")
     }

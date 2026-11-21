@@ -130,3 +130,138 @@ commands:
     fail-error: "&c  Erro: {error}"
     fail-broken: "&c  Quebrada em: {entry}"
     fail-last-valid: "&c  Última válida: {entry}"
+
+setup:
+  intro:
+    - "&6&lBem-vindo à configuração do BetterAntiDupe!"
+    - "&7Vamos passar pelas configurações principais uma de cada vez. Leia o que cada uma faz e escolha uma resposta, ou clique em Pular para deixar como está. Nada é obrigatório, e você pode pausar ou parar a qualquer momento."
+  complete:
+    - "&a&lTudo pronto!"
+    - "&7Você já passou pelas configurações principais. Rode &e/adp setup&7 de novo quando quiser ou ajuste os detalhes no &fconfig.yml&7."
+    - "&7Tudo o que você escolheu já está valendo; não precisa reiniciar."
+  reminder: "&eNovo no BetterAntiDupe? Faça um tour rápido pelas configurações principais. Nada é obrigatório."
+  reminder-button: "&a&l[Iniciar /adp setup]"
+  reminder-resume: "&eVocê começou o tour de configuração do BetterAntiDupe, mas não terminou."
+  reminder-resume-button: "&a&l[Continuar]"
+  usage: "&cUse &e/adp setup&c para começar o tour, ou &e/adp setup continue&c para continuar de onde pausou."
+  player-only: "&cO tour de configuração roda dentro do jogo. Entre no servidor e digite &e/adp setup&c lá."
+  missing-option: "&cEsse botão está sem a opção dele. Clique nele novamente no tour."
+  invalid-step: "&cEsse passo de configuração não existe. Comece de novo com &e/adp setup&c."
+  requires-plugin: "&7Essa opção precisa do plugin &e{plugin}&7, que não está instalado."
+  paused: "&eConfiguração pausada. Digite &6/adp setup continue&e para continuar de onde parou."
+  stopped: "&7Configuração encerrada. Comece novamente quando quiser com &e/adp setup&7."
+  ui:
+    dialog-title: "Configuração BetterAntiDupe ({step}/{total})"
+    chat-header: "&3&m                    &r &6Configuração &7({step}/{total}) &3&m                    "
+    complete-title: "Configuração concluída"
+    currently: "Atualmente: "
+    "on": "Ligado"
+    "off": "Desligado"
+    turn-on: "Ligar"
+    turn-off: "Desligar"
+    turn-on-hover: "Ligar esta opção"
+    turn-off-hover: "Desligar esta opção"
+    use-hover: "Usar esta opção"
+    back: "Voltar"
+    back-hover: "Voltar uma pergunta"
+    skip: "Pular"
+    skip-hover: "Deixar como está e continuar"
+    pause: "Pausar"
+    pause-hover: "Continuar depois com /adp setup continue"
+    stop: "Parar"
+    stop-hover: "Encerrar o tour"
+    done: "Concluir"
+    cpu-use: "Uso de CPU: "
+    requires-plugin-button: "{plugin} não está instalado"
+    reminder-hover: "Abre o tour de configuração"
+    not-set: "não definido"
+    default-suffix: "{value} (padrão)"
+    value-no-limit: "Sem limite"
+    value-one-stack: "Um pack (64 itens)"
+    value-items: "{count} itens"
+    value-1-minute: "1 minuto"
+    value-minutes: "{count} minutos"
+    value-seconds: "{count} segundos"
+    severity-critical: "Só quando houver certeza"
+    severity-high: "Provas fortes"
+    severity-medium: "Excesso claro"
+    severity-low: "Qualquer excesso"
+    creative-record: "Apenas registrar"
+    creative-alert: "Também avisar a equipe"
+  steps:
+    watch-only:
+      title: "Apenas observar, nunca remover itens?"
+      desc:
+        - "Enquanto estiver ligado, o plugin registra e envia alertas, mas nunca remove nada de ninguém."
+        - "&aLigado&7 = apenas observar e alertar (recomendado enquanto você se acostuma com os alertas). &cDesligado&7 = a próxima pergunta decide se itens dupados são recolhidos."
+    take-back:
+      title: "Recolher itens dupados automaticamente?"
+      desc:
+        - "Quando tiver certeza suficiente, o plugin remove apenas a quantidade extra que o jogador não consegue justificar, e só itens marcados por ele. Nada mais no inventário é tocado."
+        - "Isso só funciona quando a pergunta anterior de apenas observar estiver &cDesligada&7."
+        - "&aLigado&7 = itens extras são removidos. &cDesligado&7 = você recebe o alerta e decide por conta."
+    take-back-sure:
+      title: "Quanta certeza é necessária antes de remover itens?"
+      desc:
+        - "Só importa quando a remoção automática está ligada. Um nível mais rígido reduz as remoções e praticamente zera a chance de tirar algo ganho de forma honesta."
+      options:
+        critical: "Só com certeza"
+        high: "Provas fortes"
+        medium: "Excesso claro"
+        low: "Qualquer extra"
+    take-back-limit:
+      title: "Máximo de itens removidos por vez?"
+      desc:
+        - "Uma margem de segurança: o plugin nunca remove mais do que isso de uma só vez. Por exemplo, um pack significa no máximo 64 itens."
+      options:
+        "0": "Sem limite"
+        "16": "16 itens"
+        "64": "Um pack"
+        "256": "4 packs"
+    tell-player:
+      title: "Avisar o jogador quando itens forem removidos?"
+      desc:
+        - "&aLigado&7 = o jogador recebe uma mensagem dizendo que os itens extras foram removidos. &cDesligado&7 = acontece em silêncio e aparece só no console e no histórico do item."
+    alert-level:
+      title: "Quais alertas vão para Discord, Telegram ou Slack?"
+      desc:
+        - "Só alertas dessa gravidade ou maior são enviados aos seus canais, para pequenas variações não encherem o chat. Administradores no jogo continuam vendo todos os alertas."
+        - "Isso só faz efeito depois que você configurar um canal no config.yml."
+      options:
+        low: "Todos os alertas"
+        medium: "Médio ou acima"
+        high: "Os graves"
+        critical: "Só os certos"
+    alert-gap:
+      title: "Intervalo entre alertas repetidos?"
+      desc:
+        - "Quando o mesmo jogador continua disparando o mesmo alerta para o mesmo item, seus canais recebem uma vez e esperam esse tempo antes de enviar de novo. Evita que um caso vire cinquenta mensagens."
+      options:
+        "10": "10 segundos"
+        "30": "30 segundos"
+        "60": "1 minuto"
+        "300": "5 minutos"
+    creative:
+      title: "O que acontece quando alguém sai do modo criativo?"
+      desc:
+        - "No criativo é possível gerar itens do nada, então o que o jogador carrega ao voltar para o sobrevivência vira o novo registro dele."
+        - "&fApenas registrar&7 combina com servidores onde a equipe constrói no criativo. &fTambém avisar a equipe&7 alerta quando alguém sai com mais itens vigiados do que antes."
+      options:
+        record: "Apenas registrar"
+        alert: "Também avisar"
+    shutdown:
+      title: "Fechar menus abertos quando o servidor parar?"
+      desc:
+        - "Durante um reinício, um item movido no momento exato pode ser salvo nos dois lados e duplicar ao ligar de novo. Fechar todos os baús e menus abertos antes evita isso."
+        - "&aLigado&7 = menus fecham ao parar o servidor (não custa nada). &cDesligado&7 = ficam abertos até o fim."
+    language:
+      title: "Qual idioma as mensagens devem usar?"
+      desc:
+        - "O idioma de todas as mensagens deste plugin dentro do jogo. Suas edições no messages.yml sempre prevalecem, e qualquer chave ausente aparece em inglês."
+      options:
+        en: "English"
+        pt_br: "Português"
+        es: "Español"
+        de: "Deutsch"
+        ru: "Русский"
+        pl: "Polski"

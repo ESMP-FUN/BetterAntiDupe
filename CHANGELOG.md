@@ -2,11 +2,24 @@
 
 All notable changes to BetterAntiDupe will be documented in this file.
 
-## [Unreleased]
+## [4.9.5] - 2026-11-21
 
 ### Added
 - **One download for every Minecraft version.** The same jar now runs on 1.21.x and 26.x, on Paper, Folia and Spigot. When the server starts, the console says which Minecraft version the plugin set itself up for. Servers on an older `-mc26` or `-mc263` jar are offered this one as their next update.
-- **`/adp setup`, a guided tour of the main settings.** It goes through taking duped items back, alerts, creative mode, closing menus on shutdown and the language, one question at a time, and saves each answer to `config.yml` straight away. Admins who join get a short reminder about it, at most once a week and three times in all; turn that off with `setup.reminder.enabled`. New permission `antidupe.admin.setup`, included in `antidupe.admin`.
+- **`/adp setup`, a guided tour of the main settings.** It starts with your language choice, then walks through taking duped items back, alerts, creative mode, and closing menus on shutdown, one question at a time, and saves each answer to `config.yml` straight away. The tour is translated into all six bundled languages. Admins who join get a short reminder about it, at most once a week and three times in all; turn that off with `setup.reminder.enabled`. New permission `antidupe.admin.setup`, included in `antidupe.admin`.
+
+### Fixed
+- **Folia region and entity safety.** Added entity-retirement handling so inventory snapshots never hang if a player disconnects mid-check, and moved block, lectern, container-close, reverted-placement, and `/adp setup` config updates onto their proper region, entity, or global threads.
+- **Hidden owner marks inside containers.** Client-side tag concealment now also strips owner marks inside shulker boxes, bundles, and sulfur cube buckets, caches record packet metadata, and avoids mutating shared broadcast packets in place.
+- **Extra world-item and 26.2+ accounting.** Fixed tracking for sulfur cube bucketing, emptying, swallowing, and dispenser shearing, powered shelf hotbar swaps, bundles and sulfur cube buckets moved through pots, item frames, placements, and hoppers, full decorated pots, and armor stand swaps.
+
+### Changed
+- To further reduce the overall size of the download, ProGuard is being used to compress the code, not obfuscate. There's a `SOURCE-AVAILABLE.txt` file included in this jar and the GitHub repo stays public forever.
+- A separate Premium build is planned from v5.0.0 onward, at which point this plugin will get less frequent updates (at most once a month), but support stays just as lightning fast, free of charge.
+
+### Alpha
+- Preparations for 26.4 are done up to and including Snapshot 10.
+- Don't expect it to run (well).
 
 ## [4.8.0] - 2026-11-17
 

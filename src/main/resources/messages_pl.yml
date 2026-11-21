@@ -130,3 +130,138 @@ commands:
     fail-error: "&c  Błąd: {error}"
     fail-broken: "&c  Przerwany przy: {entry}"
     fail-last-valid: "&c  Ostatni poprawny: {entry}"
+
+setup:
+  intro:
+    - "&6&lWitamy w konfiguracji BetterAntiDupe!"
+    - "&7Przejdziemy przez najważniejsze ustawienia krok po kroku. Przeczytaj opis każdego z nich i wybierz odpowiedź albo kliknij Pomiń, aby zostawić je bez zmian. Nic nie jest wymuszone, a w każdej chwili możesz wstrzymać lub zakończyć kreator."
+  complete:
+    - "&a&lGotowe!"
+    - "&7Przejrzałeś już główne ustawienia. Możesz uruchomić &e/adp setup&7 ponownie w dowolnym momencie albo dopracować resztę w &fconfig.yml&7."
+    - "&7Wszystkie wybrane zmiany już działają; restart nie jest potrzebny."
+  reminder: "&eNowy w BetterAntiDupe? Przejdź szybki przewodnik po najważniejszych ustawieniach. Nic nie jest wymuszone."
+  reminder-button: "&a&l[Uruchom /adp setup]"
+  reminder-resume: "&eRozpocząłeś przewodnik konfiguracji BetterAntiDupe, ale nie został on ukończony."
+  reminder-resume-button: "&a&l[Kontynuuj]"
+  usage: "&cUżyj &e/adp setup&c, aby zacząć przewodnik, albo &e/adp setup continue&c, aby wrócić do miejsca wstrzymania."
+  player-only: "&cPrzewodnik konfiguracji działa w grze. Wejdź na serwer i wpisz tam &e/adp setup&c."
+  missing-option: "&cTemu przyciskowi brakuje opcji. Kliknij go ponownie w przewodniku."
+  invalid-step: "&cTaki krok konfiguracji nie istnieje. Zacznij jeszcze raz przez &e/adp setup&c."
+  requires-plugin: "&7Ta opcja wymaga pluginu &e{plugin}&7, który nie jest zainstalowany."
+  paused: "&eKonfiguracja wstrzymana. Wpisz &6/adp setup continue&e, aby wrócić do przerwanego miejsca."
+  stopped: "&7Konfiguracja zatrzymana. Możesz ją uruchomić ponownie komendą &e/adp setup&7."
+  ui:
+    dialog-title: "Konfiguracja BetterAntiDupe ({step}/{total})"
+    chat-header: "&3&m                    &r &6Konfiguracja &7({step}/{total}) &3&m                    "
+    complete-title: "Konfiguracja zakończona"
+    currently: "Obecnie: "
+    "on": "Włączone"
+    "off": "Wyłączone"
+    turn-on: "Włącz"
+    turn-off: "Wyłącz"
+    turn-on-hover: "Włącz to ustawienie"
+    turn-off-hover: "Wyłącz to ustawienie"
+    use-hover: "Wybierz tę opcję"
+    back: "Wstecz"
+    back-hover: "Wróć do poprzedniego pytania"
+    skip: "Pomiń"
+    skip-hover: "Zostaw bez zmian i idź dalej"
+    pause: "Pauza"
+    pause-hover: "Wróć później przez /adp setup continue"
+    stop: "Zakończ"
+    stop-hover: "Zakończ przewodnik"
+    done: "Gotowe"
+    cpu-use: "Obciążenie CPU: "
+    requires-plugin-button: "{plugin} nie jest zainstalowany"
+    reminder-hover: "Otwiera przewodnik konfiguracji"
+    not-set: "nie ustawiono"
+    default-suffix: "{value} (domyślnie)"
+    value-no-limit: "Bez limitu"
+    value-one-stack: "Jeden stack (64 sztuki)"
+    value-items: "{count} szt."
+    value-1-minute: "1 minuta"
+    value-minutes: "{count} min"
+    value-seconds: "{count} sek."
+    severity-critical: "Tylko gdy to pewne"
+    severity-high: "Mocne dowody"
+    severity-medium: "Wyraźna nadwyżka"
+    severity-low: "Każda nadwyżka"
+    creative-record: "Tylko zanotować"
+    creative-alert: "Powiadamiać też administrację"
+  steps:
+    watch-only:
+      title: "Tylko obserwować, nigdy nie odbierać przedmiotów?"
+      desc:
+        - "Gdy to jest włączone, plugin zapisuje zdarzenia i ostrzega Cię, ale nikomu nic nie zabiera."
+        - "&aWłączone&7 = tylko obserwacja i alerty (zalecane na początek). &cWyłączone&7 = następne pytanie decyduje, czy kopiowane przedmioty są automatycznie odbierane."
+    take-back:
+      title: "Automatycznie odbierać skopiowane przedmioty?"
+      desc:
+        - "Gdy plugin ma wystarczającą pewność, odbiera wyłącznie nadmiar, którego gracz nie może wyjaśnić, i tylko przedmioty oznaczone przez plugin. Reszta ekwipunku pozostaje nietknięta."
+        - "Działa tylko wtedy, gdy poprzednia opcja samej obserwacji jest &cWyłączona&7."
+        - "&aWłączone&7 = nadmiarowe przedmioty są usuwane. &cWyłączone&7 = dostajesz alert i sam decydujesz."
+    take-back-sure:
+      title: "Jak pewny musi być plugin przed odebraniem przedmiotów?"
+      desc:
+        - "Ma znaczenie tylko wtedy, gdy automatyczne odbieranie jest włączone. Wyższy próg oznacza mniej interwencji i praktycznie brak ryzyka zabrania uczciwie zdobytych przedmiotów."
+      options:
+        critical: "Tylko pewne"
+        high: "Mocne dowody"
+        medium: "Wyraźna nadwyżka"
+        low: "Wszystko ekstra"
+    take-back-limit:
+      title: "Maksymalna liczba zabieranych przedmiotów naraz?"
+      desc:
+        - "Zabezpieczenie: plugin nigdy nie usunie więcej niż tyle podczas jednej akcji. Na przykład jeden stack oznacza najwyżej 64 przedmioty."
+      options:
+        "0": "Bez limitu"
+        "16": "16 sztuk"
+        "64": "Jeden stack"
+        "256": "4 stacki"
+    tell-player:
+      title: "Informować graczy, gdy przedmioty są odbierane?"
+      desc:
+        - "&aWłączone&7 = gracz dostaje wiadomość o usunięciu nadmiarowych przedmiotów. &cWyłączone&7 = dzieje się to po cichu i widać to tylko w konsoli oraz w historii przedmiotu."
+    alert-level:
+      title: "Które alerty wysyłać na Discord, Telegram lub Slack?"
+      desc:
+        - "Na Twoje kanały trafiają tylko alerty o tej lub wyższej wadze, aby drobne wahania ich nie zalewały. Administratorzy w grze nadal widzą wszystkie alerty."
+        - "Działa dopiero po podaniu adresu kanału w config.yml."
+      options:
+        low: "Każdy alert"
+        medium: "Średnie i wyższe"
+        high: "Poważne"
+        critical: "Tylko pewne"
+    alert-gap:
+      title: "Jak długo czekać między powtarzanymi alertami?"
+      desc:
+        - "Gdy ten sam gracz ciągle wywołuje ten sam alert dla tego samego przedmiotu, kanały dostają go raz, a potem czekają tyle czasu przed kolejnym. Zapobiega zasypaniu czatu pięćdziesięcioma wiadomościami z jednego zdarzenia."
+      options:
+        "10": "10 sekund"
+        "30": "30 sekund"
+        "60": "1 minuta"
+        "300": "5 minut"
+    creative:
+      title: "Co ma się dziać po wyjściu z trybu kreatywnego?"
+      desc:
+        - "W trybie kreatywnym przedmioty mogą powstawać z niczego, więc po powrocie do przetrwania obecny stan ekwipunku staje się nowym zapisem gracza."
+        - "&fTylko zanotować&7 pasuje do serwerów, gdzie administracja buduje na kreatywnym. &fPowiadamiać też administrację&7 ostrzega, gdy ktoś wychodzi z większą liczbą śledzonych przedmiotów niż przedtem."
+      options:
+        record: "Tylko zanotować"
+        alert: "Powiadamiać też"
+    shutdown:
+      title: "Zamykać otwarte menu przy zatrzymaniu serwera?"
+      desc:
+        - "Podczas restartu przedmiot przeniesiony w niefortunnym ułamku sekundy może zapisać się w obu miejscach i powielić przy starcie. Zamknięcie wszystkich skrzyń i menu wcześniej temu zapobiega."
+        - "&aWłączone&7 = menu są zamykane podczas wyłączania (nic nie kosztuje). &cWyłączone&7 = zostają otwarte do samego końca."
+    language:
+      title: "W jakim języku wyświetlać wiadomości?"
+      desc:
+        - "Język wszystkich wiadomości pluginu w grze. Twoje zmiany w messages.yml zawsze mają pierwszeństwo, a brakujące wpisy pojawiają się po angielsku."
+      options:
+        en: "English"
+        pt_br: "Português"
+        es: "Español"
+        de: "Deutsch"
+        ru: "Русский"
+        pl: "Polski"

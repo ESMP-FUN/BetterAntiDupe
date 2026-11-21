@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicLong
 import java.util.logging.Logger
 import com.esmpfun.antidupe.api.model.Protection
 import com.esmpfun.antidupe.integration.ApiEvents
+import com.esmpfun.antidupe.platform.PlatformScheduler
 
 /**
  * Blocks the classic block-duplication contraptions (rail, carpet, TNT and gravity dupers) at
@@ -48,6 +49,7 @@ class DuperPreventionListener(
     private val preventGravity: Boolean,
     private val preventTnt: Boolean,
     private val preventContainerDesync: Boolean,
+    private val scheduler: PlatformScheduler,
     private val logger: Logger
 ) : Listener {
 
@@ -229,7 +231,7 @@ class DuperPreventionListener(
         val viewers = container.inventory.viewers.toList()
             .filterNot { ApiEvents.stepAside(Protection.CONTAINER_DESYNC, it as? org.bukkit.entity.Player, block.location) }
         if (viewers.isEmpty()) return
-        for (viewer in viewers) viewer.closeInventory()
+        for (viewer in viewers) closeViewer(viewer)
         com.esmpfun.antidupe.metrics.DetectionCounters.recordPreventionBlock("container_desync")
         logger.info("[DuperPrevention] Closed ${viewers.size} viewer(s) of ${block.type} $how at " +
             "${block.world.name},${block.x},${block.y},${block.z}")
@@ -247,9 +249,17 @@ class DuperPreventionListener(
             val viewers = holder.inventory.viewers.toList()
                 .filterNot { ApiEvents.stepAside(Protection.CONTAINER_DESYNC, it as? org.bukkit.entity.Player, entity.location) }
             if (viewers.isEmpty()) continue
-            for (viewer in viewers) viewer.closeInventory()
+            for (viewer in viewers) closeViewer(viewer)
             com.esmpfun.antidupe.metrics.DetectionCounters.recordPreventionBlock("container_desync")
             logger.info("[DuperPrevention] Closed viewer(s) of ${entity.type} inventory on chunk unload")
+        }
+    }
+
+    private fun closeViewer(viewer: org.bukkit.entity.HumanEntity) {
+        if (scheduler.isFolia) {
+            scheduler.runForEntity(viewer, Runnable { viewer.closeInventory() })
+        } else {
+            viewer.closeInventory()
         }
     }
 

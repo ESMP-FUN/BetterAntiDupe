@@ -6,7 +6,7 @@ Running several servers that players move between? Do this on each one, then rea
 
 ## 1. Download it
 
-Download `BetterAntiDupe-4.9.0.jar`. The same jar works on Minecraft 1.21.x and 26.x. When the server starts, the console says which Minecraft version it is set up for, for example `Using the support for Minecraft 26.2 to 26.3.`
+Download `BetterAntiDupe-4.9.5.jar`. The same jar works on Minecraft 1.21.x and 26.x. When the server starts, the console says which Minecraft version it is set up for, for example `Using the support for Minecraft 26.2 to 26.3.`
 
 ## 2. Put it in your plugins folder
 
@@ -17,7 +17,7 @@ Stop the server, drop the jar into `plugins/`, and start it again.
 Look in your console for these lines:
 
 ```
-[DUPE »] === BetterAntiDupe v4.9.0 ===
+[DUPE »] === BetterAntiDupe v4.9.5 ===
 [DUPE »] Using the support for Minecraft 26.2 to 26.3.
 [DUPE »] === BetterAntiDupe enabled successfully ===
 ```

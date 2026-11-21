@@ -17,7 +17,7 @@ import org.bukkit.entity.Player
  * set <step> <option> and stop.
  */
 class SetupCommand(
-    scheduler: PlatformScheduler,
+    private val scheduler: PlatformScheduler,
     private val controller: SetupController,
 ) {
     private val chatTour = SetupTourChat(controller)
@@ -70,8 +70,14 @@ class SetupCommand(
 
     private fun applyToggle(player: Player, args: List<String>, enabled: Boolean) {
         val index = indexArg(player, args) ?: return
-        (controller.stepAt(index) as? SetupStep.Toggle)?.let { controller.applyToggle(it.configPath, enabled) }
-        renderNext(player, index)
+        val toggle = controller.stepAt(index) as? SetupStep.Toggle
+        if (toggle != null) {
+            controller.applyToggle(toggle.configPath, enabled) {
+                runForPlayer(player) { renderNext(player, index) }
+            }
+        } else {
+            renderNext(player, index)
+        }
     }
 
     private fun applyChoice(player: Player, args: List<String>) {
@@ -79,8 +85,21 @@ class SetupCommand(
         val optionId = args.getOrNull(2) ?: run { player.sendMessage(Messages.msg("setup.missing-option")); return }
         val choice = controller.stepAt(index) as? SetupStep.Choice
         val opt = choice?.options?.firstOrNull { it.optionId == optionId }
-        if (choice != null && opt != null) controller.applyChoice(choice.configPath, opt.value)
-        renderNext(player, index)
+        if (choice != null && opt != null) {
+            controller.applyChoice(choice.configPath, opt.value) {
+                runForPlayer(player) { renderNext(player, index) }
+            }
+        } else {
+            renderNext(player, index)
+        }
+    }
+
+    private fun runForPlayer(player: Player, action: () -> Unit) {
+        if (scheduler.isFolia) {
+            scheduler.runForEntity(player, Runnable { if (player.isOnline) action() })
+        } else {
+            action()
+        }
     }
 
     private fun indexArg(player: Player, args: List<String>): Int? {

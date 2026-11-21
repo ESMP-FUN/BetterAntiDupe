@@ -35,7 +35,7 @@ Each one has its own switch, in case you want to allow it.
 [SPOILER="Rail and carpet dupers"]
 One of the oldest dupes in the game.
 All it needs is a piston and a rail or carpet.
-With Better Anti-Dupe, these dupe-machines are disabled by default.
+With Better Anti-Dupe, these dupe machines are disabled by default.
 
 More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-it-blocks-and-catches']Read about it in the docs[/URL]
 [/SPOILER]
@@ -59,6 +59,19 @@ Nobody playing normally will ever notice.
 
 More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-it-blocks-and-catches']Read about it in the docs[/URL]
 [/SPOILER]
+[SPOILER="Hidden menu dupes"]
+Most dupes in other plugins (backpacks, ender chests, storage menus) start the same way: a cheat client hides the menu on screen without telling the server it closed.
+Mining, building, hitting, dropping, swapping hands, switching slots, or running a command while a menu is still open is stopped, the menu closes, and staff get an alert.
+Actions in the first second after a menu opens are always allowed so lag never trips it.
+
+More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-it-blocks-and-catches']Read about it in the docs[/URL]
+[/SPOILER]
+[SPOILER="Chest copies from blocked placements"]
+When a land-claim or protection plugin blocks a placement that already spilled a container (such as the last eye of ender over a chest in an end portal), the container comes back while a copy drops on the ground.
+Better Anti-Dupe puts everything back and clears the copy, so the container keeps its items and nothing is doubled.
+
+More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-it-blocks-and-catches']Read about it in the docs[/URL]
+[/SPOILER]
 [SPOILER="Restart dupes"]
 No machine needed, just good timing during a restart.
 Every open window closes as the server shuts down.
@@ -73,7 +86,13 @@ Everything else. It notices when a player holds more than possible.
 [SPOILER="Carrying more than they earned"]
 The heart of the plugin.
 It knows what each player earned, and counts what they hold.
-Shulker boxes and bundles included. Holding more? You'll know.
+Shulker boxes, bundles, and sulfur cube buckets included. Holding more? You'll know.
+
+More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-it-blocks-and-catches']Read about it in the docs[/URL]
+[/SPOILER]
+[SPOILER="Faked owner marks"]
+Every mark the plugin puts on an item is signed with a secret only your server knows.
+Marks made by hand in creative mode, with an item editor, or by command do not verify, are ignored so nobody's record is touched, and raise an alert to staff.
 
 More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-it-blocks-and-catches']Read about it in the docs[/URL]
 [/SPOILER]
@@ -132,11 +151,23 @@ One command shows exactly where it was touched.
 More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/what-it-blocks-and-catches']Read about it in the docs[/URL]
 [/SPOILER]
 
-Crafting, anvils, smithing tables, furnaces, villager trades, enchanting, chests, barrels, ender chests, item frames and animal chests. Everything is monitored and monitored well.
+Crafting, anvils, smithing tables, stonecutters, looms, cartography tables, grindstones, furnaces, villager trades, enchanting, chests, barrels, ender chests, shelves, decorated pots, lecterns, item frames, armor stands, animal chests, and sulfur cubes (26.2+). Everything is monitored.
 [CENTER][SIZE=3][COLOR=#808080]
 ------------------------------
 [/COLOR][/SIZE][/CENTER]
 [SIZE=6][COLOR=#0000ff][B]Made for staff, not just for detection[/B][/COLOR][/SIZE]
+[CENTER]
+[IMG]https://raw.githubusercontent.com/ESMP-FUN/BetterAntiDupe/refs/heads/master/docs/.gitbook/assets/tour-watch-only.png[/IMG]
+[IMG]https://raw.githubusercontent.com/ESMP-FUN/BetterAntiDupe/refs/heads/master/docs/.gitbook/assets/alert-chat.png[/IMG]
+[/CENTER]
+[SPOILER="Guided in-game setup (/adp setup)"]
+Run [ICODE]/adp setup[/ICODE] in game to walk through the main settings one question at a time, starting with your language.
+On modern Paper servers it opens native Dialog screens; on Spigot and older builds it uses clickable chat buttons.
+Every answer saves to [ICODE]config.yml[/ICODE] and starts working straight away.
+[IMG]https://raw.githubusercontent.com/ESMP-FUN/BetterAntiDupe/refs/heads/master/docs/.gitbook/assets/tour-watch-only.png[/IMG]
+
+More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/getting-started/setup-tour']Read about it in the docs[/URL]
+[/SPOILER]
 [SPOILER="Find the stash"]
 Knowing someone duped is only half the job.
 One command lists where they put the items.
@@ -148,7 +179,7 @@ More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/w
 [SPOILER="Decide in five minutes"]
 Every alert has [B][History][/B] and [B][Stash][/B] buttons.
 Look, decide, done.
-Confirm a duper, clear a false alarm, or take the extras back.
+Confirm a duper, clear a false alarm, accept a legitimate item, or take the extras back.
 [IMG]https://raw.githubusercontent.com/ESMP-FUN/BetterAntiDupe/refs/heads/master/docs/.gitbook/assets/alert-chat.png[/IMG]
 
 More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/when-an-alert-comes-in']Read about it in the docs[/URL]
@@ -164,17 +195,19 @@ More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/a
 Nothing is taken from anyone until you say so.
 Watch the alerts for a while. Once you trust them, turn on automatic removal.
 It only ever takes the extras, never a whole stack.
+[IMG]https://raw.githubusercontent.com/ESMP-FUN/BetterAntiDupe/refs/heads/master/docs/.gitbook/assets/ledger-remove.png[/IMG]
 
 More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/getting-started/watch-or-remove']Read about it in the docs[/URL]
 [/SPOILER]
-[SPOILER="Items stack normally"]
+[SPOILER="Items stack normally (even from other plugins)"]
 Your players won't notice a thing.
 Watched items stack and trade like any other item.
+Items handed out by auction houses, shops, orders menus, crates, graves, or kits automatically pick up the new holder's mark, so they stack right away with items the player already owns.
 
-More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/help/faq']Read about it in the docs[/URL]
+More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/other-plugins']Read about it in the docs[/URL]
 [/SPOILER]
 [SPOILER="Hidden from players"]
-Mods that show hidden item data see nothing.
+Mods that show hidden item data see nothing, even inside shulker boxes, bundles, or sulfur cube buckets.
 A duper testing on two accounts can't tell which items are watched.
 
 More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/reference/settings']Read about it in the docs[/URL]
@@ -182,6 +215,7 @@ More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/reference/
 [SPOILER="Available in your language"]
 English, Português do Brasil, Español, Deutsch, Русский and Polski are built in.
 Every message can be changed to your liking.
+[IMG]https://raw.githubusercontent.com/ESMP-FUN/BetterAntiDupe/refs/heads/master/docs/.gitbook/assets/tour-language.png[/IMG]
 
 More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/language-and-messages']Read about it in the docs[/URL]
 [/SPOILER]
@@ -198,6 +232,7 @@ More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/getting-st
 [LIST=1]
 [*]Download the jar.
 [*]Drop it into [ICODE]plugins/[/ICODE] and restart the server.
+[*]Optional: join the server and run [ICODE]/adp setup[/ICODE] to walk through the main settings in game (or leave the defaults as they are).
 [*]That's it. [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/help/testing-in-game']Testing in-game[/URL] shows you it working.
 [/LIST]
 More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/getting-started/install']Read about it in the docs[/URL]
@@ -207,25 +242,33 @@ More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/getting-st
 [SIZE=6][COLOR=#0000ff][B]Commands[/B][/COLOR][/SIZE]
 Every command starts with [ICODE]/adp[/ICODE].
 [LIST]
+[*][ICODE]/adp setup[/ICODE] - guided tour of the main settings ([ICODE]/adp setup continue[/ICODE] resumes)
 [*][ICODE]/adp ledger suspects[/ICODE] - everyone currently suspected, worst first
 [*][ICODE]/adp ledger reconcile <player>[/ICODE] - check what an online player carries right now
 [*][ICODE]/adp ledger history <player>[/ICODE] - their last 15 records
 [*][ICODE]/adp ledger stash <player>[/ICODE] - where they put the items, with click-to-teleport
 [*][ICODE]/adp ledger remove <player>[/ICODE] - take back only the extras, after you confirm
+[*][ICODE]/adp ledger accept <player> <item> [amount][/ICODE] - record an item they earned fairly and clear its alert
 [*][ICODE]/adp ledger confirm <player>[/ICODE] - mark a real duper
 [*][ICODE]/adp ledger clear <player>[/ICODE] - mark a false alarm
 [*][ICODE]/adp ledger verify[/ICODE] - check nobody has edited the records
+[*][ICODE]/adp fixstacks [player][/ICODE] - re-mark items so identical stacks merge again
+[*][ICODE]/adp marks[/ICODE] - check owner mark signing status
+[*][ICODE]/adp reload[/ICODE] - reload messages, alerts, and removal settings
+[*][ICODE]/adp test alert[/ICODE] - send a test alert to chat and enabled channels
+[*][ICODE]/adp update check[/ICODE] / [ICODE]download[/ICODE] - check for updates and stage the next version
 [/LIST]
 [ICODE]antidupe.alerts[/ICODE] only sees alerts.
-[ICODE]antidupe.ledger[/ICODE] can use the commands.
-[ICODE]antidupe.admin[/ICODE] gets both.
+[ICODE]antidupe.ledger[/ICODE] can use [ICODE]/adp ledger[/ICODE] commands.
+[ICODE]antidupe.admin.setup[/ICODE] can run [ICODE]/adp setup[/ICODE].
+[ICODE]antidupe.admin[/ICODE] gets all of the above, plus reload, marks, fixstacks, test alerts, and updates.
 
 More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/reference/commands-and-permissions']Read about it in the docs[/URL]
 [CENTER][SIZE=3][COLOR=#808080]
 ------------------------------
 [/COLOR][/SIZE][/CENTER]
 [SIZE=6][COLOR=#0000ff][B]Free and source available[/B][/COLOR][/SIZE]
-No licence key. Nothing locked behind a premium version.
+This release is free, with no licence key required.
 The source is on [URL='https://github.com/ESMP-FUN/BetterAntiDupe']GitHub[/URL], and issues and pull requests are welcome.
 
 [SPOILER="Anonymous statistics"]
@@ -243,7 +286,7 @@ Nothing is ever shared, sold, or made public.
 More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/reference/settings']Read about it in the docs[/URL]
 [/SPOILER]
 
-[QUOTE]I take your privacy very seriously -> [URL='https://esmp.fun/plugins/privacy.php']company privacy policy[/URL][/QUOTE]
+[QUOTE]I take your privacy very seriously. Read the [URL='https://esmp.fun/plugins/privacy.php']company privacy policy[/URL].[/QUOTE]
 [CENTER][SIZE=3][COLOR=#808080]
 ------------------------------
 [/COLOR][/SIZE][/CENTER]

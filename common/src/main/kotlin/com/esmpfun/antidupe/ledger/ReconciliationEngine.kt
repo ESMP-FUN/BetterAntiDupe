@@ -70,6 +70,8 @@ class ReconciliationEngine(
         alertListeners.forEach { it(alert) }
     }
 
+    private class PlayerRetiredException : Exception()
+
     private class InventorySnapshot(
         val ownedCounts: Map<Material, Int>,
         val foreignItems: List<ForeignItem>,
@@ -87,26 +89,34 @@ class ReconciliationEngine(
      */
     private suspend fun snapshotInventory(player: Player): InventorySnapshot =
         suspendCancellableCoroutine { cont ->
-            scheduler.runForEntity(player, Runnable {
-                try {
-                    // Read on the player's thread, where their clicks are handled, so no movement can
-                    // start between these and the count.
-                    val version = settle.version(player.uniqueId)
-                    val settling = settle.isSettling(player.uniqueId)
-                    // Same thread and same moment as the count, so signing changes nothing it sees.
-                    ownershipManager.signOwnMarks(player)
-                    cont.resume(InventorySnapshot(
-                        ownedCounts = ownershipManager.snapshotOwnedDeep(player, trackedMaterials),
-                        foreignItems = ownershipManager.findForeignItemsDeep(player),
-                        forged = ownershipManager.findForgedDeep(player),
-                        settleVersion = version,
-                        settling = settling,
-                        creative = player.gameMode == GameMode.CREATIVE
-                    ))
-                } catch (t: Throwable) {
-                    cont.resumeWithException(t)
+            scheduler.runForEntity(
+                player,
+                Runnable {
+                    if (!cont.isActive) return@Runnable
+                    try {
+                        // Read on the player's thread, where their clicks are handled, so no movement can
+                        // start between these and the count.
+                        val version = settle.version(player.uniqueId)
+                        val settling = settle.isSettling(player.uniqueId)
+                        // Same thread and same moment as the count, so signing changes nothing it sees.
+                        ownershipManager.signOwnMarks(player)
+                        val snap = InventorySnapshot(
+                            ownedCounts = ownershipManager.snapshotOwnedDeep(player, trackedMaterials),
+                            foreignItems = ownershipManager.findForeignItemsDeep(player),
+                            forged = ownershipManager.findForgedDeep(player),
+                            settleVersion = version,
+                            settling = settling,
+                            creative = player.gameMode == GameMode.CREATIVE
+                        )
+                        if (cont.isActive) cont.resume(snap)
+                    } catch (t: Throwable) {
+                        if (cont.isActive) cont.resumeWithException(t)
+                    }
+                },
+                onRetired = Runnable {
+                    if (cont.isActive) cont.resumeWithException(PlayerRetiredException())
                 }
-            })
+            )
         }
 
     suspend fun snapshotOwned(player: Player): Map<Material, Int> =
@@ -116,13 +126,17 @@ class ReconciliationEngine(
      * Items that just moved are in the inventory before their ledger entry is written, and a
      * movement after the count changes the ledger before it is read. Either way the two disagree,
      * so a count and its balances only stand if nothing was settling and nothing moved between
-     * them. Null when the player never stopped moving items for [SETTLE_WAIT_MS].
+     * them. Null when the player never stopped moving items for [SETTLE_WAIT_MS] or left.
      */
     private suspend fun settledSnapshot(player: Player, started: Long): Pair<InventorySnapshot, Map<Material, Int>>? {
         val playerId = player.uniqueId
         while (true) {
             if (!settle.isSettling(playerId)) {
-                val candidate = snapshotInventory(player)
+                val candidate = try {
+                    snapshotInventory(player)
+                } catch (_: PlayerRetiredException) {
+                    return null
+                }
                 if (!candidate.settling) {
                     val balances = trackedMaterials.associateWith { ledgerStorage.getBalance(playerId, it) }
                     if (!settle.isSettling(playerId) && settle.version(playerId) == candidate.settleVersion) {

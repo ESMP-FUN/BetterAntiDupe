@@ -24,7 +24,7 @@ plugin's messages:
 
 <figure><img src="../.gitbook/assets/tour-language.png" alt="The tour window on question 1 of 10, 'Which language should messages use?'"><figcaption></figcaption></figure>
 
-Click yours. Emerald SMP keeps **English**.
+Click yours, or leave it on **English**.
 
 Every question looks the same:
 

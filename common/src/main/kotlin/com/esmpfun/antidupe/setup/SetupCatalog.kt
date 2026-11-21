@@ -3,8 +3,9 @@ package com.esmpfun.antidupe.setup
 import com.esmpfun.antidupe.util.Messages
 
 /**
- * The settings `/adp setup` walks through, in order: taking items back (watch-only first, as
- * the take-back switch depends on it) and its limits, then alerts, then the rest. Every one is
+ * The settings `/adp setup` walks through, in order: language first so the rest of the tour
+ * shows in the admin's chosen language, then taking items back (watch-only first, as the
+ * take-back switch depends on it) and its limits, then alerts, then the rest. Every one is
  * applied by the same reload as `/adp reload`, so a change works straight away. To add a step,
  * add it here and its `setup.steps.<id>` text in messages.yml; `SetupCatalogPathsTest` checks
  * the path exists.
@@ -14,6 +15,11 @@ object SetupCatalog {
     private val severities = listOf("CRITICAL", "HIGH", "MEDIUM", "LOW")
 
     val steps: List<SetupStep> = listOf(
+        SetupStep.Choice(
+            "language", "language",
+            options = listOf("en", "pt_BR", "es", "de", "ru", "pl").map { ChoiceOption(it.lowercase(), "setup.steps.language.options.${it.lowercase()}", it) },
+            formatCurrent = { language(it) },
+        ),
         SetupStep.Toggle("watch-only", "shadow_mode", default = true),
         SetupStep.Toggle("take-back", "auto_delete_dupes", default = false),
         SetupStep.Choice(
@@ -41,14 +47,9 @@ object SetupCatalog {
         SetupStep.Choice(
             "creative", "leaving_creative_mode",
             options = listOf("RECORD", "ALERT").map { ChoiceOption(it.lowercase(), "setup.steps.creative.options.${it.lowercase()}", it) },
-            formatCurrent = { (it as? String)?.uppercase()?.let { v -> if (v == "RECORD") "Only note it down (default)" else "Also alert staff" } ?: "not set" },
+            formatCurrent = { creative(it) },
         ),
         SetupStep.Toggle("shutdown", "prevent-shutdown-dupers", default = true),
-        SetupStep.Choice(
-            "language", "language",
-            options = listOf("en", "pt_BR", "es", "de", "ru", "pl").map { ChoiceOption(it.lowercase(), "setup.steps.language.options.${it.lowercase()}", it) },
-            formatCurrent = { language(it) },
-        ),
     )
 
     fun stepAt(index: Int): SetupStep? = steps.getOrNull(index)
@@ -56,33 +57,46 @@ object SetupCatalog {
 
     /** Uses the step's own button label, so "Currently" names one of the buttons. */
     private fun severity(value: Any?, default: String, step: String): String {
-        val v = (value as? String)?.uppercase() ?: return "not set"
+        val v = (value as? String)?.uppercase() ?: return Messages.msg("setup.ui.not-set")
         val text = if (v in severities) Messages.msg("setup.steps.$step.options.${v.lowercase()}") else v
-        return if (v == default) "$text (default)" else text
+        return if (v == default) Messages.msg("setup.ui.default-suffix", "value" to text) else text
     }
 
     private fun limit(value: Any?): String {
-        val n = (value as? Number)?.toInt() ?: return "not set"
+        val n = (value as? Number)?.toInt() ?: return Messages.msg("setup.ui.not-set")
         return when {
-            n <= 0 -> "No limit (default)"
-            n == 64 -> "One stack (64 items)"
-            else -> "$n items"
+            n <= 0 -> Messages.msg("setup.ui.default-suffix", "value" to Messages.msg("setup.ui.value-no-limit"))
+            n == 64 -> Messages.msg("setup.ui.value-one-stack")
+            else -> Messages.msg("setup.ui.value-items", "count" to n)
         }
     }
 
     private fun seconds(value: Any?): String {
-        val s = (value as? Number)?.toInt() ?: return "not set"
-        val text = if (s >= 60 && s % 60 == 0) (if (s == 60) "1 minute" else "${s / 60} minutes") else "$s seconds"
-        return if (s == 30) "$text (default)" else text
+        val s = (value as? Number)?.toInt() ?: return Messages.msg("setup.ui.not-set")
+        val text = when {
+            s >= 60 && s % 60 == 0 -> {
+                val m = s / 60
+                if (m == 1) Messages.msg("setup.ui.value-1-minute")
+                else Messages.msg("setup.ui.value-minutes", "count" to m)
+            }
+            else -> Messages.msg("setup.ui.value-seconds", "count" to s)
+        }
+        return if (s == 30) Messages.msg("setup.ui.default-suffix", "value" to text) else text
+    }
+
+    private fun creative(value: Any?): String = when ((value as? String)?.uppercase()) {
+        null -> Messages.msg("setup.ui.not-set")
+        "RECORD" -> Messages.msg("setup.ui.default-suffix", "value" to Messages.msg("setup.ui.creative-record"))
+        else -> Messages.msg("setup.ui.creative-alert")
     }
 
     private fun language(value: Any?): String = when ((value as? String)?.lowercase()?.replace('-', '_')) {
         "en", null -> "English"
-        "pt_br" -> "Portuguese (Brazil)"
-        "es" -> "Spanish"
-        "de" -> "German"
-        "ru" -> "Russian"
-        "pl" -> "Polish"
+        "pt_br" -> "Português"
+        "es" -> "Español"
+        "de" -> "Deutsch"
+        "ru" -> "Русский"
+        "pl" -> "Polski"
         else -> value
     }
 }

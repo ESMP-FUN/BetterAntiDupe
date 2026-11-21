@@ -24,7 +24,7 @@ plugins {
 }
 
 group = "com.esmpfun"
-version = "4.9.0"
+version = "4.9.5"
 project(":api").version = version
 
 // ============================================================================
@@ -141,7 +141,7 @@ dependencies {
     implementation(project(":adapter-v26_4"))
 
     proguardSpigot("org.spigotmc:spigot-api:1.21.11-R0.1-SNAPSHOT") { isTransitive = false }
-    proguardLibraries("io.papermc.paper:paper-api:$paper263")
+    proguardLibraries("io.papermc.paper:paper-api:$paper264")
     proguardLibraries("io.netty:netty-transport:4.1.101.Final")
     proguardLibraries("io.netty:netty-codec:4.1.101.Final")
     proguardLibraries("io.netty:netty-handler:4.1.101.Final")

@@ -127,3 +127,11 @@ OPLETTEN*.txt
 .firecrawl/
 run263/
 runspigot263/
+*-java-server/
+replay_pid*.log
+
+# Eclipse / IDE build output
+.classpath
+.project
+.settings/
+bin/

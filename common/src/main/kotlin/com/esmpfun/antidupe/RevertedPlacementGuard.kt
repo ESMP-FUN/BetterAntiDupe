@@ -42,8 +42,10 @@ class RevertedPlacementGuard(
         // every replaced spot is checked once the real block is back.
         val spots = replaced.map { it.location }
         val player = event.player
-        // The container is restored after this event returns.
-        scheduler.runForEntityLater(player, 1L, Runnable { for (spot in spots) restore(player, spot) })
+        // The container is restored after this event returns. Run on each spot's own region thread.
+        for (spot in spots) {
+            scheduler.runAtLocationLater(spot, 1L, Runnable { restore(player, spot) })
+        }
     }
 
     private fun restore(player: Player, spot: Location) {

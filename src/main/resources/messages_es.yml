@@ -130,3 +130,138 @@ commands:
     fail-error: "&c  Error: {error}"
     fail-broken: "&c  Rota en: {entry}"
     fail-last-valid: "&c  Última válida: {entry}"
+
+setup:
+  intro:
+    - "&6&l¡Bienvenido a la configuración de BetterAntiDupe!"
+    - "&7Repasaremos los ajustes principales uno por uno. Lee qué hace cada uno y elige una respuesta, o pulsa Saltar para dejarlo tal como está. Nada es obligatorio, y puedes pausar o detener el recorrido cuando quieras."
+  complete:
+    - "&a&l¡Todo listo!"
+    - "&7Has terminado de revisar los ajustes principales. Ejecuta &e/adp setup&7 otra vez cuando quieras, o ajusta el resto en &fconfig.yml&7."
+    - "&7Todo lo que elegiste ya está funcionando; no hace falta reiniciar."
+  reminder: "&e¿Nuevo en BetterAntiDupe? Haz un recorrido rápido por los ajustes principales. Nada es obligatorio."
+  reminder-button: "&a&l[Iniciar /adp setup]"
+  reminder-resume: "&eEmpezaste el recorrido de configuración de BetterAntiDupe pero no lo terminaste."
+  reminder-resume-button: "&a&l[Continuar]"
+  usage: "&cUsa &e/adp setup&c para empezar el recorrido, o &e/adp setup continue&c para seguir donde lo pausaste."
+  player-only: "&cEl recorrido de configuración funciona dentro del juego. Entra al servidor y escribe &e/adp setup&c allí."
+  missing-option: "&cA ese botón le falta su opción. Vuelve a pulsarlo dentro del recorrido."
+  invalid-step: "&cEse paso de configuración no existe. Empieza de nuevo con &e/adp setup&c."
+  requires-plugin: "&7Esa opción necesita el plugin &e{plugin}&7, que no está instalado."
+  paused: "&eConfiguración pausada. Escribe &6/adp setup continue&e para seguir donde lo dejaste."
+  stopped: "&7Configuración detenida. Puedes volver a abrirla cuando quieras con &e/adp setup&7."
+  ui:
+    dialog-title: "Configuración de BetterAntiDupe ({step}/{total})"
+    chat-header: "&3&m                    &r &6Ajustes &7({step}/{total}) &3&m                    "
+    complete-title: "Configuración completa"
+    currently: "Ahora mismo: "
+    "on": "Activado"
+    "off": "Desactivado"
+    turn-on: "Activar"
+    turn-off: "Desactivar"
+    turn-on-hover: "Activar esto"
+    turn-off-hover: "Desactivar esto"
+    use-hover: "Usar esta opción"
+    back: "Atrás"
+    back-hover: "Volver a la pregunta anterior"
+    skip: "Saltar"
+    skip-hover: "Dejarlo como está y seguir"
+    pause: "Pausar"
+    pause-hover: "Seguir luego con /adp setup continue"
+    stop: "Detener"
+    stop-hover: "Terminar el recorrido"
+    done: "Listo"
+    cpu-use: "Uso de CPU: "
+    requires-plugin-button: "{plugin} no está instalado"
+    reminder-hover: "Abre el recorrido de configuración"
+    not-set: "sin definir"
+    default-suffix: "{value} (por defecto)"
+    value-no-limit: "Sin límite"
+    value-one-stack: "Un stack (64 objetos)"
+    value-items: "{count} objetos"
+    value-1-minute: "1 minuto"
+    value-minutes: "{count} minutos"
+    value-seconds: "{count} segundos"
+    severity-critical: "Solo cuando sea seguro"
+    severity-high: "Pruebas sólidas"
+    severity-medium: "Exceso claro"
+    severity-low: "Cualquier exceso"
+    creative-record: "Solo anotarlo"
+    creative-alert: "También avisar al staff"
+  steps:
+    watch-only:
+      title: "¿Solo vigilar y no retirar objetos?"
+      desc:
+        - "Mientras esté activado, el plugin registra y avisa, pero nunca quita nada a ningún jugador."
+        - "&aActivado&7 = solo vigilar y avisar (recomendado mientras te acostumbras a las alertas). &cDesactivado&7 = la siguiente pregunta decide si se retiran los objetos duplicados."
+    take-back:
+      title: "¿Retirar automáticamente los objetos duplicados?"
+      desc:
+        - "Cuando el plugin esté suficientemente seguro, retira solo la cantidad extra que el jugador no pueda justificar, y solo objetos marcados por él. Nada más de su inventario se toca."
+        - "Esto solo funciona si la opción anterior de solo vigilar está &cDesactivada&7."
+        - "&aActivado&7 = se retiran los objetos extra. &cDesactivado&7 = recibes el aviso y decides tú."
+    take-back-sure:
+      title: "¿Qué tan seguro debe estar antes de retirar objetos?"
+      desc:
+        - "Solo importa si la retirada automática está activada. Un nivel más estricto reduce las retiradas y evita casi por completo quitar algo conseguido de forma legítima."
+      options:
+        critical: "Solo si es seguro"
+        high: "Pruebas sólidas"
+        medium: "Exceso claro"
+        low: "Cualquier extra"
+    take-back-limit:
+      title: "¿Máximo de objetos a retirar de una vez?"
+      desc:
+        - "Una red de seguridad: el plugin nunca retira más de esta cantidad en una sola acción. Por ejemplo, elegir un stack equivale a 64 objetos como máximo."
+      options:
+        "0": "Sin límite"
+        "16": "16 objetos"
+        "64": "Un stack"
+        "256": "4 stacks"
+    tell-player:
+      title: "¿Avisar al jugador cuando se retiran objetos?"
+      desc:
+        - "&aActivado&7 = el jugador recibe un mensaje indicando que se retiraron los objetos extra. &cDesactivado&7 = ocurre en silencio y solo figura en la consola y en el historial del objeto."
+    alert-level:
+      title: "¿Qué alertas llegan a Discord, Telegram o Slack?"
+      desc:
+        - "Solo las alertas igual o más graves que este nivel se envían a tus canales, para que pequeños desajustes no los saturen. Los administradores dentro del juego siguen viendo todas."
+        - "Esto solo aplica cuando hayas configurado un canal en config.yml."
+      options:
+        low: "Todas las alertas"
+        medium: "Media o superior"
+        high: "Solo graves"
+        critical: "Solo seguras"
+    alert-gap:
+      title: "¿Tiempo mínimo entre alertas repetidas?"
+      desc:
+        - "Si el mismo jugador sigue activando la misma alerta con el mismo objeto, tus canales la reciben una vez y esperan este tiempo antes de volver a avisar. Evita que un incidente se convierta en cincuenta mensajes."
+      options:
+        "10": "10 segundos"
+        "30": "30 segundos"
+        "60": "1 minuto"
+        "300": "5 minutos"
+    creative:
+      title: "¿Qué ocurre al salir del modo creativo?"
+      desc:
+        - "En creativo los objetos se crean de la nada, así que todo lo que lleve el jugador al volver a supervivencia pasa a ser su nuevo registro."
+        - "&fSolo anotarlo&7 conviene si el staff construye en creativo. &fTambién avisar al staff&7 te avisa si alguien sale con más objetos vigilados que antes, ideal si muy pocas personas usan creativo."
+      options:
+        record: "Solo anotarlo"
+        alert: "También avisar"
+    shutdown:
+      title: "¿Cerrar menús abiertos al apagar el servidor?"
+      desc:
+        - "Durante un reinicio, un objeto movido en el instante justo puede guardarse dos veces y duplicarse al arrancar. Cerrar todos los cofres y menús abiertos antes lo evita."
+        - "&aActivado&7 = los menús se cierran al detener el servidor (sin coste). &cDesactivado&7 = quedan abiertos hasta el final."
+    language:
+      title: "¿Qué idioma deben usar los mensajes?"
+      desc:
+        - "El idioma para todos los mensajes dentro del juego de este plugin. Tus cambios en messages.yml siempre mandan, y cualquier clave que falte se mostrará en inglés."
+      options:
+        en: "English"
+        pt_br: "Português"
+        es: "Español"
+        de: "Deutsch"
+        ru: "Русский"
+        pl: "Polski"

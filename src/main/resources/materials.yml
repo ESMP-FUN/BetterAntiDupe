@@ -2,8 +2,8 @@
 # BetterAntiDupe - Tracked Materials
 # =============================================================================
 # This file is intentionally separate from config.yml so it can grow long
-# without cluttering the main configuration. Edit freely; restart or reload
-# the plugin to apply changes.
+# without cluttering the main configuration. Edit freely; restart the server
+# to apply changes.
 #
 # Items are written with their vanilla Minecraft names, in capitals with
 # underscores, exactly as they appear in game commands: DIAMOND_BLOCK,
@@ -43,7 +43,6 @@ tracked_materials:
 # here for anything else does nothing.
 # -----------------------------------------------------------------------------
 tmar_limits:
-  ANCIENT_DEBRIS: 20
   DIAMOND_BLOCK: 10
   ENCHANTED_GOLDEN_APPLE: 2
   NETHERITE_INGOT: 15

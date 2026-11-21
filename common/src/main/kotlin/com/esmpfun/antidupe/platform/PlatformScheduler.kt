@@ -1,5 +1,6 @@
 package com.esmpfun.antidupe.platform
 
+import org.bukkit.Location
 import org.bukkit.entity.Entity
 import org.bukkit.plugin.Plugin
 import java.util.function.Consumer
@@ -21,6 +22,10 @@ class PlatformScheduler(private val plugin: Plugin) {
     /** Null on Spigot and on Paper older than 1.20.4. */
     private val paperGlobalScheduler: Any? = try {
         server.javaClass.getMethod("getGlobalRegionScheduler").invoke(server)
+    } catch (e: Throwable) { null }
+
+    private val paperRegionScheduler: Any? = try {
+        server.javaClass.getMethod("getRegionScheduler").invoke(server)
     } catch (e: Throwable) { null }
 
     private val paperAsyncScheduler: Any? = try {
@@ -52,22 +57,64 @@ class PlatformScheduler(private val plugin: Plugin) {
         server.scheduler.runTask(plugin, task)
     }
 
-    /** On Folia the task follows [entity] across teleports between regions. */
-    fun runForEntity(entity: Entity, task: Runnable) {
+    /** On Folia the task follows [entity] across teleports between regions; [onRetired] runs if [entity] is gone. */
+    fun runForEntity(entity: Entity, task: Runnable, onRetired: Runnable? = null) {
         if (runningNow(task)) return
         if (isFolia) {
             try {
                 val entityScheduler = entity.javaClass.getMethod("getScheduler").invoke(entity)
-                entityScheduler.javaClass.getMethod(
+                val scheduled = entityScheduler.javaClass.getMethod(
                     "run",
                     Plugin::class.java,
                     Consumer::class.java,
                     Runnable::class.java
-                ).invoke(entityScheduler, plugin, Consumer<Any> { task.run() }, null)
+                ).invoke(entityScheduler, plugin, Consumer<Any> { task.run() }, onRetired)
+                if (scheduled == null) onRetired?.run()
                 return
             } catch (e: Throwable) { /* fall through */ }
         }
         server.scheduler.runTask(plugin, task)
+    }
+
+    /** Runs on the region thread owning [location] on Folia, or the main thread elsewhere. */
+    fun runAtLocation(location: Location, task: Runnable) {
+        if (runningNow(task)) return
+        if (isFolia) {
+            val sched = paperRegionScheduler
+            if (sched != null) {
+                try {
+                    sched.javaClass.getMethod(
+                        "execute",
+                        Plugin::class.java,
+                        Location::class.java,
+                        Runnable::class.java
+                    ).invoke(sched, plugin, location, task)
+                    return
+                } catch (e: Throwable) { /* fall through */ }
+            }
+        }
+        server.scheduler.runTask(plugin, task)
+    }
+
+    /** Runs on the region thread owning [location] after [delayTicks] on Folia, or the main thread elsewhere. */
+    fun runAtLocationLater(location: Location, delayTicks: Long, task: Runnable) {
+        if (runningNow(task)) return
+        if (isFolia) {
+            val sched = paperRegionScheduler
+            if (sched != null) {
+                try {
+                    sched.javaClass.getMethod(
+                        "runDelayed",
+                        Plugin::class.java,
+                        Location::class.java,
+                        Consumer::class.java,
+                        Long::class.javaPrimitiveType
+                    ).invoke(sched, plugin, location, Consumer<Any> { task.run() }, delayTicks.coerceAtLeast(1L))
+                    return
+                } catch (e: Throwable) { /* fall through */ }
+            }
+        }
+        server.scheduler.runTaskLater(plugin, task, delayTicks)
     }
 
     /** The task still runs if [entity] is retired before the delay elapses. */

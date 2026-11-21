@@ -50,7 +50,7 @@ class SetupReminderService(
     }
 
     private fun hint(textKey: String, buttonKey: String, command: String) =
-        Chat.line().text(Messages.msg(textKey) + " ").clickRunCommand(Messages.msg(buttonKey), command, "Opens the setup tour").build()
+        Chat.line().text(Messages.msg(textKey) + " ").clickRunCommand(Messages.msg(buttonKey), command, Messages.msg("setup.ui.reminder-hover")).build()
 
     /** A second later, once the join has settled, on the player's own region thread. */
     private fun send(player: Player, action: () -> Unit) {
