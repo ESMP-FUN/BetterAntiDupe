@@ -24,8 +24,13 @@ identifiers, so vanilla behaviour is preserved.
 2. Drop it into `plugins/`.
 3. Start the server. It generates its config and a SQLite database, then loads.
 
-That's it - the defaults are production-ready. To confirm it's working, mine a
-diamond block and run `/adp ledger balance <your-name>`.
+That's it, the defaults are ready for a live server. Join as an operator and
+`/adp setup` walks you through the main settings one question at a time:
+
+![The setup tour asking whether to only watch](docs/.gitbook/assets/tour-watch-only.png)
+
+To confirm it's working, mine a diamond block and run
+`/adp ledger balance <your-name>`.
 
 | | |
 |---|---|
@@ -82,7 +87,9 @@ folder is stripped. Turn it off with `metrics.error_reporting: false`.
 The full guide lives in **[docs/](docs/README.md)**, also published at
 [esmp-fun.gitbook.io](https://esmp-fun.gitbook.io/plugins/better-anti-dupe).
 
-- [Install](docs/getting-started/install.md)
+- [Install it](docs/getting-started/install.md)
+- [Run the setup tour](docs/getting-started/setup-tour.md)
+- [Your first alert](docs/getting-started/first-alert.md)
 - [When an alert comes in](docs/using-it/when-an-alert-comes-in.md)
 - [Testing in-game](docs/help/testing-in-game.md)
 - [Troubleshooting](docs/help/troubleshooting.md)

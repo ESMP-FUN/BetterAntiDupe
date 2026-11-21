@@ -1,12 +1,12 @@
-# Install
+# Install it
 
 This page gets BetterAntiDupe running on one server. It takes about two minutes, and when you are done your server is already protected.
 
-Running several servers that players move between? Do this on each one, then read [Pick where records are kept](storage.md).
+Running several servers that players move between? Do this on each one, then read [More than one server: share records](storage.md).
 
 ## 1. Download it
 
-Download `BetterAntiDupe-4.9.0.jar`. The same jar works on Minecraft 1.21.x and 26.x. When the server starts, the console says which Minecraft version it is set up for, for example `Using the support for Minecraft 26.3.`
+Download `BetterAntiDupe-4.9.0.jar`. The same jar works on Minecraft 1.21.x and 26.x. When the server starts, the console says which Minecraft version it is set up for, for example `Using the support for Minecraft 26.2 to 26.3.`
 
 ## 2. Put it in your plugins folder
 
@@ -14,11 +14,12 @@ Stop the server, drop the jar into `plugins/`, and start it again.
 
 ## 3. Check it started
 
-Look in your console for these two lines:
+Look in your console for these lines:
 
 ```
-[BetterAntiDupe] === BetterAntiDupe v4.8.0 ===
-[BetterAntiDupe] === BetterAntiDupe enabled successfully ===
+[DUPE »] === BetterAntiDupe v4.9.0 ===
+[DUPE »] Using the support for Minecraft 26.2 to 26.3.
+[DUPE »] === BetterAntiDupe enabled successfully ===
 ```
 
 If you see `Failed to initialize BetterAntiDupe` instead, the line after it says why. [Troubleshooting](../help/troubleshooting.md) covers the usual causes.
@@ -59,10 +60,6 @@ The new version is used from the next restart. If it gives you trouble, `/adp up
 
 </details>
 
-## Next
-
-* **Want duped items taken back automatically?** [Watch only, or take dupes back](watch-or-remove.md)
-* **Want alerts on your phone?** [Alerts in Discord, Telegram or Slack](../using-it/alerts-outside-the-game.md)
-* **Staff who should see alerts?** [Commands & permissions](../reference/commands-and-permissions.md)
-
 Changed a setting later? `/adp reload` applies most of them without a restart.
+
+Next: [Run the setup tour](setup-tour.md).

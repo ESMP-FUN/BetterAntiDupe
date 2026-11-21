@@ -75,3 +75,5 @@ tmar_limits:
 Only items on your `tracked_materials` list are counted, so a limit for anything else does nothing. Leave an item out to stop counting its rate.
 
 </details>
+
+Next: [Auction houses, shops and other plugins](other-plugins.md).

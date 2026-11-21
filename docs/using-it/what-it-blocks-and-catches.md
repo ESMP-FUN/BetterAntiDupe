@@ -190,3 +190,5 @@ Every record is sealed to the one before it. If anyone edits the database by han
 * **Spectator mode.** Nothing a spectator does is recorded.
 * **Creative mode** is recorded, but balance checks wait until the player leaves it, because items can be made out of nothing there. When they switch back, what they carry becomes their new record. See `leaving_creative_mode` in [Settings](../reference/settings.md).
 * **Items other plugins hand out** (shops, kits, crates) are not seen being given. The plugin notices the gap the next time it checks and quietly accepts what the player really has, so this does not cause alerts.
+
+Next: [Choosing what gets tracked](what-gets-tracked.md).

@@ -6,6 +6,10 @@ An alert in chat looks like this:
 [DUPE] Steve (BALANCE_DISCREPANCY) DIAMOND_BLOCK: Has 20 but ledger shows 12 (excess: 8)
 ```
 
+In game it is a red line with two buttons:
+
+<figure><img src="../.gitbook/assets/alert-chat.png" alt="A real BALANCE_DISCREPANCY alert in chat with the [History] and [Stash] buttons"><figcaption></figcaption></figure>
+
 Steve is carrying 20 diamond blocks, but the plugin only saw them gain 12. The 8 extra are what you are looking into. Here is how to go from that line to a decision, in about five minutes.
 
 If you can use the `/adp ledger` commands, the alert ends with two buttons: **[History]** and **[Stash]**. They run steps 3 and 4 below for that player in one click.
@@ -26,12 +30,14 @@ That is the item's Material name, the name Minecraft itself uses in commands lik
 
 ```
 Current Suspects (3)
-  R4gnar95 - 19 violations (ENCHANTED_BOOK: +60)
-  Arnold_158 - 8 violations (NETHERITE_INGOT: +50)
-  facurolo - 7 violations (DIAMOND: +69)
+  R4gnar95 - alerts: 19 (ENCHANTED_BOOK: +60)
+  Arnold_158 - alerts: 8 (NETHERITE_INGOT: +50)
+  facurolo - alerts: 7 (DIAMOND: +69)
 ```
 
-The worst are at the top. `19 violations` is how many times R4gnar95 was caught carrying more than they should. `ENCHANTED_BOOK: +60` is the item with the most extras across all of those, added up. That is usually what they are duping.
+<figure><img src="../.gitbook/assets/ledger-suspects.png" alt="The Current Suspects list in chat"><figcaption></figcaption></figure>
+
+The worst are at the top. `alerts: 19` is how many times R4gnar95 was caught carrying more than they should. `ENCHANTED_BOOK: +60` is the item with the most extras across all of those, added up. That is usually what they are duping.
 
 Players who logged off stay on this list, and their names tab-complete in the commands below.
 
@@ -43,13 +49,17 @@ If they are online:
 /adp ledger reconcile R4gnar95
 ```
 
-This counts what they are carrying right now, including inside shulker boxes and bundles, and compares it to their record. `No discrepancies found` means they are clean at this moment. `DUPE DETECTED!` lists each item with how many they have and how many they should have.
+<figure><img src="../.gitbook/assets/ledger-reconcile.png" alt="The DUPE DETECTED! lines for the test player"><figcaption></figcaption></figure>
+
+This counts what they are carrying right now, including inside shulker boxes and bundles, and compares it to their record. `No discrepancies found` means they are clean at this moment. `DUPE DETECTED!` lists each item with how many they have and how many they should have. A line like `DIAMOND_BLOCK: 28/10 in 5min` means they gained 28 in the last five minutes, more than the 10 that `materials.yml` allows in that time.
 
 ## 3. See when it happened
 
 ```
 /adp ledger history R4gnar95
 ```
+
+<figure><img src="../.gitbook/assets/ledger-history.png" alt="The history lines with + and - entries"><figcaption></figcaption></figure>
 
 Their last 15 records, newest first. A `+` is something gained, a `-` something lost. `[3W]` at the end means three other players were nearby to see it.
 
@@ -66,6 +76,8 @@ Recent stashes by R4gnar95 (newest first, click coords to TP)
 2026-05-31 14:22:05 16xENCHANTED_BOOK -> CHEST @ [world 102, 64, -200]
 2026-05-31 14:21:48 8xDIAMOND_BLOCK -> BARREL @ [world 102, 65, -200]
 ```
+
+<figure><img src="../.gitbook/assets/ledger-stash.png" alt="The stash lines with green coordinates"><figcaption></figcaption></figure>
 
 **Click the green coordinates** to teleport straight there, even in another world.
 
@@ -95,6 +107,8 @@ If they are online:
 ```
 /adp ledger remove R4gnar95
 ```
+
+<figure><img src="../.gitbook/assets/ledger-remove.png" alt="The list of extras with the [Remove] button"><figcaption></figcaption></figure>
 
 This lists what they carry beyond their record, and nothing is touched yet. Click **[Remove]** to take back only those extras. It counts again at the moment you click, so it never takes more than is extra right then.
 
@@ -180,3 +194,5 @@ You set `leaving_creative_mode: ALERT`, and someone switched out of creative mod
 {% hint style="info" %}
 **Staff who should see alerts but not use commands** need only `antidupe.alerts`. See [Commands & permissions](../reference/commands-and-permissions.md).
 {% endhint %}
+
+Next: [Alerts in Discord, Telegram or Slack](alerts-outside-the-game.md).

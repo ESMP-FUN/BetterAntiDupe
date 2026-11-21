@@ -147,15 +147,15 @@ commands:
   suspects:
     none: "&aNo current suspects"
     header: "&6&lCurrent Suspects ({count})"
-    legend: "&8&o(material: +N = cumulative excess of that material across all violations)"
-    entry: "  &e{player} &7- &c{violations} violations"
+    legend: "&8&o(the item they had the most extra of, added up over all their alerts)"
+    entry: "  &e{player} &7- alerts: &c{violations}"
     entry-top-material: " &7({material}: +{excess})"
     hint: "&8&oUse &e/adp ledger stash <player> &8&oto see where they stashed items."
 
   stash:
     none: "&7No recorded stash events for &e{player}"
     header: "&6&lRecent stashes by {player} &7(newest first, click coords to TP)"
-    line-prefix: "&7{time} &f{qty}&7x&e{material} &7-> &b{container} &7@ "
+    line-prefix: "&7{time} &f{qty}&7x &e{material} &7-> &b{container} &7@ "
     location: "&a&n[{world} {x}, {y}, {z}]"
     location-unknown: "&8(location unknown)"
     hover: "Click to teleport to this stash"

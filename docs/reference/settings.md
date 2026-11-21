@@ -14,7 +14,7 @@ After editing, run `/adp reload`. Messages, language, alerts and removal setting
 | -------------------- | ---- |
 | `[Part 1]` Alerts in Discord, Telegram, Slack | [Alerts in Discord, Telegram or Slack](../using-it/alerts-outside-the-game.md) |
 | `[Part 2]` What happens to a caught duper | [Watch only, or take dupes back](../getting-started/watch-or-remove.md) |
-| `[Part 3]` Several servers | [Pick where records are kept](../getting-started/storage.md) |
+| `[Part 3]` Several servers | [More than one server: share records](../getting-started/storage.md) |
 | `[Blocking]` The dupe machines | [What it blocks and catches](../using-it/what-it-blocks-and-catches.md) |
 | `language` | [Language and messages](../using-it/language-and-messages.md) |
 | `materials.yml` | [Choosing what gets tracked](../using-it/what-gets-tracked.md) |

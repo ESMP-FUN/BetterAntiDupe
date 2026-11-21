@@ -91,7 +91,7 @@ commands:
   stash:
     none: "&7Brak zarejestrowanych skrytek gracza &e{player}"
     header: "&6&lOstatnie skrytki gracza {player} &7(najnowsze pierwsze, kliknij współrzędne, by się teleportować)"
-    line-prefix: "&7{time} &f{qty}&7x&e{material} &7-> &b{container} &7@ "
+    line-prefix: "&7{time} &f{qty}&7x &e{material} &7-> &b{container} &7@ "
     location: "&a&n[{world} {x}, {y}, {z}]"
     location-unknown: "&8(miejsce nieznane)"
     hover: "Kliknij, aby teleportować się do tej skrytki"

@@ -91,7 +91,7 @@ commands:
   stash:
     none: "&7Keine Verstecke für &e{player} &7aufgezeichnet"
     header: "&6&lLetzte Verstecke von {player} &7(neueste zuerst, Koordinaten anklicken zum Teleportieren)"
-    line-prefix: "&7{time} &f{qty}&7x&e{material} &7-> &b{container} &7@ "
+    line-prefix: "&7{time} &f{qty}&7x &e{material} &7-> &b{container} &7@ "
     location: "&a&n[{world} {x}, {y}, {z}]"
     location-unknown: "&8(Ort unbekannt)"
     hover: "Klicken, um zu diesem Versteck zu teleportieren"

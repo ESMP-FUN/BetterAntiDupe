@@ -47,3 +47,5 @@ alerts:
 {% hint style="info" %}
 **The console stays in English on purpose.** That keeps error messages searchable, and makes it easier to get help when something goes wrong.
 {% endhint %}
+
+Next: [Settings the tour doesn't ask about](../getting-started/more-settings.md).

@@ -91,7 +91,7 @@ commands:
   stash:
     none: "&7Nenhum esconderijo registrado para &e{player}"
     header: "&6&lEsconderijos recentes de {player} &7(mais novos primeiro, clique para teleportar)"
-    line-prefix: "&7{time} &f{qty}&7x&e{material} &7-> &b{container} &7@ "
+    line-prefix: "&7{time} &f{qty}&7x &e{material} &7-> &b{container} &7@ "
     location: "&a&n[{world} {x}, {y}, {z}]"
     location-unknown: "&8(local desconhecido)"
     hover: "Clique para teleportar até este esconderijo"

@@ -1,33 +1,36 @@
 # Table of Contents
 
-* [Welcome](README.md)
+* [BetterAntiDupe](README.md)
 
-## Getting started
+## Start here
 
-* [Install](getting-started/install.md)
-* [Pick where records are kept](getting-started/storage.md)
+* [Install it](getting-started/install.md)
+* [Run the setup tour](getting-started/setup-tour.md)
 * [Watch only, or take dupes back](getting-started/watch-or-remove.md)
+* [Your first alert](getting-started/first-alert.md)
 
-## Using it
+## Catch a duper
 
 * [When an alert comes in](using-it/when-an-alert-comes-in.md)
 * [Alerts in Discord, Telegram or Slack](using-it/alerts-outside-the-game.md)
-* [Choosing what gets tracked](using-it/what-gets-tracked.md)
 * [What it blocks and catches](using-it/what-it-blocks-and-catches.md)
+
+## Fit it to your server
+
+* [Choosing what gets tracked](using-it/what-gets-tracked.md)
 * [Auction houses, shops and other plugins](using-it/other-plugins.md)
 * [Language and messages](using-it/language-and-messages.md)
 
+## Last steps
+
+* [Settings the tour doesn't ask about](getting-started/more-settings.md)
+* [More than one server: share records](getting-started/storage.md)
+* [Testing in-game](help/testing-in-game.md)
+
 ## Reference
 
-* [Settings](reference/settings.md)
 * [Commands & permissions](reference/commands-and-permissions.md)
-
-## For developers
-
-* [Use it from your plugin](developers/api.md)
-
-## Help
-
-* [Testing in-game](help/testing-in-game.md)
+* [Settings](reference/settings.md)
+* [Use it from your plugin (for developers)](developers/api.md)
 * [Troubleshooting](help/troubleshooting.md)
 * [FAQ](help/faq.md)

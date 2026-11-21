@@ -17,6 +17,8 @@ auto_delete_dupes: true
 
 Run `/adp reload`, or restart the server.
 
+Or run `/adp setup` and answer the first two questions: **Off**, then **On**.
+
 {% hint style="warning" %}
 **Both switches have to agree.** While `shadow_mode` is `true`, nothing is ever removed, whatever `auto_delete_dupes` says. If the two disagree, the console warns you at startup.
 {% endhint %}
@@ -83,3 +85,5 @@ on_confirm_command: "tempban {player} 7d Item duplication"
 This only runs when **you** confirm someone. The plugin never bans anyone on its own.
 
 </details>
+
+Next: [Your first alert](first-alert.md).

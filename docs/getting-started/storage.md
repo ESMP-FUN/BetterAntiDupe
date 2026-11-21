@@ -1,4 +1,4 @@
-# Pick where records are kept
+# More than one server: share records
 
 **One server?** You are already done. The plugin keeps its records in a file called `ledger.db` and needs nothing else. Skip this page.
 
@@ -40,3 +40,5 @@ The console says it connected. If it could not reach Redis, the plugin does not 
 `backend: MEMORY` keeps records in memory only and throws them away on every restart. It is for testing the plugin on a throwaway server. Never use it on a server people play on, because after each restart the plugin has no idea what anyone owns.
 
 </details>
+
+Next: [Testing in-game](../help/testing-in-game.md).

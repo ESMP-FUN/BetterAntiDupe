@@ -91,7 +91,7 @@ commands:
   stash:
     none: "&7Нет записей о тайниках у &e{player}"
     header: "&6&lНедавние тайники {player} &7(сначала новые, клик по координатам — телепорт)"
-    line-prefix: "&7{time} &f{qty}&7x&e{material} &7-> &b{container} &7@ "
+    line-prefix: "&7{time} &f{qty}&7x &e{material} &7-> &b{container} &7@ "
     location: "&a&n[{world} {x}, {y}, {z}]"
     location-unknown: "&8(место неизвестно)"
     hover: "Нажмите, чтобы телепортироваться к тайнику"

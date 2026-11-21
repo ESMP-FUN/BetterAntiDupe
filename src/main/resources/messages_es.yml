@@ -91,7 +91,7 @@ commands:
   stash:
     none: "&7No hay escondites registrados para &e{player}"
     header: "&6&lEscondites recientes de {player} &7(más nuevos primero, clic para teletransportarte)"
-    line-prefix: "&7{time} &f{qty}&7x&e{material} &7-> &b{container} &7@ "
+    line-prefix: "&7{time} &f{qty}&7x &e{material} &7-> &b{container} &7@ "
     location: "&a&n[{world} {x}, {y}, {z}]"
     location-unknown: "&8(ubicación desconocida)"
     hover: "Haz clic para teletransportarte a este escondite"

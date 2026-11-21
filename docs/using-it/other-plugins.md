@@ -96,3 +96,5 @@ ownership:
 Items from other plugins then keep the mark they arrived with, and will not stack with the player's own items. See [Settings](../reference/settings.md).
 
 </details>
+
+Next: [Language and messages](language-and-messages.md).

@@ -1,5 +1,7 @@
 package com.esmpfun.antidupe.setup
 
+import com.esmpfun.antidupe.util.Messages
+
 /**
  * The settings `/adp setup` walks through, in order: taking items back (watch-only first, as
  * the take-back switch depends on it) and its limits, then alerts, then the rest. Every one is
@@ -17,7 +19,7 @@ object SetupCatalog {
         SetupStep.Choice(
             "take-back-sure", "enforcement.min_severity",
             options = severities.map { ChoiceOption(it.lowercase(), "setup.steps.take-back-sure.options.${it.lowercase()}", it) },
-            formatCurrent = { severity(it, "HIGH") },
+            formatCurrent = { severity(it, "HIGH", "take-back-sure") },
         ),
         SetupStep.Choice(
             "take-back-limit", "enforcement.max_items_per_action",
@@ -29,7 +31,7 @@ object SetupCatalog {
         SetupStep.Choice(
             "alert-level", "notifications.min_severity",
             options = severities.reversed().map { ChoiceOption(it.lowercase(), "setup.steps.alert-level.options.${it.lowercase()}", it) },
-            formatCurrent = { severity(it, "HIGH") },
+            formatCurrent = { severity(it, "HIGH", "alert-level") },
         ),
         SetupStep.Choice(
             "alert-gap", "notifications.rate_limit_seconds",
@@ -52,15 +54,10 @@ object SetupCatalog {
     fun stepAt(index: Int): SetupStep? = steps.getOrNull(index)
     val count: Int get() = steps.size
 
-    private fun severity(value: Any?, default: String): String {
+    /** Uses the step's own button label, so "Currently" names one of the buttons. */
+    private fun severity(value: Any?, default: String, step: String): String {
         val v = (value as? String)?.uppercase() ?: return "not set"
-        val text = when (v) {
-            "CRITICAL" -> "Only when it is certain"
-            "HIGH" -> "Strong evidence"
-            "MEDIUM" -> "A clear surplus"
-            "LOW" -> "Anything at all"
-            else -> v
-        }
+        val text = if (v in severities) Messages.msg("setup.steps.$step.options.${v.lowercase()}") else v
         return if (v == default) "$text (default)" else text
     }
 

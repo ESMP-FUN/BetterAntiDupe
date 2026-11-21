@@ -123,3 +123,5 @@ A UUID is the permanent id Minecraft gives every account. A player can change th
 
 * **It cannot slow your server.** Alerts are sent in the background. If Discord or Telegram is down, the game carries on, and the console warns you once a minute until it works again.
 * **Alerts follow your language.** The text comes from your `messages.yml`, with colour codes removed.
+
+Next: [What it blocks and catches](what-it-blocks-and-catches.md).

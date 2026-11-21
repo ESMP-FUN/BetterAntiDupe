@@ -14,7 +14,7 @@ Find the problem that matches yours and open it for the fix. Most things can be 
 
 The lines right after it say why. The usual causes:
 
-* **Redis cannot be reached.** You set `storage.backend: REDIS` but the server cannot connect. Start Redis, fix the `host`, `port` or `password`, or switch back to `SQLITE`. See [Pick where records are kept](../getting-started/storage.md).
+* **Redis cannot be reached.** You set `storage.backend: REDIS` but the server cannot connect. Start Redis, fix the `host`, `port` or `password`, or switch back to `SQLITE`. See [More than one server: share records](../getting-started/storage.md).
 * **A mistake in `config.yml`.** Usually indentation: every line inside a section must start with the same number of spaces as the line above it, and never with a tab.
 
 </details>

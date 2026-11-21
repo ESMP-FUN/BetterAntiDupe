@@ -207,6 +207,8 @@ Knowing someone duped is only half the job. <br>
 One command lists where they put the items. <br>
 Click the coordinates and you're there, even in another world.
 
+![The stash list with clickable coordinates](https://raw.githubusercontent.com/ESMP-FUN/BetterAntiDupe/refs/heads/master/docs/.gitbook/assets/ledger-stash.png)
+
 More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/when-an-alert-comes-in)
 
 </details>
@@ -217,6 +219,8 @@ More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/bette
 Every alert has **[History]** and **[Stash]** buttons. <br>
 Look, decide, done. <br>
 Confirm a duper, clear a false alarm, or take the extras back.
+
+![An alert with its History and Stash buttons](https://raw.githubusercontent.com/ESMP-FUN/BetterAntiDupe/refs/heads/master/docs/.gitbook/assets/alert-chat.png)
 
 More info? [Read about it in the docs](https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/when-an-alert-comes-in)
 

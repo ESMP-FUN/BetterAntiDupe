@@ -8,8 +8,8 @@ The defaults are sensible. Most servers install it and never open the config.
 
 ## Which applies to you?
 
-* **I just want it running.** [Install](getting-started/install.md). Two minutes.
-* **I run several servers behind a proxy.** Install first, then [Pick where records are kept](getting-started/storage.md).
+* **I just want it running.** [Install it](getting-started/install.md), then [Run the setup tour](getting-started/setup-tour.md). Five minutes.
+* **I run several servers behind a proxy.** Install first, then [More than one server: share records](getting-started/storage.md).
 * **I got an alert and want to know what to do.** [When an alert comes in](using-it/when-an-alert-comes-in.md).
 * **I want duped items taken back automatically.** [Watch only, or take dupes back](getting-started/watch-or-remove.md).
 
@@ -28,7 +28,7 @@ The defaults are sensible. Most servers install it and never open the config.
 
 ## Where to start
 
-* **Setting up**: [Install](getting-started/install.md), then [Watch only, or take dupes back](getting-started/watch-or-remove.md)
+* **Setting up**: [Install it](getting-started/install.md), [Run the setup tour](getting-started/setup-tour.md), then [Your first alert](getting-started/first-alert.md)
 * **Day to day**: [When an alert comes in](using-it/when-an-alert-comes-in.md) and [Alerts in Discord, Telegram or Slack](using-it/alerts-outside-the-game.md)
 * **Making sure it works**: [Testing in-game](help/testing-in-game.md)
 

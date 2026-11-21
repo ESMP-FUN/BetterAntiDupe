@@ -141,6 +141,7 @@ Crafting, anvils, smithing tables, furnaces, villager trades, enchanting, chests
 Knowing someone duped is only half the job.
 One command lists where they put the items.
 Click the coordinates and you're there, even in another world.
+[IMG]https://raw.githubusercontent.com/ESMP-FUN/BetterAntiDupe/refs/heads/master/docs/.gitbook/assets/ledger-stash.png[/IMG]
 
 More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/when-an-alert-comes-in']Read about it in the docs[/URL]
 [/SPOILER]
@@ -148,6 +149,7 @@ More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/w
 Every alert has [B][History][/B] and [B][Stash][/B] buttons.
 Look, decide, done.
 Confirm a duper, clear a false alarm, or take the extras back.
+[IMG]https://raw.githubusercontent.com/ESMP-FUN/BetterAntiDupe/refs/heads/master/docs/.gitbook/assets/alert-chat.png[/IMG]
 
 More info? [URL='https://esmp-fun.gitbook.io/plugins/better-anti-dupe/using-it/when-an-alert-comes-in']Read about it in the docs[/URL]
 [/SPOILER]
